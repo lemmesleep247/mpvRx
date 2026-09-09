@@ -24,7 +24,7 @@ jobs:
 
     steps:
       - name: Checkout preview source
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
@@ -116,7 +116,7 @@ jobs:
 
       - name: Set up JDK 17
         if: steps.activity.outputs.should_build == 'true'
-        uses: actions/setup-java@v5
+        uses: actions/setup-java@v6
         with:
           distribution: temurin
           java-version: '17'
