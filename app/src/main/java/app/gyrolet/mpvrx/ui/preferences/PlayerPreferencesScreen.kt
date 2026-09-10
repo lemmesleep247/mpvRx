@@ -59,6 +59,7 @@ import app.gyrolet.mpvrx.ui.player.PlayerOrientation
 import app.gyrolet.mpvrx.ui.player.ResumePlaybackMode
 import app.gyrolet.mpvrx.ui.player.screenshot.ScreenshotFormat
 import app.gyrolet.mpvrx.ui.preferences.components.SwitchPreference
+import app.gyrolet.mpvrx.ui.player.PlayerActivity
 import app.gyrolet.mpvrx.ui.utils.LocalBackStack
 import app.gyrolet.mpvrx.ui.utils.LocalShowSettingsBackArrow
 import app.gyrolet.mpvrx.ui.utils.currentMpvConfigOverrideOptions
@@ -208,6 +209,25 @@ val savePositionOnQuit by preferences.savePositionOnQuit.collectAsState()
                 summary = {
                   Text(
                     stringResource(R.string.pref_video_background_playback_summary),
+                    color = MaterialTheme.colorScheme.outline,
+                  )
+                },
+              )
+
+              PreferenceDivider()
+
+              val externalDisplayProjection by preferences.externalDisplayProjection.collectAsState()
+              SwitchPreference(
+                modifier = Modifier.settingsSearchTarget(R.string.pref_player_external_display_projection_title),
+                value = externalDisplayProjection,
+                onValueChange = { enabled ->
+                  preferences.externalDisplayProjection.set(enabled)
+                  (context as? PlayerActivity)?.setExternalDisplayProjectionEnabled(enabled)
+                },
+                title = { Text(stringResource(R.string.pref_player_external_display_projection_title)) },
+                summary = {
+                  Text(
+                    stringResource(R.string.pref_player_external_display_projection_summary),
                     color = MaterialTheme.colorScheme.outline,
                   )
                 },
