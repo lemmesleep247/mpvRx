@@ -929,40 +929,24 @@ class PlayerViewModel : ViewModel(),
       PlaybackSession.state,
     ) { tracks, path, streamPath, session ->
       val currentPath = path?.takeIf { it.isNotBlank() } ?: streamPath
-      val queuedItem = session.currentItem
-      val itemDeclaresAudio =
-        queuedItem?.mimeType?.startsWith("audio/", ignoreCase = true) == true ||
-          (queuedItem != null && (
-            queuedItem.originalUri.contains("/Audio/", ignoreCase = true) ||
-            queuedItem.originalUri.contains("includeItemTypes=Audio", ignoreCase = true) ||
-            queuedItem.playableUri.contains("/Audio/", ignoreCase = true)
-          )) ||
-          sequenceOf(queuedItem?.originalUri, queuedItem?.playableUri, queuedItem?.title)
-            .filterNotNull()
-            .any { candidate -> candidate.fileExtension() in FileTypeUtils.AUDIO_EXTENSIONS }
-      val isFileAudioExt =
-        currentPath?.let { p ->
-          val ext = p.fileExtension()
-          ext in FileTypeUtils.AUDIO_EXTENSIONS
-        } ?: false
-      val isFileVideoExt =
-        (currentPath?.let { it.fileExtension() in FileTypeUtils.VIDEO_EXTENSIONS } ?: false) ||
-          sequenceOf(queuedItem?.originalUri, queuedItem?.playableUri, queuedItem?.title)
-            .filterNotNull()
-            .any { candidate -> candidate.fileExtension() in FileTypeUtils.VIDEO_EXTENSIONS }
-
-      val hasRealVideo = tracks.any { it.isVideo && !it.isAlbumArtwork }
-      val detectedAudio =
-        when {
-          // A real video track or a known video container always wins. During demux startup mpv
-          // can briefly expose only the audio track; treating that transient state as final made
-          // MP4/MKV files permanently switch to the audio-player UI.
-          hasRealVideo || isFileVideoExt -> false
-          itemDeclaresAudio || isFileAudioExt -> true
-          tracks.isNotEmpty() -> tracks.any { it.isAudio }
-          else -> false
+      val queuedItem = session.currentItem ?: return@combine false
+      when (queuedItem.declaredMediaKind()) {
+        DeclaredPlaybackMediaKind.VIDEO -> false
+        DeclaredPlaybackMediaKind.AUDIO -> true
+        DeclaredPlaybackMediaKind.UNKNOWN -> {
+          if (session.phase !in setOf(PlaybackPhase.READY, PlaybackPhase.BACKGROUND) ||
+            currentPath == null || currentPath !in listOf(queuedItem.originalUri, queuedItem.playableUri)
+          ) {
+            return@combine false
+          }
+          when {
+            tracks.any { it.isVideo && !it.isAlbumArtwork } -> false
+            currentPath.fileExtension() in FileTypeUtils.VIDEO_EXTENSIONS -> false
+            currentPath.fileExtension() in FileTypeUtils.AUDIO_EXTENSIONS -> true
+            else -> tracks.any { it.isAudio }
+          }
         }
-      detectedAudio
+      }
     }.distinctUntilChanged()
       .stateIn(viewModelScope, SharingStarted.Eagerly, false)
 
@@ -5272,7 +5256,7 @@ val isBrightnessSliderShown = MutableStateFlow(false)
 
     var hwdecBackup: String? = null
     try {
-      PlaybackSession.command("vf", "remove", "@$AUTO_CROP_FILTER_LABEL")
+      PlaybackSession.removeVideoFilter(AUTO_CROP_FILTER_LABEL)
       val activeHwdec = PlaybackSession.getPropertyString("hwdec-current").orEmpty()
       val needsSoftwareFrames =
         activeHwdec.isNotBlank() &&
@@ -5316,7 +5300,7 @@ val isBrightnessSliderShown = MutableStateFlow(false)
       if (!PlaybackSession.isCurrentGeneration(generation)) return AutoCropAnalysisResult.Unavailable
       return metadata?.toAutoCropResult(sourceWidth, sourceHeight) ?: detectAutoCropFromCurrentFrames(generation)
     } finally {
-      PlaybackSession.command("vf", "remove", "@$AUTO_CROP_FILTER_LABEL")
+      PlaybackSession.removeVideoFilter(AUTO_CROP_FILTER_LABEL)
       val backup = hwdecBackup
       if (backup != null && PlaybackSession.getPropertyString("hwdec") == "no") {
         PlaybackSession.setPropertyString("hwdec", backup)
@@ -5502,7 +5486,7 @@ val isBrightnessSliderShown = MutableStateFlow(false)
   }
 
   private fun clearAutoCropProperty() {
-    PlaybackSession.command("vf", "remove", "@$AUTO_CROP_FILTER_LABEL")
+    PlaybackSession.removeVideoFilter(AUTO_CROP_FILTER_LABEL)
     PlaybackSession.setPropertyString("video-crop", "")
     autoCropApplied = false
   }
@@ -5512,7 +5496,7 @@ val isBrightnessSliderShown = MutableStateFlow(false)
     autoCropJob = null
     autoCropReadinessJob?.cancel()
     autoCropReadinessJob = null
-    PlaybackSession.command("vf", "remove", "@$AUTO_CROP_FILTER_LABEL")
+    PlaybackSession.removeVideoFilter(AUTO_CROP_FILTER_LABEL)
   }
 
   private fun refreshStretchAspectAfterCropChange() {
