@@ -726,7 +726,7 @@ fun MusicLibraryContent(
                 }
                 if (!activeSelectionManager.isInSelectionMode) {
                   app.gyrolet.mpvrx.ui.browser.audiobooks.AudiobookIconButton(
-                    Icons.RoundedFilled.MenuBook, stringResource(R.string.audiobooks_title),
+                    Icons.RoundedFilled.Audiobookshelf, stringResource(R.string.audiobooks_title),
                   ) { backStack.navigateTo(app.gyrolet.mpvrx.ui.browser.audiobooks.AudiobookLibraryScreen) }
                 }
               },

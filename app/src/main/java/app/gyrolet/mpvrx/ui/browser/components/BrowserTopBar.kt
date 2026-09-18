@@ -361,6 +361,22 @@ private fun NormalTopBar(
     },
     actions = {
       preSearchActions()
+      if (onRequestClick != null) {
+        IconButton(
+          onClick = onRequestClick,
+          modifier = Modifier.padding(horizontal = 2.dp).browserTopBarFocus(),
+        ) {
+          Icon(
+            Icons.RoundedFilled.Seerr,
+            contentDescription =
+              androidx.compose.ui.res.stringResource(
+                app.gyrolet.mpvrx.R.string.seerr_discover,
+              ),
+            modifier = Modifier.size(24.dp),
+            tint = MaterialTheme.colorScheme.secondary,
+          )
+        }
+      }
       if (onSearchClick != null) {
         IconButton(
           onClick = onSearchClick,
@@ -378,22 +394,6 @@ private fun NormalTopBar(
         }
       }
       postSearchActions()
-      if (onRequestClick != null) {
-        IconButton(
-          onClick = onRequestClick,
-          modifier = Modifier.padding(horizontal = 2.dp).browserTopBarFocus(),
-        ) {
-          Icon(
-            Icons.RoundedFilled.Explore,
-            contentDescription =
-              androidx.compose.ui.res.stringResource(
-                app.gyrolet.mpvrx.R.string.seerr_discover,
-              ),
-            modifier = Modifier.size(24.dp),
-            tint = MaterialTheme.colorScheme.secondary,
-          )
-        }
-      }
       if (onSortClick != null) {
         IconButton(
           onClick = onSortClick,

@@ -946,11 +946,43 @@ internal fun bookTime(milliseconds: Long): String = DateUtils.formatElapsedTime(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-internal fun AudiobookIconButton(icon: AppIcon, label: String, enabled: Boolean = true, onClick: () -> Unit) {
-  TooltipBox(positionProvider = TooltipDefaults.rememberTooltipPositionProvider(TooltipAnchorPosition.Above),
-    tooltip = { PlainTooltip { Text(label) } }, state = rememberTooltipState()) {
-    IconButton(onClick = onClick, enabled = enabled, modifier = Modifier.size(48.dp)) { Icon(icon, label) }
+internal fun AudiobookIconButton(
+  icon: AppIcon,
+  label: String,
+  enabled: Boolean = true,
+  modifier: Modifier = Modifier.padding(horizontal = 2.dp),
+  onClick: () -> Unit,
+) {
+  TooltipBox(
+    positionProvider = TooltipDefaults.rememberTooltipPositionProvider(TooltipAnchorPosition.Above),
+    tooltip = { PlainTooltip { Text(label) } },
+    state = rememberTooltipState(),
+  ) {
+    IconButton(onClick = onClick, enabled = enabled, modifier = modifier) {
+      Icon(
+        imageVector = icon,
+        contentDescription = label,
+        modifier = Modifier.size(24.dp),
+        tint = MaterialTheme.colorScheme.secondary,
+      )
+    }
   }
+}
+
+@Composable
+internal fun AudiobookIconButton(
+  icon: AppIcon,
+  label: String,
+  enabled: Boolean,
+  onClick: () -> Unit,
+) {
+  AudiobookIconButton(
+    icon = icon,
+    label = label,
+    enabled = enabled,
+    modifier = Modifier.padding(horizontal = 2.dp),
+    onClick = onClick,
+  )
 }
 
 @Composable

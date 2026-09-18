@@ -33,6 +33,9 @@ object Icons {
     val ArrowForward by lazy(LazyThreadSafetyMode.NONE) { AppIcon(MaterialSymbols.RoundedFilled.East) }
     val ArrowLeftAlt by lazy(LazyThreadSafetyMode.NONE) { AppIcon(MaterialSymbols.RoundedFilled.Arrow_left_alt) }
     val AspectRatio by lazy(LazyThreadSafetyMode.NONE) { AppIcon(MaterialSymbols.RoundedFilled.Aspect_ratio) }
+    val Audiobookshelf by lazy(LazyThreadSafetyMode.NONE) {
+      AppIcon(app.gyrolet.mpvrx.R.drawable.ic_audiobookshelf_header)
+    }
     val Audiotrack by lazy(LazyThreadSafetyMode.NONE) { AppIcon(MaterialSymbols.RoundedFilled.Music_note) }
     val AutoAwesome by lazy(LazyThreadSafetyMode.NONE) { AppIcon(MaterialSymbols.RoundedFilled.Auto_awesome) }
     val AutoFixHigh by lazy(LazyThreadSafetyMode.NONE) { AppIcon(MaterialSymbols.RoundedFilled.Auto_fix_high) }
@@ -143,6 +146,9 @@ object Icons {
     val Home by lazy(LazyThreadSafetyMode.NONE) { AppIcon(MaterialSymbols.RoundedFilled.Home) }
     val Info by lazy(LazyThreadSafetyMode.NONE) { AppIcon(MaterialSymbols.RoundedFilled.Info) }
     val InsertDriveFile by lazy(LazyThreadSafetyMode.NONE) { AppIcon(MaterialSymbols.RoundedFilled.Description) }
+    val Jellyfin by lazy(LazyThreadSafetyMode.NONE) {
+      AppIcon(app.gyrolet.mpvrx.R.drawable.ic_jellyfin)
+    }
     val KeyboardArrowDown by lazy(
       LazyThreadSafetyMode.NONE,
     ) { AppIcon(MaterialSymbols.RoundedFilled.Keyboard_arrow_down) }
@@ -213,6 +219,9 @@ object Icons {
     val Search by lazy(LazyThreadSafetyMode.NONE) { AppIcon(MaterialSymbols.RoundedFilled.Search) }
     val Settings by lazy(LazyThreadSafetyMode.NONE) { AppIcon(MaterialSymbols.RoundedFilled.Settings) }
     val Security by lazy(LazyThreadSafetyMode.NONE) { AppIcon(MaterialSymbols.RoundedFilled.Security) }
+    val Seerr by lazy(LazyThreadSafetyMode.NONE) {
+      AppIcon(app.gyrolet.mpvrx.R.drawable.ic_seerr_logo)
+    }
     val Shadow by lazy(LazyThreadSafetyMode.NONE) { AppIcon(MaterialSymbols.RoundedFilled.Shadow) }
     val Share by lazy(LazyThreadSafetyMode.NONE) { AppIcon(MaterialSymbols.RoundedFilled.Share) }
     val Shuffle by lazy(LazyThreadSafetyMode.NONE) { AppIcon(MaterialSymbols.RoundedFilled.Shuffle) }
@@ -282,6 +291,7 @@ object Icons {
     val ArrowForward get() = Shared.ArrowForward
     val ArrowLeftAlt get() = Shared.ArrowLeftAlt
     val AspectRatio get() = Shared.AspectRatio
+    val Audiobookshelf get() = Shared.Audiobookshelf
     val Audiotrack get() = Shared.Audiotrack
     val AutoAwesome get() = Shared.AutoAwesome
     val AutoFixHigh get() = Shared.AutoFixHigh
@@ -376,6 +386,7 @@ object Icons {
     val Home get() = Shared.Home
     val Info get() = Shared.Info
     val InsertDriveFile get() = Shared.InsertDriveFile
+    val Jellyfin get() = Shared.Jellyfin
     val KeyboardArrowDown get() = Shared.KeyboardArrowDown
     val KeyboardArrowLeft get() = Shared.KeyboardArrowLeft
     val KeyboardArrowRight get() = Shared.KeyboardArrowRight
@@ -434,6 +445,7 @@ object Icons {
     val Search get() = Shared.Search
     val Settings get() = Shared.Settings
     val Security get() = Shared.Security
+    val Seerr get() = Shared.Seerr
     val Shadow get() = Shared.Shadow
     val Share get() = Shared.Share
     val Shuffle get() = Shared.Shuffle

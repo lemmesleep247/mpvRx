@@ -391,7 +391,7 @@ fun NavidromeContent(
               }
             }
             app.gyrolet.mpvrx.ui.browser.audiobooks.AudiobookIconButton(
-              Icons.RoundedFilled.MenuBook,
+              Icons.RoundedFilled.Audiobookshelf,
               stringResource(R.string.audiobooks_title),
             ) { backstack.navigateTo(app.gyrolet.mpvrx.ui.browser.audiobooks.AudiobookLibraryScreen) }
           },

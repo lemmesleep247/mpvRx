@@ -31,9 +31,12 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentWidth
+import androidx.compose.ui.platform.LocalConfiguration
 import app.gyrolet.mpvrx.utils.media.MediaUtils
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -182,11 +185,16 @@ fun JellyfinHeroBanner(
     }
   }
 
+  val configuration = LocalConfiguration.current
+  val isLandscape = configuration.orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE
+  val screenHeight = configuration.screenHeightDp.dp
+  val heroHeight = if (isLandscape) (screenHeight * 0.95f).coerceAtMost(560.dp) else (screenHeight * 0.65f).coerceIn(480.dp, 560.dp)
+
   Box(
     modifier =
       modifier
         .fillMaxWidth()
-        .height(360.dp),
+        .height(heroHeight),
   ) {
     HorizontalPager(
       state = pagerState,
@@ -214,6 +222,27 @@ fun JellyfinHeroBanner(
           }
         }
 
+      val logoUrl =
+        remember(server.serverUrl, item.id, item.logoImageTag, item.parentLogoImageTag, item.parentLogoItemId, server.accessToken) {
+          if (!item.logoImageTag.isNullOrBlank()) {
+            JellyfinClient.getLogoUrl(
+              serverUrl = server.serverUrl,
+              itemId = item.id,
+              imageTag = item.logoImageTag,
+              maxWidth = 800,
+              token = server.accessToken,
+            )
+          } else if (!item.parentLogoImageTag.isNullOrBlank() && !item.parentLogoItemId.isNullOrBlank()) {
+            JellyfinClient.getLogoUrl(
+              serverUrl = server.serverUrl,
+              itemId = item.parentLogoItemId,
+              imageTag = item.parentLogoImageTag,
+              maxWidth = 800,
+              token = server.accessToken,
+            )
+          } else null
+        }
+
       Box(modifier = Modifier.fillMaxSize()) {
         // High-res backdrop artwork
         RemoteImage(
@@ -231,8 +260,8 @@ fun JellyfinHeroBanner(
               .background(
                 Brush.verticalGradient(
                   0.0f to Color.Black.copy(alpha = 0.6f),
-                  0.3f to Color.Transparent,
-                  0.6f to MaterialTheme.colorScheme.background.copy(alpha = 0.6f),
+                  0.25f to Color.Transparent,
+                  0.65f to MaterialTheme.colorScheme.background.copy(alpha = 0.6f),
                   1.0f to MaterialTheme.colorScheme.background,
                 ),
               ),
@@ -246,11 +275,64 @@ fun JellyfinHeroBanner(
               .padding(horizontal = 20.dp, vertical = 16.dp),
           verticalArrangement = Arrangement.Bottom,
         ) {
-          // Badges Row
+          // Title / Logo (matches AFinity)
+          if (!logoUrl.isNullOrBlank()) {
+            Box(
+              modifier =
+                Modifier
+                  .fillMaxWidth(0.85f)
+                  .heightIn(min = 44.dp, max = 96.dp)
+                  .padding(bottom = 6.dp),
+              contentAlignment = Alignment.BottomStart,
+            ) {
+              RemoteImage(
+                url = logoUrl,
+                contentDescription = "${item.name} logo",
+                contentScale = ContentScale.Fit,
+                alignment = Alignment.BottomStart,
+                modifier =
+                  Modifier
+                    .fillMaxHeight()
+                    .wrapContentWidth(Alignment.Start),
+              )
+            }
+          } else {
+            Text(
+              text = item.name,
+              style = MaterialTheme.typography.headlineMedium,
+              fontWeight = FontWeight.ExtraBold,
+              color = MaterialTheme.colorScheme.onSurface,
+              maxLines = 2,
+              overflow = TextOverflow.Ellipsis,
+              modifier = Modifier.padding(bottom = 4.dp),
+            )
+          }
+
+          // Genres / Tagline
+          val metaText =
+            when {
+              item.genres.isNotEmpty() -> item.genresString
+              !item.taglines.isEmpty() -> item.taglines.first()
+              item.isSeries && item.childCount != null -> "${item.childCount} Seasons"
+              else -> item.type
+            }
+
+          if (metaText.isNotBlank()) {
+            Text(
+              text = metaText,
+              style = MaterialTheme.typography.bodySmall,
+              color = MaterialTheme.colorScheme.onSurfaceVariant,
+              maxLines = 1,
+              overflow = TextOverflow.Ellipsis,
+              modifier = Modifier.padding(bottom = 8.dp),
+            )
+          }
+
+          // Badges Row (Rating, Year, Resolution)
           Row(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.padding(bottom = 6.dp),
+            modifier = Modifier.padding(bottom = 12.dp),
           ) {
             // Type Pill (Featured)
             Surface(
@@ -345,36 +427,6 @@ fun JellyfinHeroBanner(
                 )
               }
             }
-          }
-
-          // Title
-          Text(
-            text = item.name,
-            style = MaterialTheme.typography.headlineMedium,
-            fontWeight = FontWeight.ExtraBold,
-            color = MaterialTheme.colorScheme.onSurface,
-            maxLines = 2,
-            overflow = TextOverflow.Ellipsis,
-          )
-
-          // Genres / Tagline
-          val metaText =
-            when {
-              item.genres.isNotEmpty() -> item.genresString
-              !item.taglines.isEmpty() -> item.taglines.first()
-              item.isSeries && item.childCount != null -> "${item.childCount} Seasons"
-              else -> item.type
-            }
-
-          if (metaText.isNotBlank()) {
-            Text(
-              text = metaText,
-              style = MaterialTheme.typography.bodySmall,
-              color = MaterialTheme.colorScheme.onSurfaceVariant,
-              maxLines = 1,
-              overflow = TextOverflow.Ellipsis,
-              modifier = Modifier.padding(top = 2.dp, bottom = 12.dp),
-            )
           }
 
           // Action Buttons Row

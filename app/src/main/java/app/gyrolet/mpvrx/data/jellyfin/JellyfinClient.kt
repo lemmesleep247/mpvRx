@@ -152,6 +152,19 @@ class JellyfinClient(
       val tokenParam = if (!token.isNullOrBlank()) "&api_key=$token" else ""
       return "$base/Items/$itemId/Images/Backdrop/0?maxWidth=$maxWidth&quality=80$tagParam$tokenParam"
     }
+
+    fun getLogoUrl(
+      serverUrl: String,
+      itemId: String,
+      imageTag: String? = null,
+      maxWidth: Int = 800,
+      token: String? = null,
+    ): String {
+      val base = normalizeUrl(serverUrl)
+      val tagParam = if (!imageTag.isNullOrBlank()) "&tag=$imageTag" else ""
+      val tokenParam = if (!token.isNullOrBlank()) "&api_key=$token" else ""
+      return "$base/Items/$itemId/Images/Logo?format=png&maxWidth=$maxWidth$tagParam$tokenParam"
+    }
   }
 
   suspend fun authenticate(
@@ -1062,6 +1075,12 @@ class JellyfinClient(
 
     val imageTagsObj = obj["ImageTags"]?.jsonObject
     val primaryImageTag = imageTagsObj?.get("Primary")?.jsonPrimitive?.content
+    val logoImageTag = imageTagsObj?.get("Logo")?.jsonPrimitive?.content
+    val parentLogoImageTag = obj["ParentLogoImageTag"]?.jsonPrimitive?.content
+      ?: obj["SeriesLogoImageTag"]?.jsonPrimitive?.content
+    val parentLogoItemId = obj["ParentLogoItemId"]?.jsonPrimitive?.content
+      ?: obj["SeriesId"]?.jsonPrimitive?.content
+      ?: obj["ParentId"]?.jsonPrimitive?.content
     val backdropImageTags = obj["BackdropImageTags"]?.jsonArray?.firstOrNull()?.jsonPrimitive?.content
     val albumId = obj["AlbumId"]?.jsonPrimitive?.content ?: obj["ParentId"]?.jsonPrimitive?.content
     val albumPrimaryImageTag = obj["AlbumPrimaryImageTag"]?.jsonPrimitive?.content
@@ -1183,6 +1202,9 @@ class JellyfinClient(
       isFolder = isFolder,
       primaryImageTag = primaryImageTag,
       backdropImageTag = backdropImageTags,
+      logoImageTag = logoImageTag,
+      parentLogoImageTag = parentLogoImageTag,
+      parentLogoItemId = parentLogoItemId,
       albumId = albumId,
       albumPrimaryImageTag = albumPrimaryImageTag,
       childCount = childCount,

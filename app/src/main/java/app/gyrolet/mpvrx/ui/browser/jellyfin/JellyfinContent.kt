@@ -34,6 +34,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
@@ -68,6 +69,7 @@ import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.material3.ToggleFloatingActionButton
 import androidx.compose.material3.ToggleFloatingActionButtonDefaults.animateIcon
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.animateFloatingActionButton
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.runtime.Composable
@@ -82,12 +84,16 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -328,8 +334,19 @@ fun JellyfinContent(
       else -> stringResource(R.string.ui_jellyfin)
     }
 
+  val density = LocalDensity.current
+  var topBarHeight by remember { mutableStateOf(0.dp) }
+
+  val isWallpaperActive = app.gyrolet.mpvrx.ui.theme.LocalAppWallpaperActive.current
+  val scrimBaseColor =
+    if (MaterialTheme.colorScheme.background == Color.Black) {
+      Color.Black
+    } else {
+      MaterialTheme.colorScheme.surface
+    }
+
   val headerContainerColor =
-    if (app.gyrolet.mpvrx.ui.theme.LocalAppWallpaperActive.current) {
+    if (isWallpaperActive) {
       Color.Transparent
     } else if (MaterialTheme.colorScheme.background == Color.Black) {
       Color.Black
@@ -337,23 +354,558 @@ fun JellyfinContent(
       MaterialTheme.colorScheme.surfaceContainer
     }
 
-  Column(
+  val headerGradient =
+    remember(isWallpaperActive, scrimBaseColor) {
+      if (isWallpaperActive) {
+        Brush.verticalGradient(listOf(Color.Transparent, Color.Transparent))
+      } else {
+        Brush.verticalGradient(
+          0.0f to scrimBaseColor.copy(alpha = 0.85f),
+          0.6f to scrimBaseColor.copy(alpha = 0.45f),
+          1.0f to Color.Transparent,
+        )
+      }
+    }
+
+  val solidAlpha by remember {
+    derivedStateOf {
+      if (isWallpaperActive) {
+        0f
+      } else if (!isMusicOnlyMode && uiState.openLibrary == null && uiState.searchQuery.isBlank() && uiState.heroItems.isNotEmpty()) {
+        if (homeListState.firstVisibleItemIndex > 0) {
+          1f
+        } else {
+          val scrollOffset = homeListState.firstVisibleItemScrollOffset.toFloat()
+          val startOffset = with(density) { 100.dp.toPx() }
+          val endOffset = with(density) { 300.dp.toPx() }
+          ((scrollOffset - startOffset) / (endOffset - startOffset)).coerceIn(0f, 1f)
+        }
+      } else {
+        1f
+      }
+    }
+  }
+
+  Box(
     modifier =
       modifier
         .fillMaxSize()
         .background(app.gyrolet.mpvrx.ui.theme.wallpaperAwareBackgroundColor()),
   ) {
+    // Main Body Content with Pull-To-Refresh and FAB / Multi-select overlays
+    val isRefreshing = remember { mutableStateOf(false) }
+    val navigationBarHeight = LocalNavigationBarHeight.current
+
+    PullRefreshBox(
+      isRefreshing = isRefreshing,
+      onRefresh = { viewModel.refreshSuspend() },
+      modifier = Modifier.fillMaxSize(),
+    ) {
+      Box(
+        modifier = Modifier.fillMaxSize(),
+        contentAlignment = Alignment.Center,
+      ) {
+        when {
+          // No servers configured
+          uiState.servers.isEmpty() -> {
+            EmptyServersView(
+              onAddClick = { isAddDialogOpen = true },
+              modifier = Modifier.padding(top = topBarHeight),
+            )
+          }
+
+          // Loading state (initial)
+          uiState.isLoading && uiState.libraries.isEmpty() && uiState.currentItems.isEmpty() && uiState.heroItems.isEmpty() -> {
+            CircularProgressIndicator(modifier = Modifier.padding(top = topBarHeight))
+          }
+
+          // Error state
+          uiState.error != null && uiState.libraries.isEmpty() && uiState.currentItems.isEmpty() -> {
+            ErrorView(
+              message = uiState.error ?: "An error occurred",
+              onRetry = { viewModel.refresh() },
+              onReauthenticate = {
+                serverToReauth = uiState.activeServer
+                isAddDialogOpen = true
+              },
+              modifier = Modifier.padding(top = topBarHeight),
+            )
+          }
+
+          // Root / Discovery Home View (Expressive UI)
+          !isMusicOnlyMode && uiState.openLibrary == null && uiState.searchQuery.isBlank() -> {
+            val server = uiState.activeServer
+
+            if (server != null) {
+              Box(modifier = Modifier.fillMaxSize()) {
+                LazyColumn(
+                  state = homeListState,
+                  modifier = Modifier.fillMaxSize(),
+                  contentPadding = PaddingValues(
+                    top = if (uiState.heroItems.isEmpty()) topBarHeight else 0.dp,
+                    bottom = navigationBarHeight + 84.dp,
+                  ),
+                  verticalArrangement = Arrangement.spacedBy(20.dp),
+                ) {
+                  // 1. Hero Featured Carousel Banner
+                  if (uiState.heroItems.isNotEmpty()) {
+                    item {
+                      JellyfinHeroBanner(
+                        items = uiState.heroItems,
+                        server = server,
+                        onPlay = { item ->
+                          if (item.isSeries || item.isFolder || item.isSeason) {
+                            viewModel.openDetail(item)
+                          } else {
+                            viewModel.playItem(context, item)
+                          }
+                        },
+                        onDetails = { item -> viewModel.openDetail(item) },
+                      )
+                    }
+                  }
+
+                  // 2. Libraries Section (above Continue Watching)
+                  val homeLibraries = uiState.libraries.filter { library ->
+                    library.collectionType?.equals("playlists", ignoreCase = true) != true &&
+                      !library.name.equals("playlists", ignoreCase = true) &&
+                      library.type != "PlaylistsFolder"
+                  }
+                  if (homeLibraries.isNotEmpty()) {
+                    item {
+                      Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                      ) {
+                        JellyfinSectionHeader(
+                          title = "Libraries",
+                        )
+
+                        LazyRow(
+                          horizontalArrangement = Arrangement.spacedBy(12.dp),
+                          contentPadding = PaddingValues(horizontal = 16.dp),
+                        ) {
+                          items(homeLibraries, key = { it.id }) { library ->
+                            JellyfinLibraryCard(
+                              item = library,
+                              server = server,
+                              onClick = { viewModel.navigateToItem(library) },
+                            )
+                          }
+                        }
+                      }
+                    }
+                  }
+
+                  // 3. Continue Watching Section
+                  if (uiState.resumeItems.isNotEmpty()) {
+                    item {
+                      JellyfinHorizontalSection(
+                        title = "Continue Watching",
+                        subtitle = "Jump back in",
+                        items = uiState.resumeItems,
+                        server = server,
+                        isContinueWatching = true,
+                        onItemClick = { item -> viewModel.playItem(context, item) },
+                        onItemLongClick = { item -> viewModel.openDetail(item) },
+                      )
+                    }
+                  }
+
+                  // 4. Per-Library Latest Sections (e.g. Latest Movies, Latest Shows, etc.)
+                  if (uiState.librarySections.isNotEmpty()) {
+                    items(uiState.librarySections, key = { "lib_section_${it.library.id}" }) { section ->
+                      JellyfinHorizontalSection(
+                        title = section.title,
+                        subtitle = section.subtitle,
+                        items = section.items,
+                        server = server,
+                        onItemClick = { item -> viewModel.openDetail(item) },
+                        onItemLongClick = { item -> viewModel.playItem(context, item) },
+                        onSeeAll = {
+                          viewModel.navigateToItem(section.library)
+                        },
+                      )
+                    }
+                  } else {
+                    // Fallback: Legacy Latest Movies Section
+                    if (uiState.latestMovies.isNotEmpty()) {
+                      item {
+                        JellyfinHorizontalSection(
+                          title = "Latest Movies",
+                          subtitle = "Newly added to server",
+                          items = uiState.latestMovies,
+                          server = server,
+                          onItemClick = { item -> viewModel.openDetail(item) },
+                          onItemLongClick = { item -> viewModel.playItem(context, item) },
+                          onSeeAll = {
+                            val movieLib = uiState.libraries.find { it.collectionType?.equals("movies", ignoreCase = true) == true }
+                            if (movieLib != null) viewModel.navigateToItem(movieLib)
+                          },
+                        )
+                      }
+                    }
+
+                    // Fallback: Legacy Latest TV Shows Section
+                    if (uiState.latestShows.isNotEmpty()) {
+                      item {
+                        JellyfinHorizontalSection(
+                          title = "Latest TV Shows",
+                          subtitle = "Newly updated series",
+                          items = uiState.latestShows,
+                          server = server,
+                          onItemClick = { item -> viewModel.openDetail(item) },
+                          onItemLongClick = { item -> viewModel.playItem(context, item) },
+                          onSeeAll = {
+                            val tvLib = uiState.libraries.find { it.collectionType?.equals("tvshows", ignoreCase = true) == true }
+                            if (tvLib != null) viewModel.navigateToItem(tvLib)
+                          },
+                        )
+                      }
+                    }
+                  }
+
+                  // 6. Recommended For You Section
+                  if (uiState.recommendations.isNotEmpty()) {
+                    item {
+                      JellyfinHorizontalSection(
+                        title = "Top Picks For You",
+                        subtitle = "Popular & trending media",
+                        items = uiState.recommendations,
+                        server = server,
+                        onItemClick = { item -> viewModel.openDetail(item) },
+                        onItemLongClick = { item -> viewModel.playItem(context, item) },
+                      )
+                    }
+                  }
+
+                  // 7. Music Section
+                  if (uiState.latestMusic.isNotEmpty()) {
+                    item {
+                      Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                      ) {
+                        JellyfinSectionHeader(
+                          title = "Music",
+                          subtitle = "Albums & Tracks",
+                          onSeeAll = {
+                            val musicLib = uiState.libraries.find { it.collectionType?.equals("music", ignoreCase = true) == true }
+                            if (musicLib != null) viewModel.navigateToItem(musicLib)
+                          },
+                        )
+
+                        LazyRow(
+                          horizontalArrangement = Arrangement.spacedBy(12.dp),
+                          contentPadding = PaddingValues(horizontal = 16.dp),
+                        ) {
+                          items(uiState.latestMusic, key = { it.id }) { item ->
+                            JellyfinMusicCard(
+                              item = item,
+                              server = server,
+                              onClick = {
+                                if (item.type == "MusicArtist" || item.type == "Artist" || item.type == "AlbumArtist" || item.type == "MusicAlbum" || item.type == "Album" || item.type == "Playlist") {
+                                  viewModel.openDetail(item)
+                                } else {
+                                  viewModel.playItem(context, item)
+                                }
+                              },
+                              onLongClick = {
+                                if (item.type == "MusicArtist" || item.type == "Artist" || item.type == "AlbumArtist" || item.type == "MusicAlbum" || item.type == "Album" || item.type == "Playlist") {
+                                  viewModel.playItem(context, item)
+                                } else {
+                                  viewModel.openDetail(item)
+                                }
+                              },
+                            )
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+
+          // Level / Search View: Inside a Library / Folder / Season / Search results
+          else -> {
+            val openLib = uiState.openLibrary ?: if (isMusicOnlyMode) viewModel.getMusicLibraryView() else null
+            if ((isMusicOnlyMode || openLib?.isMusic == true) && uiState.searchQuery.isBlank() && uiState.activeServer != null) {
+              JellyfinMusicView(
+                uiState = uiState,
+                server = uiState.activeServer!!,
+                pagerState = musicPagerState,
+                visibleTabs = musicTabs,
+                onTabSelected = viewModel::setMusicTab,
+                onItemClick = { item ->
+                  if (selectionManager.isInSelectionMode) {
+                    selectionManager.toggleFromUser(item)
+                  } else if (item.type == "MusicArtist" || item.type == "Artist" || item.type == "AlbumArtist" || item.type == "MusicAlbum" || item.type == "Album" || item.type == "Playlist") {
+                    viewModel.openDetail(item)
+                  } else if (item.isFolder || item.type == "CollectionFolder") {
+                    viewModel.navigateToItem(item)
+                  } else {
+                    viewModel.playItem(context, item)
+                  }
+                },
+                onItemLongClick = { selectionManager.handleLongClick(it) },
+                navigationBarHeight = navigationBarHeight,
+                modifier = Modifier.padding(top = topBarHeight),
+              )
+            } else {
+              val items = uiState.currentItems
+              val allEpisodes = items.isNotEmpty() && items.all { it.type == "Episode" }
+              val isListMode = layoutMode == MediaLayoutMode.LIST || allEpisodes
+
+              if (items.isEmpty() && !uiState.isLoading) {
+                Column(
+                  modifier = Modifier.padding(top = topBarHeight + 24.dp, start = 24.dp, end = 24.dp, bottom = 24.dp),
+                  horizontalAlignment = Alignment.CenterHorizontally,
+                  verticalArrangement = Arrangement.Center,
+                ) {
+                  Icon(
+                    imageVector = Icons.RoundedFilled.Movie,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                    modifier = Modifier.size(48.dp),
+                  )
+                  Spacer(modifier = Modifier.height(12.dp))
+                  Text(
+                    text = if (uiState.searchQuery.isNotBlank()) "No results found for \"${uiState.searchQuery}\"" else "No media found in this folder",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center,
+                  )
+                }
+              } else if (isListMode) {
+                val listState = libraryListState
+                val hasEnoughItems = items.size > 6
+                val scrollbarAlpha by animateFloatAsState(
+                  targetValue = if (hasEnoughItems) 1f else 0f,
+                  label = "scrollbarAlpha",
+                )
+
+                val shouldLoadMore =
+                  remember {
+                    derivedStateOf {
+                      val lastVisibleIndex = listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0
+                      items.isNotEmpty() && lastVisibleIndex >= items.size - 5
+                    }
+                  }
+
+                LaunchedEffect(shouldLoadMore.value) {
+                  if (shouldLoadMore.value && uiState.hasMore && !uiState.isLoading && !uiState.isLoadingMore) {
+                    viewModel.loadMoreItems()
+                  }
+                }
+
+                Box(modifier = Modifier.fillMaxSize()) {
+                  LazyColumn(
+                    state = listState,
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(
+                      start = 16.dp,
+                      end = 24.dp,
+                      top = topBarHeight + 8.dp,
+                      bottom = navigationBarHeight + 80.dp,
+                    ),
+                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                  ) {
+                    items(items, key = { it.id }) { item ->
+                      uiState.activeServer?.let { server ->
+                        if (allEpisodes || item.type == "Episode") {
+                          JellyfinEpisodeCard(
+                            item = item,
+                            server = server,
+                            onPlay = {
+                              if (selectionManager.isInSelectionMode) {
+                                selectionManager.toggleFromUser(item)
+                              } else {
+                                viewModel.playItem(context, item)
+                              }
+                            },
+                            onLongClick = { selectionManager.handleLongClick(item) },
+                            isSelected = selectionManager.isSelected(item),
+                            downloadState =
+                              when {
+                                item.id in downloadedItemIds -> EpisodeDownloadState.DOWNLOADED
+                                item.id in activeDownloadItemIds -> EpisodeDownloadState.ACTIVE
+                                else -> EpisodeDownloadState.NOT_DOWNLOADED
+                              },
+                            onDownload = { viewModel.downloadItem(item) },
+                          )
+                        } else {
+                          JellyfinListItemCard(
+                            item = item,
+                            server = server,
+                            onClick = {
+                              if (selectionManager.isInSelectionMode) {
+                                selectionManager.toggleFromUser(item)
+                              } else if (item.isFolder || item.isSeries || item.isSeason || item.type == "CollectionFolder") {
+                                viewModel.navigateToItem(item)
+                              } else if (item.isVideo) {
+                                viewModel.openDetail(item)
+                              } else {
+                                viewModel.playItem(context, item)
+                              }
+                            },
+                            onLongClick = { selectionManager.handleLongClick(item) },
+                            isSelected = selectionManager.isSelected(item),
+                            isDownloaded = item.id in downloadedItemIds,
+                          )
+                        }
+                      }
+                    }
+                    if (uiState.isLoadingMore) {
+                      item {
+                        Box(
+                          modifier =
+                            Modifier
+                              .fillMaxWidth()
+                              .padding(16.dp),
+                          contentAlignment = Alignment.Center,
+                        ) {
+                          CircularProgressIndicator(modifier = Modifier.size(28.dp))
+                        }
+                      }
+                    }
+                  }
+
+                  if (hasEnoughItems && scrollbarAlpha > 0.01f) {
+                    ExpressiveScrollBar(
+                      listState = listState,
+                      dragLabelProvider = { index ->
+                        fastScrollGlyph(items.getOrNull(index)?.name)
+                      },
+                      modifier =
+                        Modifier
+                          .align(Alignment.CenterEnd)
+                          .padding(end = 2.dp, top = topBarHeight + 6.dp, bottom = navigationBarHeight + 80.dp)
+                          .graphicsLayer { alpha = scrollbarAlpha },
+                    )
+                  }
+                }
+              } else {
+                val gridState = libraryGridState
+                val hasEnoughItems = items.size > 6
+                val scrollbarAlpha by animateFloatAsState(
+                  targetValue = if (hasEnoughItems) 1f else 0f,
+                  label = "scrollbarAlpha",
+                )
+
+                val shouldLoadMore =
+                  remember {
+                    derivedStateOf {
+                      val lastVisibleIndex = gridState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0
+                      items.isNotEmpty() && lastVisibleIndex >= items.size - 8
+                    }
+                  }
+
+                LaunchedEffect(shouldLoadMore.value) {
+                  if (shouldLoadMore.value && uiState.hasMore && !uiState.isLoading && !uiState.isLoadingMore) {
+                    viewModel.loadMoreItems()
+                  }
+                }
+
+                Box(modifier = Modifier.fillMaxSize()) {
+                  LazyVerticalGrid(
+                    state = gridState,
+                    columns = GridCells.Adaptive(minSize = 130.dp),
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(
+                      start = 12.dp,
+                      end = 24.dp,
+                      top = topBarHeight + 8.dp,
+                      bottom = navigationBarHeight + 80.dp,
+                    ),
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                  ) {
+                    items(items, key = { it.id }) { item ->
+                      uiState.activeServer?.let { server ->
+                        JellyfinPosterCard(
+                          item = item,
+                          server = server,
+                          onClick = {
+                            if (selectionManager.isInSelectionMode) {
+                              selectionManager.toggleFromUser(item)
+                            } else if (item.isFolder || item.isSeason || item.type == "CollectionFolder") {
+                              viewModel.navigateToItem(item)
+                            } else if (item.isSeries || item.isVideo) {
+                              viewModel.openDetail(item)
+                            } else {
+                              viewModel.playItem(context, item)
+                            }
+                          },
+                          onLongClick = { selectionManager.handleLongClick(item) },
+                          isSelected = selectionManager.isSelected(item),
+                          isDownloaded = item.id in downloadedItemIds,
+                        )
+                      }
+                    }
+
+                    if (uiState.isLoadingMore) {
+                      item(span = { GridItemSpan(maxLineSpan) }) {
+                        Box(
+                          modifier =
+                            Modifier
+                              .fillMaxWidth()
+                              .padding(16.dp),
+                          contentAlignment = Alignment.Center,
+                        ) {
+                          CircularProgressIndicator(modifier = Modifier.size(28.dp))
+                        }
+                      }
+                    }
+                  }
+
+                  if (hasEnoughItems && scrollbarAlpha > 0.01f) {
+                    ExpressiveScrollBar(
+                      gridState = gridState,
+                      dragLabelProvider = { index ->
+                        fastScrollGlyph(items.getOrNull(index)?.name)
+                      },
+                      modifier =
+                        Modifier
+                          .align(Alignment.CenterEnd)
+                          .padding(end = 2.dp, top = topBarHeight + 6.dp, bottom = navigationBarHeight + 80.dp)
+                          .graphicsLayer { alpha = scrollbarAlpha },
+                    )
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+
     // Top Bar Container (Material 3 Expressive BrowserTopBar / SearchBar / TabRow)
     Column(
       modifier = Modifier
         .fillMaxWidth()
-        .background(headerContainerColor),
+        .align(Alignment.TopCenter)
+        .drawBehind {
+          if (!isWallpaperActive) {
+            if (solidAlpha < 1f) {
+              drawRect(brush = headerGradient, alpha = 1f - solidAlpha)
+            }
+            if (solidAlpha > 0f) {
+              drawRect(color = headerContainerColor, alpha = solidAlpha)
+            }
+          }
+        }
+        .onGloballyPositioned { coordinates ->
+          topBarHeight = with(density) { coordinates.size.height.toDp() }
+        },
     ) {
       if (isSearching) {
         Column(
           modifier =
             Modifier
               .fillMaxWidth()
+              .statusBarsPadding()
               .padding(horizontal = 16.dp, vertical = 6.dp),
           verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
@@ -419,6 +971,7 @@ fun JellyfinContent(
       } else {
         BrowserTopBar(
           title = pageTitle,
+          colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent),
           isInSelectionMode = selectionManager.isInSelectionMode,
           selectedCount = selectionManager.selectedCount,
           totalCount = uiState.currentItems.size,
@@ -621,7 +1174,7 @@ fun JellyfinContent(
                 }
               }
               app.gyrolet.mpvrx.ui.browser.audiobooks.AudiobookIconButton(
-                Icons.RoundedFilled.MenuBook,
+                Icons.RoundedFilled.Audiobookshelf,
                 stringResource(R.string.audiobooks_title),
               ) { backstack.navigateTo(app.gyrolet.mpvrx.ui.browser.audiobooks.AudiobookLibraryScreen) }
             }
@@ -687,483 +1240,6 @@ fun JellyfinContent(
         HorizontalDivider()
       }
     }
-
-    // Main Body Content with Pull-To-Refresh and FAB / Multi-select overlays
-    val isRefreshing = remember { mutableStateOf(false) }
-    val navigationBarHeight = LocalNavigationBarHeight.current
-
-    Box(
-      modifier =
-        Modifier
-          .fillMaxSize()
-          .weight(1f),
-    ) {
-      PullRefreshBox(
-        isRefreshing = isRefreshing,
-        onRefresh = { viewModel.refreshSuspend() },
-        modifier = Modifier.fillMaxSize(),
-      ) {
-        Box(
-          modifier = Modifier.fillMaxSize(),
-          contentAlignment = Alignment.Center,
-        ) {
-          when {
-            // No servers configured
-            uiState.servers.isEmpty() -> {
-              EmptyServersView(onAddClick = { isAddDialogOpen = true })
-            }
-
-            // Loading state (initial)
-            uiState.isLoading && uiState.libraries.isEmpty() && uiState.currentItems.isEmpty() && uiState.heroItems.isEmpty() -> {
-              CircularProgressIndicator()
-            }
-
-            // Error state
-            uiState.error != null && uiState.libraries.isEmpty() && uiState.currentItems.isEmpty() -> {
-              ErrorView(
-                message = uiState.error ?: "An error occurred",
-                onRetry = { viewModel.refresh() },
-                onReauthenticate = {
-                  serverToReauth = uiState.activeServer
-                  isAddDialogOpen = true
-                },
-              )
-            }
-
-            // Root / Discovery Home View (Expressive UI)
-            !isMusicOnlyMode && uiState.openLibrary == null && uiState.searchQuery.isBlank() -> {
-              val server = uiState.activeServer
-
-              if (server != null) {
-                Box(modifier = Modifier.fillMaxSize()) {
-                  LazyColumn(
-                    state = homeListState,
-                    modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(bottom = navigationBarHeight + 84.dp),
-                    verticalArrangement = Arrangement.spacedBy(20.dp),
-                  ) {
-                    // 1. Hero Featured Carousel Banner
-                    if (uiState.heroItems.isNotEmpty()) {
-                      item {
-                        JellyfinHeroBanner(
-                          items = uiState.heroItems,
-                          server = server,
-                          onPlay = { item ->
-                            if (item.isSeries || item.isFolder || item.isSeason) {
-                              viewModel.openDetail(item)
-                            } else {
-                              viewModel.playItem(context, item)
-                            }
-                          },
-                          onDetails = { item -> viewModel.openDetail(item) },
-                        )
-                      }
-                    }
-
-                    // 2. Libraries Section (above Continue Watching)
-                    val homeLibraries = uiState.libraries.filter { library ->
-                      library.collectionType?.equals("playlists", ignoreCase = true) != true &&
-                        !library.name.equals("playlists", ignoreCase = true) &&
-                        library.type != "PlaylistsFolder"
-                    }
-                    if (homeLibraries.isNotEmpty()) {
-                      item {
-                        Column(
-                          modifier = Modifier.fillMaxWidth(),
-                          verticalArrangement = Arrangement.spacedBy(8.dp),
-                        ) {
-                          JellyfinSectionHeader(
-                            title = "Libraries",
-                          )
-
-                          LazyRow(
-                            horizontalArrangement = Arrangement.spacedBy(12.dp),
-                            contentPadding = PaddingValues(horizontal = 16.dp),
-                          ) {
-                            items(homeLibraries, key = { it.id }) { library ->
-                              JellyfinLibraryCard(
-                                item = library,
-                                server = server,
-                                onClick = { viewModel.navigateToItem(library) },
-                              )
-                            }
-                          }
-                        }
-                      }
-                    }
-
-                    // 3. Continue Watching Section
-                    if (uiState.resumeItems.isNotEmpty()) {
-                      item {
-                        JellyfinHorizontalSection(
-                          title = "Continue Watching",
-                          subtitle = "Jump back in",
-                          items = uiState.resumeItems,
-                          server = server,
-                          isContinueWatching = true,
-                          onItemClick = { item -> viewModel.playItem(context, item) },
-                          onItemLongClick = { item -> viewModel.openDetail(item) },
-                        )
-                      }
-                    }
-
-                    // 4. Per-Library Latest Sections (e.g. Latest Movies, Latest Shows, etc.)
-                    if (uiState.librarySections.isNotEmpty()) {
-                      items(uiState.librarySections, key = { "lib_section_${it.library.id}" }) { section ->
-                        JellyfinHorizontalSection(
-                          title = section.title,
-                          subtitle = section.subtitle,
-                          items = section.items,
-                          server = server,
-                          onItemClick = { item -> viewModel.openDetail(item) },
-                          onItemLongClick = { item -> viewModel.playItem(context, item) },
-                          onSeeAll = {
-                            viewModel.navigateToItem(section.library)
-                          },
-                        )
-                      }
-                    } else {
-                      // Fallback: Legacy Latest Movies Section
-                      if (uiState.latestMovies.isNotEmpty()) {
-                        item {
-                          JellyfinHorizontalSection(
-                            title = "Latest Movies",
-                            subtitle = "Newly added to server",
-                            items = uiState.latestMovies,
-                            server = server,
-                            onItemClick = { item -> viewModel.openDetail(item) },
-                            onItemLongClick = { item -> viewModel.playItem(context, item) },
-                            onSeeAll = {
-                              val movieLib = uiState.libraries.find { it.collectionType?.equals("movies", ignoreCase = true) == true }
-                              if (movieLib != null) viewModel.navigateToItem(movieLib)
-                            },
-                          )
-                        }
-                      }
-
-                      // Fallback: Legacy Latest TV Shows Section
-                      if (uiState.latestShows.isNotEmpty()) {
-                        item {
-                          JellyfinHorizontalSection(
-                            title = "Latest TV Shows",
-                            subtitle = "Newly updated series",
-                            items = uiState.latestShows,
-                            server = server,
-                            onItemClick = { item -> viewModel.openDetail(item) },
-                            onItemLongClick = { item -> viewModel.playItem(context, item) },
-                            onSeeAll = {
-                              val tvLib = uiState.libraries.find { it.collectionType?.equals("tvshows", ignoreCase = true) == true }
-                              if (tvLib != null) viewModel.navigateToItem(tvLib)
-                            },
-                          )
-                        }
-                      }
-                    }
-
-                    // 6. Recommended For You Section
-                    if (uiState.recommendations.isNotEmpty()) {
-                      item {
-                        JellyfinHorizontalSection(
-                          title = "Top Picks For You",
-                          subtitle = "Popular & trending media",
-                          items = uiState.recommendations,
-                          server = server,
-                          onItemClick = { item -> viewModel.openDetail(item) },
-                          onItemLongClick = { item -> viewModel.playItem(context, item) },
-                        )
-                      }
-                    }
-
-                    // 7. Music Section
-                    if (uiState.latestMusic.isNotEmpty()) {
-                      item {
-                        Column(
-                          modifier = Modifier.fillMaxWidth(),
-                          verticalArrangement = Arrangement.spacedBy(8.dp),
-                        ) {
-                          JellyfinSectionHeader(
-                            title = "Music",
-                            subtitle = "Albums & Tracks",
-                            onSeeAll = {
-                              val musicLib = uiState.libraries.find { it.collectionType?.equals("music", ignoreCase = true) == true }
-                              if (musicLib != null) viewModel.navigateToItem(musicLib)
-                            },
-                          )
-
-                          LazyRow(
-                            horizontalArrangement = Arrangement.spacedBy(12.dp),
-                            contentPadding = PaddingValues(horizontal = 16.dp),
-                          ) {
-                            items(uiState.latestMusic, key = { it.id }) { item ->
-                              JellyfinMusicCard(
-                                item = item,
-                                server = server,
-                                onClick = {
-                                  if (item.type == "MusicArtist" || item.type == "Artist" || item.type == "AlbumArtist" || item.type == "MusicAlbum" || item.type == "Album" || item.type == "Playlist") {
-                                    viewModel.openDetail(item)
-                                  } else {
-                                    viewModel.playItem(context, item)
-                                  }
-                                },
-                                onLongClick = {
-                                  if (item.type == "MusicArtist" || item.type == "Artist" || item.type == "AlbumArtist" || item.type == "MusicAlbum" || item.type == "Album" || item.type == "Playlist") {
-                                    viewModel.playItem(context, item)
-                                  } else {
-                                    viewModel.openDetail(item)
-                                  }
-                                },
-                              )
-                            }
-                          }
-                        }
-                      }
-                    }
-                  }
-                }
-              }
-            }
-
-            // Level / Search View: Inside a Library / Folder / Season / Search results
-            else -> {
-              val openLib = uiState.openLibrary ?: if (isMusicOnlyMode) viewModel.getMusicLibraryView() else null
-              if ((isMusicOnlyMode || openLib?.isMusic == true) && uiState.searchQuery.isBlank() && uiState.activeServer != null) {
-                JellyfinMusicView(
-                  uiState = uiState,
-                  server = uiState.activeServer!!,
-                  pagerState = musicPagerState,
-                  visibleTabs = musicTabs,
-                  onTabSelected = viewModel::setMusicTab,
-                  onItemClick = { item ->
-                    if (selectionManager.isInSelectionMode) {
-                      selectionManager.toggleFromUser(item)
-                    } else if (item.type == "MusicArtist" || item.type == "Artist" || item.type == "AlbumArtist" || item.type == "MusicAlbum" || item.type == "Album" || item.type == "Playlist") {
-                      viewModel.openDetail(item)
-                    } else if (item.isFolder || item.type == "CollectionFolder") {
-                      viewModel.navigateToItem(item)
-                    } else {
-                      viewModel.playItem(context, item)
-                    }
-                  },
-                  onItemLongClick = { selectionManager.handleLongClick(it) },
-                  navigationBarHeight = navigationBarHeight,
-                )
-              } else {
-                val items = uiState.currentItems
-                val allEpisodes = items.isNotEmpty() && items.all { it.type == "Episode" }
-                val isListMode = layoutMode == MediaLayoutMode.LIST || allEpisodes
-
-              if (items.isEmpty() && !uiState.isLoading) {
-                Column(
-                  modifier = Modifier.padding(24.dp),
-                  horizontalAlignment = Alignment.CenterHorizontally,
-                  verticalArrangement = Arrangement.Center,
-                ) {
-                  Icon(
-                    imageVector = Icons.RoundedFilled.Movie,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-                    modifier = Modifier.size(48.dp),
-                  )
-                  Spacer(modifier = Modifier.height(12.dp))
-                  Text(
-                    text = if (uiState.searchQuery.isNotBlank()) "No results found for \"${uiState.searchQuery}\"" else "No media found in this folder",
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    textAlign = TextAlign.Center,
-                  )
-                }
-              } else if (isListMode) {
-                val listState = libraryListState
-                val hasEnoughItems = items.size > 6
-                val scrollbarAlpha by animateFloatAsState(
-                  targetValue = if (hasEnoughItems) 1f else 0f,
-                  label = "scrollbarAlpha",
-                )
-
-                val shouldLoadMore =
-                  remember {
-                    derivedStateOf {
-                      val lastVisibleIndex = listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0
-                      items.isNotEmpty() && lastVisibleIndex >= items.size - 5
-                    }
-                  }
-
-                LaunchedEffect(shouldLoadMore.value) {
-                  if (shouldLoadMore.value && uiState.hasMore && !uiState.isLoading && !uiState.isLoadingMore) {
-                    viewModel.loadMoreItems()
-                  }
-                }
-
-                Box(modifier = Modifier.fillMaxSize()) {
-                  LazyColumn(
-                    state = listState,
-                    modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(start = 16.dp, end = 24.dp, top = 8.dp, bottom = navigationBarHeight + 80.dp),
-                    verticalArrangement = Arrangement.spacedBy(10.dp),
-                  ) {
-                    items(items, key = { it.id }) { item ->
-                      uiState.activeServer?.let { server ->
-                        if (allEpisodes || item.type == "Episode") {
-                          JellyfinEpisodeCard(
-                            item = item,
-                            server = server,
-                            onPlay = {
-                              if (selectionManager.isInSelectionMode) {
-                                selectionManager.toggleFromUser(item)
-                              } else {
-                                viewModel.playItem(context, item)
-                              }
-                            },
-                            onLongClick = { selectionManager.handleLongClick(item) },
-                            isSelected = selectionManager.isSelected(item),
-                            downloadState =
-                              when {
-                                item.id in downloadedItemIds -> EpisodeDownloadState.DOWNLOADED
-                                item.id in activeDownloadItemIds -> EpisodeDownloadState.ACTIVE
-                                else -> EpisodeDownloadState.NOT_DOWNLOADED
-                              },
-                            onDownload = { viewModel.downloadItem(item) },
-                          )
-                        } else {
-                          JellyfinListItemCard(
-                            item = item,
-                            server = server,
-                            onClick = {
-                              if (selectionManager.isInSelectionMode) {
-                                selectionManager.toggleFromUser(item)
-                              } else if (item.isFolder || item.isSeries || item.isSeason || item.type == "CollectionFolder") {
-                                viewModel.navigateToItem(item)
-                              } else if (item.isVideo) {
-                                viewModel.openDetail(item)
-                              } else {
-                                viewModel.playItem(context, item)
-                              }
-                            },
-                            onLongClick = { selectionManager.handleLongClick(item) },
-                            isSelected = selectionManager.isSelected(item),
-                            isDownloaded = item.id in downloadedItemIds,
-                          )
-                        }
-                      }
-                    }
-                    if (uiState.isLoadingMore) {
-                      item {
-                        Box(
-                          modifier =
-                            Modifier
-                              .fillMaxWidth()
-                              .padding(16.dp),
-                          contentAlignment = Alignment.Center,
-                        ) {
-                          CircularProgressIndicator(modifier = Modifier.size(28.dp))
-                        }
-                      }
-                    }
-                  }
-
-                  if (hasEnoughItems && scrollbarAlpha > 0.01f) {
-                    ExpressiveScrollBar(
-                      listState = listState,
-                      dragLabelProvider = { index ->
-                        fastScrollGlyph(items.getOrNull(index)?.name)
-                      },
-                      modifier =
-                        Modifier
-                          .align(Alignment.CenterEnd)
-                          .padding(end = 2.dp, top = 6.dp, bottom = navigationBarHeight + 80.dp)
-                          .graphicsLayer { alpha = scrollbarAlpha },
-                    )
-                  }
-                }
-              } else {
-                val gridState = libraryGridState
-                val hasEnoughItems = items.size > 6
-                val scrollbarAlpha by animateFloatAsState(
-                  targetValue = if (hasEnoughItems) 1f else 0f,
-                  label = "scrollbarAlpha",
-                )
-
-                val shouldLoadMore =
-                  remember {
-                    derivedStateOf {
-                      val lastVisibleIndex = gridState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0
-                      items.isNotEmpty() && lastVisibleIndex >= items.size - 8
-                    }
-                  }
-
-                LaunchedEffect(shouldLoadMore.value) {
-                  if (shouldLoadMore.value && uiState.hasMore && !uiState.isLoading && !uiState.isLoadingMore) {
-                    viewModel.loadMoreItems()
-                  }
-                }
-
-                Box(modifier = Modifier.fillMaxSize()) {
-                  LazyVerticalGrid(
-                    state = gridState,
-                    columns = GridCells.Adaptive(minSize = 130.dp),
-                    modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(start = 12.dp, end = 24.dp, top = 8.dp, bottom = navigationBarHeight + 80.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                  ) {
-                    items(items, key = { it.id }) { item ->
-                      uiState.activeServer?.let { server ->
-                        JellyfinPosterCard(
-                          item = item,
-                          server = server,
-                          onClick = {
-                            if (selectionManager.isInSelectionMode) {
-                              selectionManager.toggleFromUser(item)
-                            } else if (item.isFolder || item.isSeason || item.type == "CollectionFolder") {
-                              viewModel.navigateToItem(item)
-                            } else if (item.isSeries || item.isVideo) {
-                              viewModel.openDetail(item)
-                            } else {
-                              viewModel.playItem(context, item)
-                            }
-                          },
-                          onLongClick = { selectionManager.handleLongClick(item) },
-                          isSelected = selectionManager.isSelected(item),
-                          isDownloaded = item.id in downloadedItemIds,
-                        )
-                      }
-                    }
-
-                    if (uiState.isLoadingMore) {
-                      item(span = { GridItemSpan(maxLineSpan) }) {
-                        Box(
-                          modifier =
-                            Modifier
-                              .fillMaxWidth()
-                              .padding(16.dp),
-                          contentAlignment = Alignment.Center,
-                        ) {
-                          CircularProgressIndicator(modifier = Modifier.size(28.dp))
-                        }
-                      }
-                    }
-                  }
-
-                  if (hasEnoughItems && scrollbarAlpha > 0.01f) {
-                    ExpressiveScrollBar(
-                      gridState = gridState,
-                      dragLabelProvider = { index ->
-                        fastScrollGlyph(items.getOrNull(index)?.name)
-                      },
-                      modifier =
-                        Modifier
-                          .align(Alignment.CenterEnd)
-                          .padding(end = 2.dp, top = 6.dp, bottom = navigationBarHeight + 80.dp)
-                          .graphicsLayer { alpha = scrollbarAlpha },
-                    )
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-      }
 
       // Multi-Select Floating Action Pill (smoothly replaces bottom nav bar)
       androidx.compose.animation.AnimatedVisibility(
@@ -1347,7 +1423,7 @@ fun JellyfinContent(
                 isFabExpanded = false
                 isManageServersOpen = true
               },
-              icon = { Icon(Icons.RoundedFilled.BringYourOwnIp, contentDescription = null) },
+              icon = { Icon(Icons.RoundedFilled.Jellyfin, contentDescription = null) },
               text = { Text("Switch Server") },
             )
 
@@ -1362,7 +1438,6 @@ fun JellyfinContent(
           }
         }
     }
-  }
 
   // Cinematic Media Detail Sheet (Material 3 Expressive)
   uiState.activeServer?.let { server ->
@@ -1513,9 +1588,12 @@ fun JellyfinContent(
 }
 
 @Composable
-private fun EmptyServersView(onAddClick: () -> Unit) {
+private fun EmptyServersView(
+  onAddClick: () -> Unit,
+  modifier: Modifier = Modifier,
+) {
   Column(
-    modifier = Modifier.padding(32.dp),
+    modifier = modifier.padding(32.dp),
     horizontalAlignment = Alignment.CenterHorizontally,
     verticalArrangement = Arrangement.Center,
   ) {
@@ -1564,6 +1642,7 @@ private fun ErrorView(
   message: String,
   onRetry: () -> Unit,
   onReauthenticate: (() -> Unit)? = null,
+  modifier: Modifier = Modifier,
 ) {
   val isAuthError = message.contains("401", ignoreCase = true) ||
     message.contains("unauthorized", ignoreCase = true) ||
@@ -1571,7 +1650,7 @@ private fun ErrorView(
     message.contains("403", ignoreCase = true)
 
   Column(
-    modifier = Modifier.padding(24.dp),
+    modifier = modifier.padding(24.dp),
     horizontalAlignment = Alignment.CenterHorizontally,
     verticalArrangement = Arrangement.Center,
   ) {
