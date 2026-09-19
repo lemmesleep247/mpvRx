@@ -50,6 +50,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.IconButton
@@ -57,6 +58,8 @@ import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
+import app.gyrolet.mpvrx.domain.audiobook.AudiobookOnlineMetadata
+import kotlinx.coroutines.launch
 import androidx.compose.material3.PlainTooltip
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
@@ -154,6 +157,7 @@ object AudiobookLibraryScreen : Screen {
     var importMenu by remember { mutableStateOf(false) }
     var detailsId by rememberSaveable { mutableStateOf<Long?>(null) }
     var absDetailsBook by remember { mutableStateOf<AudiobookshelfBook?>(null) }
+    var absSearchOnlineBook by remember { mutableStateOf<AudiobookshelfBook?>(null) }
     var removeId by rememberSaveable { mutableStateOf<Long?>(null) }
     var editing by remember { mutableStateOf<AudiobookEntity?>(null) }
     var opening by remember { mutableStateOf(false) }
@@ -763,6 +767,30 @@ object AudiobookLibraryScreen : Screen {
           absDetailsBook = null
           absModel.closeBookDetails()
         },
+        extraActions = {
+          FilledTonalButton(
+            onClick = { absSearchOnlineBook = book },
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(10.dp),
+          ) {
+            Icon(Icons.RoundedFilled.Search, contentDescription = null, modifier = Modifier.size(16.dp))
+            Spacer(Modifier.width(8.dp))
+            Text(stringResource(R.string.audiobook_search_online_title))
+          }
+        },
+      )
+    }
+
+    absSearchOnlineBook?.let { book ->
+      AudiobookOnlineSearchDialog(
+        initialTitle = book.title,
+        initialAuthor = book.author,
+        onSearch = { title, author -> model.searchOnlineCovers(title, author) },
+        onSelect = { result ->
+          absModel.updateCover(book.id, result.coverUrl)
+          absSearchOnlineBook = null
+        },
+        onDismiss = { absSearchOnlineBook = null },
       )
     }
 
@@ -773,7 +801,16 @@ object AudiobookLibraryScreen : Screen {
         dismissButton = { TextButton(onClick = { removeId = null }) { Text(stringResource(R.string.generic_cancel)) } })
     }
 
-    editing?.let { book -> AudiobookEditDialog(book, onDismiss = { editing = null }) { model.edit(it); editing = null } }
+    editing?.let { book ->
+      AudiobookEditDialog(
+        book = book,
+        onSearchOnline = { title, author -> model.searchOnlineCovers(title, author) },
+        onDismiss = { editing = null },
+      ) { updatedBook, newCoverUrl ->
+        model.edit(updatedBook, newCoverUrl)
+        editing = null
+      }
+    }
 
     (error ?: playbackError ?: absState.error)?.let { message ->
       AlertDialog(onDismissRequest = { model.dismissError(); playbackError = null }, text = { Text(message) },
@@ -862,24 +899,303 @@ private fun AudiobookDetailsBottomSheet(
 }
 
 @Composable
-private fun AudiobookEditDialog(book: AudiobookEntity, onDismiss: () -> Unit, onSave: (AudiobookEntity) -> Unit) {
+private fun AudiobookEditDialog(
+  book: AudiobookEntity,
+  onSearchOnline: suspend (String, String?) -> List<AudiobookOnlineMetadata>,
+  onDismiss: () -> Unit,
+  onSave: (AudiobookEntity, String?) -> Unit,
+) {
   var title by rememberSaveable(book.id) { mutableStateOf(book.title) }
   var author by rememberSaveable(book.id) { mutableStateOf(book.author) }
   var narrator by rememberSaveable(book.id) { mutableStateOf(book.narrator) }
   var series by rememberSaveable(book.id) { mutableStateOf(book.series) }
   var part by rememberSaveable(book.id) { mutableStateOf(book.seriesPart) }
-  AlertDialog(onDismissRequest = onDismiss, title = { Text(stringResource(R.string.audiobook_edit)) }, text = {
-    Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-      OutlinedTextField(title, { title = it }, label = { Text(stringResource(R.string.audiobook_title)) }, singleLine = true)
-      OutlinedTextField(author, { author = it }, label = { Text(stringResource(R.string.audiobook_author)) }, singleLine = true)
-      OutlinedTextField(narrator, { narrator = it }, label = { Text(stringResource(R.string.audiobook_narrator)) }, singleLine = true)
-      OutlinedTextField(series, { series = it }, label = { Text(stringResource(R.string.audiobook_series)) }, singleLine = true)
-      OutlinedTextField(part, { part = it }, label = { Text(stringResource(R.string.audiobook_series_part)) }, singleLine = true)
+  var selectedCoverUrl by rememberSaveable(book.id) { mutableStateOf<String?>(null) }
+  var showSearchDialog by rememberSaveable(book.id) { mutableStateOf(false) }
+
+  if (showSearchDialog) {
+    AudiobookOnlineSearchDialog(
+      initialTitle = title,
+      initialAuthor = author,
+      onSearch = onSearchOnline,
+      onSelect = { result ->
+        selectedCoverUrl = result.coverUrl
+        if (result.title.isNotBlank()) title = result.title
+        result.author?.takeIf(String::isNotBlank)?.let { author = it }
+        result.narrator?.takeIf(String::isNotBlank)?.let { narrator = it }
+        showSearchDialog = false
+      },
+      onDismiss = { showSearchDialog = false },
+    )
+  }
+
+  AlertDialog(
+    onDismissRequest = onDismiss,
+    title = { Text(stringResource(R.string.audiobook_edit)) },
+    text = {
+      Column(
+        Modifier.verticalScroll(rememberScrollState()),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
+      ) {
+        // Cover preview + Search Online button
+        Row(
+          modifier = Modifier.fillMaxWidth(),
+          verticalAlignment = Alignment.CenterVertically,
+          horizontalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+          AudiobookArtwork(
+            uri = selectedCoverUrl ?: book.coverUri,
+            modifier = Modifier.size(72.dp).clip(RoundedCornerShape(8.dp)),
+          )
+          Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(4.dp),
+          ) {
+            FilledTonalButton(
+              onClick = { showSearchDialog = true },
+              shape = RoundedCornerShape(10.dp),
+              contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
+            ) {
+              Icon(
+                imageVector = Icons.RoundedFilled.Search,
+                contentDescription = null,
+                modifier = Modifier.size(16.dp),
+              )
+              Spacer(Modifier.width(6.dp))
+              Text(
+                text = stringResource(R.string.audiobook_search_online_title),
+                style = MaterialTheme.typography.labelMedium,
+              )
+            }
+          }
+        }
+
+        OutlinedTextField(
+          value = title,
+          onValueChange = { title = it },
+          label = { Text(stringResource(R.string.audiobook_title)) },
+          singleLine = true,
+          modifier = Modifier.fillMaxWidth(),
+        )
+        OutlinedTextField(
+          value = author,
+          onValueChange = { author = it },
+          label = { Text(stringResource(R.string.audiobook_author)) },
+          singleLine = true,
+          modifier = Modifier.fillMaxWidth(),
+        )
+        OutlinedTextField(
+          value = narrator,
+          onValueChange = { narrator = it },
+          label = { Text(stringResource(R.string.audiobook_narrator)) },
+          singleLine = true,
+          modifier = Modifier.fillMaxWidth(),
+        )
+        OutlinedTextField(
+          value = series,
+          onValueChange = { series = it },
+          label = { Text(stringResource(R.string.audiobook_series)) },
+          singleLine = true,
+          modifier = Modifier.fillMaxWidth(),
+        )
+        OutlinedTextField(
+          value = part,
+          onValueChange = { part = it },
+          label = { Text(stringResource(R.string.audiobook_series_part)) },
+          singleLine = true,
+          modifier = Modifier.fillMaxWidth(),
+        )
+      }
+    },
+    confirmButton = {
+      TextButton(
+        onClick = {
+          onSave(
+            book.copy(
+              title = title,
+              author = author,
+              narrator = narrator,
+              series = series,
+              seriesPart = part,
+            ),
+            selectedCoverUrl,
+          )
+        },
+        enabled = title.isNotBlank(),
+      ) {
+        Text(stringResource(R.string.audiobook_save))
+      }
+    },
+    dismissButton = {
+      TextButton(onClick = onDismiss) {
+        Text(stringResource(R.string.generic_cancel))
+      }
+    },
+  )
+}
+
+@Composable
+private fun AudiobookOnlineSearchDialog(
+  initialTitle: String,
+  initialAuthor: String,
+  onSearch: suspend (String, String?) -> List<AudiobookOnlineMetadata>,
+  onSelect: (AudiobookOnlineMetadata) -> Unit,
+  onDismiss: () -> Unit,
+) {
+  var searchQuery by rememberSaveable {
+    mutableStateOf(
+      listOfNotNull(
+        initialTitle.trim().takeIf(String::isNotBlank),
+        initialAuthor.trim().takeIf(String::isNotBlank),
+      ).joinToString(" "),
+    )
+  }
+  var isSearching by remember { mutableStateOf(false) }
+  var searchResults by remember { mutableStateOf<List<AudiobookOnlineMetadata>>(emptyList()) }
+  var hasSearched by remember { mutableStateOf(false) }
+  val scope = rememberCoroutineScope()
+
+  fun performSearch(query: String) {
+    if (query.isBlank()) return
+    scope.launch {
+      isSearching = true
+      hasSearched = true
+      searchResults = runCatching { onSearch(query, null) }.getOrDefault(emptyList())
+      isSearching = false
     }
-  }, confirmButton = {
-    TextButton(onClick = { onSave(book.copy(title = title, author = author, narrator = narrator, series = series, seriesPart = part)) },
-      enabled = title.isNotBlank()) { Text(stringResource(R.string.audiobook_save)) }
-  }, dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.generic_cancel)) } })
+  }
+
+  LaunchedEffect(Unit) {
+    if (searchQuery.isNotBlank()) {
+      performSearch(searchQuery)
+    }
+  }
+
+  AlertDialog(
+    onDismissRequest = onDismiss,
+    title = {
+      Text(stringResource(R.string.audiobook_search_online_title))
+    },
+    text = {
+      Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
+      ) {
+        OutlinedTextField(
+          value = searchQuery,
+          onValueChange = { searchQuery = it },
+          label = { Text(stringResource(R.string.audiobook_search_online_query)) },
+          singleLine = true,
+          trailingIcon = {
+            IconButton(
+              onClick = { performSearch(searchQuery) },
+              enabled = searchQuery.isNotBlank() && !isSearching,
+            ) {
+              Icon(Icons.RoundedFilled.Search, contentDescription = "Search")
+            }
+          },
+          modifier = Modifier.fillMaxWidth(),
+        )
+
+        if (isSearching) {
+          Box(
+            modifier = Modifier.fillMaxWidth().height(160.dp),
+            contentAlignment = Alignment.Center,
+          ) {
+            Column(
+              horizontalAlignment = Alignment.CenterHorizontally,
+              verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+              CircularProgressIndicator(modifier = Modifier.size(32.dp))
+              Text(
+                text = stringResource(R.string.audiobook_search_online_searching),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+              )
+            }
+          }
+        } else if (searchResults.isEmpty() && hasSearched) {
+          Box(
+            modifier = Modifier.fillMaxWidth().height(120.dp),
+            contentAlignment = Alignment.Center,
+          ) {
+            Text(
+              text = stringResource(R.string.audiobook_search_online_empty),
+              style = MaterialTheme.typography.bodyMedium,
+              color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+          }
+        } else {
+          LazyColumn(
+            modifier = Modifier.fillMaxWidth().heightIn(max = 280.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+          ) {
+            items(searchResults) { result ->
+              Surface(
+                shape = RoundedCornerShape(8.dp),
+                color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                modifier = Modifier
+                  .fillMaxWidth()
+                  .clickable { onSelect(result) },
+              ) {
+                Row(
+                  modifier = Modifier.padding(8.dp),
+                  verticalAlignment = Alignment.CenterVertically,
+                  horizontalArrangement = Arrangement.spacedBy(10.dp),
+                ) {
+                  AudiobookArtwork(
+                    uri = result.coverUrl,
+                    modifier = Modifier.size(56.dp).clip(RoundedCornerShape(6.dp)),
+                  )
+                  Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(2.dp),
+                  ) {
+                    Text(
+                      text = result.title,
+                      style = MaterialTheme.typography.titleSmall,
+                      fontWeight = FontWeight.SemiBold,
+                      maxLines = 1,
+                      overflow = TextOverflow.Ellipsis,
+                    )
+                    if (!result.author.isNullOrBlank()) {
+                      Text(
+                        text = result.author,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                      )
+                    }
+                    if (!result.narrator.isNullOrBlank()) {
+                      Text(
+                        text = "Narrated by ${result.narrator}",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.outline,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                      )
+                    }
+                    Text(
+                      text = result.provider,
+                      style = MaterialTheme.typography.labelSmall,
+                      color = MaterialTheme.colorScheme.primary,
+                    )
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    confirmButton = {},
+    dismissButton = {
+      TextButton(onClick = onDismiss) {
+        Text(stringResource(R.string.generic_cancel))
+      }
+    },
+  )
 }
 
 @Composable

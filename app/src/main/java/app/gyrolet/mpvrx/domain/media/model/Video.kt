@@ -37,4 +37,5 @@ data class Video(
   val videoCodec: String = "",
   val videoCodecMimeType: String = "",
   val isAudio: Boolean = false,
+  val artworkUrl: String? = null,
 )

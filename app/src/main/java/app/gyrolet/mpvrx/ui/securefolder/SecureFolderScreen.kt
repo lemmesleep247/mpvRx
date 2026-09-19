@@ -395,12 +395,14 @@ data object SecureFolderScreen : Screen {
             val contentHorizontalPadding = 8.dp
             val itemSpacing = 2.dp
             val usableWidth = maxWidth - (contentHorizontalPadding * 2) - itemSpacing
+            val videoMinWidth = 130.dp
+            val dynamicVideos = (usableWidth / videoMinWidth).toInt().coerceAtLeast(1)
             val videoGridColumns =
               if (manualGridColumnsEnabled) {
-                videoGridColumnsPref.coerceAtLeast(1)
+                val maxSafeVideos = maxOf(dynamicVideos + 3, (usableWidth / 90.dp).toInt()).coerceAtLeast(1)
+                videoGridColumnsPref.coerceIn(1, maxSafeVideos)
               } else {
-                val videoMinWidth = 130.dp
-                (usableWidth / videoMinWidth).toInt().coerceAtLeast(1)
+                dynamicVideos
               }
 
             val thumbWidthDp =

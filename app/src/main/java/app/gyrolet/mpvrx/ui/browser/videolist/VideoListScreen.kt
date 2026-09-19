@@ -508,6 +508,7 @@ data class VideoListScreen(
           mediaLayoutMode = mediaLayoutMode,
           isAudio = isAudio,
           musicCoverArtSize = musicCoverArtSize,
+          isDualPane = isDualPane,
         )
 
         // Floating Material 3 Button Group overlay with animation
@@ -808,6 +809,7 @@ internal fun VideoListContent(
   musicCoverArtSize: Int = 48,
   isFabExpanded: Boolean = false,
   onFabExpandedChange: (Boolean) -> Unit = {},
+  isDualPane: Boolean = false,
 ) {
   val swipeScope = rememberCoroutineScope()
   val swipeActions = rememberVideoSwipeActions(audioOnly = isAudio) { swipeScope.launch { onRefresh() } }
@@ -848,6 +850,8 @@ internal fun VideoListContent(
   val manualGridColumnsEnabled by browserPreferences.manualGridColumnsEnabled.collectAsState()
   val videoGridColumnsPortrait by browserPreferences.videoGridColumnsPortrait.collectAsState()
   val videoGridColumnsLandscape by browserPreferences.videoGridColumnsLandscape.collectAsState()
+  val videoGridColumnsDualPanePortrait by browserPreferences.videoGridColumnsDualPanePortrait.collectAsState()
+  val videoGridColumnsDualPaneLandscape by browserPreferences.videoGridColumnsDualPaneLandscape.collectAsState()
   val aspect = if (isAudio) 1f else if (mediaLayoutMode == MediaLayoutMode.GRID) 16f / 10f else 16f / 9f
 
   val videoCardUiConfig =
@@ -926,20 +930,27 @@ internal fun VideoListContent(
         val contentHorizontalPadding = 8.dp
         val itemSpacing = 2.dp
         val usableWidth = maxWidth - (contentHorizontalPadding * 2) - itemSpacing
+        val videoMinWidth =
+          if (app.gyrolet.mpvrx.utils.device.DeviceFormFactor.isTelevision(LocalContext.current)) {
+            240.dp
+          } else {
+            130.dp
+          }
+        val dynamicVideos = (usableWidth / videoMinWidth).toInt().coerceAtLeast(1)
         val videoGridColumns =
           if (isAudio) {
             val audioMinWidth = musicGridCoverArtSize.dp
             (usableWidth / audioMinWidth).toInt().coerceAtLeast(1)
           } else if (manualGridColumnsEnabled) {
-            videoGridColumnsPref.coerceAtLeast(1)
+            val maxSafeVideos = maxOf(dynamicVideos + 3, (usableWidth / 90.dp).toInt()).coerceAtLeast(1)
+            if (isDualPane) {
+              val dualVideoPref = if (isLandscape) videoGridColumnsDualPaneLandscape else videoGridColumnsDualPanePortrait
+              if (dualVideoPref > 0) dualVideoPref.coerceIn(1, maxSafeVideos) else dynamicVideos
+            } else {
+              if (videoGridColumnsPref > 0) videoGridColumnsPref.coerceIn(1, maxSafeVideos) else dynamicVideos
+            }
           } else {
-            val videoMinWidth =
-              if (app.gyrolet.mpvrx.utils.device.DeviceFormFactor.isTelevision(LocalContext.current)) {
-                240.dp
-              } else {
-                130.dp
-              }
-            (usableWidth / videoMinWidth).toInt().coerceAtLeast(1)
+            dynamicVideos
           }
 
         // Must match the thumbnail size logic inside `VideoCard` for this screen,

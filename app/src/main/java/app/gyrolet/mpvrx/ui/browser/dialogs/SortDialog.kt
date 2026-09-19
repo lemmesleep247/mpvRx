@@ -14,6 +14,7 @@ import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -94,6 +95,7 @@ fun SortDialog(
   visibilityToggles: List<VisibilityToggle> = emptyList(),
   viewModeSelector: MultiViewModeSelector? = null,
   layoutModeSelector: ViewModeSelector? = null,
+  manualGridToggle: VisibilityToggle? = null,
   folderGridColumnSelector: GridColumnSelector? = null,
   videoGridColumnSelector: GridColumnSelector? = null,
   showSortOptions: Boolean = true,
@@ -247,6 +249,73 @@ fun SortDialog(
                 )
               }
             }
+            if (manualGridToggle != null && !layoutModeSelector.isFirstOptionSelected) {
+              Spacer(modifier = Modifier.height(8.dp))
+              val isEnabled = enableLayoutModeOptions && manualGridToggle.enabled
+              val buttonBgColor by animateColorAsState(
+                targetValue =
+                  if (manualGridToggle.checked) {
+                    MaterialTheme.colorScheme.primaryContainer
+                  } else {
+                    MaterialTheme.colorScheme.surfaceContainerHighest
+                  },
+                label = "manualGridButtonBg",
+              )
+              val buttonTextColor by animateColorAsState(
+                targetValue =
+                  if (manualGridToggle.checked) {
+                    MaterialTheme.colorScheme.onPrimaryContainer
+                  } else {
+                    MaterialTheme.colorScheme.onSurfaceVariant
+                  },
+                label = "manualGridButtonText",
+              )
+
+              Row(
+                modifier =
+                  Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(8.dp))
+                    .clickable(
+                      enabled = isEnabled,
+                      onClick = {
+                        manualGridToggle.onCheckedChange(!manualGridToggle.checked)
+                        haptics.selection(!manualGridToggle.checked)
+                      },
+                    )
+                    .padding(vertical = 4.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+              ) {
+                Text(
+                  text = manualGridToggle.label,
+                  style = MaterialTheme.typography.bodyMedium,
+                )
+                val buttonShape = RoundedCornerShape(12.dp)
+                Box(
+                  modifier =
+                    Modifier
+                      .clip(buttonShape)
+                      .background(buttonBgColor)
+                      .then(
+                        if (!manualGridToggle.checked) {
+                          Modifier.border(1.dp, MaterialTheme.colorScheme.outlineVariant, buttonShape)
+                        } else {
+                          Modifier
+                        },
+                      )
+                      .padding(horizontal = 16.dp, vertical = 6.dp),
+                  contentAlignment = Alignment.Center,
+                ) {
+                  Text(
+                    text = if (manualGridToggle.checked) "On" else "Off",
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.Medium,
+                    color = buttonTextColor,
+                  )
+                }
+              }
+            }
           }
 
           GridColumnsNextSection(
@@ -255,7 +324,7 @@ fun SortDialog(
           )
 
           if (visibilityToggles.isNotEmpty()) {
-            HorizontalDivider(modifier = Modifier.padding(top = 10.dp))
+            HorizontalDivider(modifier = Modifier.padding(top = 10.dp, bottom = 4.dp))
             Column(
               modifier =
                 Modifier
@@ -266,8 +335,9 @@ fun SortDialog(
                 modifier =
                   Modifier
                     .fillMaxWidth()
+                    .clip(RoundedCornerShape(8.dp))
                     .clickable { isFieldsExpanded = !isFieldsExpanded }
-                    .padding(vertical = 4.dp),
+                    .padding(vertical = 8.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
               ) {
@@ -512,16 +582,12 @@ private fun GridColumnsNextSection(
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.weight(1f),
           )
           Text(
             text = if (folderGridColumnSelector.unitSuffix.isEmpty()) "${folderGridColumnSelector.currentValue}" else "${folderGridColumnSelector.currentValue} ${folderGridColumnSelector.unitSuffix}",
             style = MaterialTheme.typography.bodySmall,
             fontWeight = FontWeight.SemiBold,
             color = MaterialTheme.colorScheme.primary,
-            maxLines = 1,
-            softWrap = false,
-            modifier = Modifier.padding(start = 8.dp),
           )
         }
         Slider(
@@ -551,16 +617,12 @@ private fun GridColumnsNextSection(
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.weight(1f),
           )
           Text(
             text = if (videoGridColumnSelector.unitSuffix.isEmpty()) "${videoGridColumnSelector.currentValue}" else "${videoGridColumnSelector.currentValue} ${videoGridColumnSelector.unitSuffix}",
             style = MaterialTheme.typography.bodySmall,
             fontWeight = FontWeight.SemiBold,
             color = MaterialTheme.colorScheme.primary,
-            maxLines = 1,
-            softWrap = false,
-            modifier = Modifier.padding(start = 8.dp),
           )
         }
         Slider(
@@ -591,8 +653,6 @@ private fun GridColumnsNextSection(
         style = MaterialTheme.typography.bodySmall,
         fontWeight = FontWeight.SemiBold,
         color = MaterialTheme.colorScheme.primary,
-        maxLines = 1,
-        softWrap = false,
       )
     }
     Slider(

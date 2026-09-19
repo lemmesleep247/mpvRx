@@ -5196,6 +5196,13 @@ private suspend fun restorePlaybackPosition(state: PlaybackStateEntity?) {
         return@runCatching
       }
 
+      val artworkUrl =
+        if (HttpUtils.isMusicStreamingUrl(filePath) || HttpUtils.isYouTubeUrl(filePath)) {
+          HttpUtils.fetchMusicStreamingArtwork(filePath)
+        } else {
+          null
+        }
+
       RecentlyPlayedOps.addRecentlyPlayed(
         filePath = filePath,
         fileName = resolvedFileName,
@@ -5205,6 +5212,7 @@ private suspend fun restorePlaybackPosition(state: PlaybackStateEntity?) {
         width = width,
         height = height,
         launchSource = launchSource,
+        artworkUrl = artworkUrl,
       )
 
       Log.d(TAG, "Saved recently played: $filePath")
@@ -5668,6 +5676,16 @@ private suspend fun restorePlaybackPosition(state: PlaybackStateEntity?) {
                 networkSource = networkSource,
                 torrentFileIndex = torrentResult?.selectedFile?.index,
               )
+
+          // Fetch artwork for music streaming URLs (YouTube / YouTube Music via oEmbed).
+          val itemWithArtwork =
+            if (item.artworkUri.isNullOrBlank() && HttpUtils.isMusicStreamingUrl(resolvedOriginalUri)) {
+              val artwork = HttpUtils.fetchMusicStreamingArtwork(resolvedOriginalUri)
+              if (!artwork.isNullOrBlank()) item.copy(artworkUri = artwork) else item
+            } else {
+              item
+            }
+
           val cookieSource =
             sequenceOf(resolvedPlayableUri, resolvedOriginalUri)
               .firstOrNull { value -> value.startsWith("http://", true) || value.startsWith("https://", true) }
@@ -5722,11 +5740,11 @@ private suspend fun restorePlaybackPosition(state: PlaybackStateEntity?) {
                 viewModel.refreshPlaylistItems()
               }
             } else {
-              commitMediaRequest(requestGeneration) { PlaybackSession.replaceQueue(listOf(item), 0) }
+              commitMediaRequest(requestGeneration) { PlaybackSession.replaceQueue(listOf(itemWithArtwork), 0) }
             }
           }
           issuePlaybackLoad(
-            item = item,
+            item = itemWithArtwork,
             attempt = 0,
             requestGeneration = requestGeneration,
             legacyMediaIdentifier = requestedLegacyMediaIdentifier.takeUnless { isTorrentRequest },
@@ -6248,6 +6266,7 @@ private suspend fun restorePlaybackPosition(state: PlaybackStateEntity?) {
   private fun isKnownAudioLaunch(sourceIntent: Intent): Boolean =
     sourceIntent.getBooleanExtra("is_audio", false) ||
       sourceIntent.type?.startsWith("audio/") == true ||
+      HttpUtils.isMusicStreamingUrl(sourceIntent.dataString) ||
       sequenceOf(sourceIntent.dataString, sourceIntent.getStringExtra("local_media_path"))
         .filterNotNull()
         .any { source -> source.fileExtension() in FileTypeUtils.AUDIO_EXTENSIONS }

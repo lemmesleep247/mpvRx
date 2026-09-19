@@ -87,8 +87,31 @@ class AudiobookLibraryViewModel(application: Application) : AndroidViewModel(app
     dao.setFinished(id, finished)
   }
 
-  fun edit(book: AudiobookEntity) = operation {
-    dao.updateDetails(book.id, book.title.trim(), book.author.trim(), book.narrator.trim(), book.series.trim(), book.seriesPart.trim())
+  suspend fun searchOnlineCovers(title: String, author: String? = null) =
+    app.gyrolet.mpvrx.domain.audiobook.AudiobookCoverFetcher.search(title, author)
+
+  fun edit(book: AudiobookEntity, newCoverUrl: String? = null) = operation {
+    val context = getApplication<Application>()
+    var finalCoverUri = book.coverUri
+    if (!newCoverUrl.isNullOrBlank()) {
+      val localUri = app.gyrolet.mpvrx.domain.audiobook.AudiobookCoverFetcher.downloadAndSaveCover(
+        context = context,
+        coverUrl = newCoverUrl,
+        sourceKey = book.sourceKey,
+      )
+      if (localUri != null) {
+        finalCoverUri = localUri
+      }
+    }
+    dao.updateDetails(
+      id = book.id,
+      title = book.title.trim(),
+      author = book.author.trim(),
+      narrator = book.narrator.trim(),
+      series = book.series.trim(),
+      seriesPart = book.seriesPart.trim(),
+      coverUri = finalCoverUri,
+    )
   }
 
   private fun operation(action: suspend () -> Unit) = viewModelScope.launch {

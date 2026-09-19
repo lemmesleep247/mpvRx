@@ -66,7 +66,7 @@ import app.gyrolet.mpvrx.domain.network.NetworkConnection
     PlaybackBookmarkEntity::class,
     AudiobookshelfServerEntity::class,
   ],
-  version = 25,
+  version = 26,
   exportSchema = true,
 )
 @TypeConverters(NetworkProtocolConverter::class, NetworkStreamEntryTypeConverter::class)

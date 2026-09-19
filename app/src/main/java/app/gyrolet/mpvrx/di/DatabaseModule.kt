@@ -900,6 +900,13 @@ val MIGRATION_24_25 =
     }
   }
 
+val MIGRATION_25_26 =
+  object : Migration(25, 26) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+      db.execSQL("ALTER TABLE `RecentlyPlayedEntity` ADD COLUMN `artworkUrl` TEXT DEFAULT NULL")
+    }
+  }
+
 val DatabaseModule =
   module {
     single<Json> {
@@ -940,6 +947,7 @@ val DatabaseModule =
           MIGRATION_22_23,
           MIGRATION_23_24,
           MIGRATION_24_25,
+          MIGRATION_25_26,
         ).build()
     }
 

@@ -9,6 +9,7 @@
 
 package app.gyrolet.mpvrx.ui.player
 
+import app.gyrolet.mpvrx.utils.media.HttpUtils
 import app.gyrolet.mpvrx.utils.media.fileExtension
 import app.gyrolet.mpvrx.utils.storage.FileTypeUtils
 import java.net.URI
@@ -103,6 +104,7 @@ internal enum class DeclaredPlaybackMediaKind {
 internal fun PlaybackItem.declaredMediaKind(): DeclaredPlaybackMediaKind {
   if (mimeType?.startsWith("audio/", ignoreCase = true) == true) return DeclaredPlaybackMediaKind.AUDIO
   if (mimeType?.startsWith("video/", ignoreCase = true) == true) return DeclaredPlaybackMediaKind.VIDEO
+  if (HttpUtils.isMusicStreamingUrl(originalUri) || HttpUtils.isMusicStreamingUrl(playableUri)) return DeclaredPlaybackMediaKind.AUDIO
 
   val extensions =
     sequenceOf(originalUri, playableUri, title)

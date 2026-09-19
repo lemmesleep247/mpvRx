@@ -654,6 +654,7 @@ private fun RecentItemsContent(
   val tapThumbnailToSelect by gesturePreferences.tapThumbnailToSelect.collectAsState()
   val showSubtitleIndicator by browserPreferences.showSubtitleIndicator.collectAsState()
   val showVideoThumbnails by browserPreferences.showVideoThumbnails.collectAsState()
+  val showNetworkThumbnails by appearancePreferences.showNetworkThumbnails.collectAsState()
   val unlimitedNameLines by appearancePreferences.unlimitedNameLines.collectAsState()
   val showSizeChip by browserPreferences.showSizeChip.collectAsState()
   val showResolutionChip by browserPreferences.showResolutionChip.collectAsState()
@@ -682,11 +683,13 @@ private fun RecentItemsContent(
   val usableWidth = screenWidthDp - (contentHorizontalPadding * 2) - itemSpacing
   val videoMinWidth = 130.dp
   val videoGridColumnsPref = if (isLandscape) videoGridColumnsLandscape else videoGridColumnsPortrait
+  val dynamicVideos = (usableWidth / videoMinWidth).toInt().coerceAtLeast(1)
   val computedVideoColumns =
     if (manualGridColumnsEnabled) {
-      videoGridColumnsPref.coerceAtLeast(1)
+      val maxSafeVideos = maxOf(dynamicVideos + 3, (usableWidth / 90.dp).toInt()).coerceAtLeast(1)
+      videoGridColumnsPref.coerceIn(1, maxSafeVideos)
     } else {
-      (usableWidth / videoMinWidth).toInt().coerceAtLeast(1)
+      dynamicVideos
     }
 
   val isGridMode = mediaLayoutMode == MediaLayoutMode.GRID
@@ -755,7 +758,7 @@ private fun RecentItemsContent(
 
   // Unified thumbnail generation - starts with initial batch and continues as needed
   // This avoids the overhead of multiple conflicting LaunchedEffect calls
-  LaunchedEffect(showVideoThumbnails, thumbWidthPx, thumbHeightPx, recentItems.size) {
+      LaunchedEffect(showVideoThumbnails, showNetworkThumbnails, thumbWidthPx, thumbHeightPx, recentItems.size) {
     if (showVideoThumbnails && recentVideos.isNotEmpty()) {
       // Start with all videos - the ThumbnailRepository will handle batching internally
       // This avoids redundant job restarts when scrolling

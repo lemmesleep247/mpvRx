@@ -43,30 +43,76 @@ internal class GitHubContributorsRepository(
       if (!forceRefresh) freshCache()?.let { return@withContext Result.success(it) }
 
       try {
-        val contributors =
+        val rawContributors =
           fetchContributorResponses()
-            .asSequence()
             .filterNot { it.type.equals("Bot", ignoreCase = true) }
-            .mapNotNull { contributor ->
-              val displayName =
-                contributor.login?.trim()?.takeIf(String::isNotBlank)
-                  ?: contributor.name
-                    ?.trim()
-                    ?.takeIf(String::isNotBlank)
-                    ?.takeUnless { Patterns.EMAIL_ADDRESS.matcher(it).find() }
-                  ?: return@mapNotNull null
+
+        val (users, anonymous) = rawContributors.partition { it.login != null }
+
+        val userList =
+          users
+            .map { user ->
               GitHubContributor(
-                displayName = displayName,
-                avatarUrl = contributor.avatarUrl?.takeIf { it.startsWith("https://") },
-                profileUrl = contributor.profileUrl?.takeIf { it.startsWith("https://github.com/") },
-                contributions = contributor.contributions.coerceAtLeast(0),
+                displayName = user.login!!.trim(),
+                avatarUrl = user.avatarUrl?.takeIf { it.startsWith("https://") },
+                profileUrl = user.profileUrl?.takeIf { it.startsWith("https://github.com/") },
+                contributions = user.contributions.coerceAtLeast(0),
               )
-            }.distinctBy { it.displayName.lowercase(Locale.ROOT) }
+            }.toMutableList()
+
+        val wordRegex = Regex("[a-z]{4,}")
+
+        for (anon in anonymous) {
+          val anonName =
+            anon.name
+              ?.trim()
+              ?.takeIf(String::isNotBlank)
+              ?.takeUnless { Patterns.EMAIL_ADDRESS.matcher(it).find() }
+          val anonEmail = anon.email?.trim()?.lowercase(Locale.ROOT)
+          val anonContributions = anon.contributions.coerceAtLeast(0)
+
+          val nameWords =
+            anonName
+              ?.lowercase(Locale.ROOT)
+              ?.let { wordRegex.findAll(it).map { m -> m.value }.toList() }
+              .orEmpty()
+          val emailWords =
+            anonEmail
+              ?.substringBefore('@')
+              ?.let { wordRegex.findAll(it).map { m -> m.value }.toList() }
+              .orEmpty()
+
+          val matchedIndex =
+            userList.indexOfFirst { user ->
+              val cleanLogin = user.displayName.lowercase(Locale.ROOT).filter { it.isLetter() }
+              if (cleanLogin.length < 3) return@indexOfFirst false
+              nameWords.any { it.contains(cleanLogin) || cleanLogin.contains(it) } ||
+                emailWords.any { it.contains(cleanLogin) || cleanLogin.contains(it) }
+            }
+
+          if (matchedIndex != -1) {
+            val matchedUser = userList[matchedIndex]
+            userList[matchedIndex] =
+              matchedUser.copy(contributions = matchedUser.contributions + anonContributions)
+          } else if (anonName != null) {
+            userList.add(
+              GitHubContributor(
+                displayName = anonName,
+                avatarUrl = null,
+                profileUrl = null,
+                contributions = anonContributions,
+              ),
+            )
+          }
+        }
+
+        val contributors =
+          userList
+            .distinctBy { it.displayName.lowercase(Locale.ROOT) }
             .sortedWith(
               compareByDescending<GitHubContributor> { it.contributions }
                 .thenBy { it.displayName.lowercase(Locale.ROOT) },
             )
-            .toList()
         synchronized(this@GitHubContributorsRepository) {
           cache = ContributorCache(contributors, SystemClock.elapsedRealtime())
         }
@@ -145,6 +191,7 @@ internal class GitHubContributorsRepository(
   private data class GitHubContributorResponse(
     val login: String? = null,
     val name: String? = null,
+    val email: String? = null,
     @SerialName("avatar_url") val avatarUrl: String? = null,
     @SerialName("html_url") val profileUrl: String? = null,
     val contributions: Int = 0,

@@ -23,6 +23,7 @@ interface RecentlyPlayedRepository {
     height: Int = 0,
     launchSource: String? = null,
     playlistId: Int? = null,
+    artworkUrl: String? = null,
   )
 
   suspend fun getLastPlayed(): RecentlyPlayedEntity?

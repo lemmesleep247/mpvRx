@@ -2367,6 +2367,11 @@
   <string name="audiobook_unabridged">Unabridged</string>
   <string name="audiobook_details">Book details</string>
   <string name="audiobook_edit">Edit book</string>
+  <string name="audiobook_search_online_cover">Search online cover &amp; info</string>
+  <string name="audiobook_search_online_title">Search Online Artwork</string>
+  <string name="audiobook_search_online_query">Search by title, author, or keywords</string>
+  <string name="audiobook_search_online_searching">Searching Apple Books &amp; Open Library…</string>
+  <string name="audiobook_search_online_empty">No online covers found for this query.</string>
   <string name="audiobook_save">Save</string>
   <string name="audiobook_remove">Remove from library</string>
   <string name="audiobook_remove_confirmation">Remove “%1$s” and its listening progress and bookmarks? Audio files will not be deleted.</string>

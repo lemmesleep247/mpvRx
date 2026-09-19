@@ -240,6 +240,56 @@ class AudiobookshelfClient(
     }
   }
 
+  suspend fun updateCoverUrl(
+    server: AudiobookshelfServer,
+    itemId: String,
+    coverUrl: String,
+  ): Result<Unit> = withContext(Dispatchers.IO) {
+    try {
+      val payload = JsonObject(mapOf("url" to JsonPrimitive(coverUrl))).toString()
+      val url = "${server.serverUrl.trimEnd('/')}/api/items/$itemId/cover/url"
+      val req = Request.Builder()
+        .url(url)
+        .header("Authorization", "Bearer ${server.token}")
+        .post(payload.toRequestBody(JSON_MEDIA_TYPE))
+        .build()
+
+      httpClient.newCall(req).awaitResponse().use { response ->
+        if (response.isSuccessful) Result.success(Unit)
+        else Result.failure(Exception("Cover update failed (HTTP ${response.code})"))
+      }
+    } catch (e: Exception) {
+      if (e is CancellationException) throw e
+      Log.e(TAG, "updateCoverUrl exception", e)
+      Result.failure(e)
+    }
+  }
+
+  suspend fun quickMatch(
+    server: AudiobookshelfServer,
+    itemId: String,
+    provider: String = "audible",
+  ): Result<Unit> = withContext(Dispatchers.IO) {
+    try {
+      val payload = JsonObject(mapOf("provider" to JsonPrimitive(provider))).toString()
+      val url = "${server.serverUrl.trimEnd('/')}/api/items/$itemId/quick-match"
+      val req = Request.Builder()
+        .url(url)
+        .header("Authorization", "Bearer ${server.token}")
+        .post(payload.toRequestBody(JSON_MEDIA_TYPE))
+        .build()
+
+      httpClient.newCall(req).awaitResponse().use { response ->
+        if (response.isSuccessful) Result.success(Unit)
+        else Result.failure(Exception("Quick match failed (HTTP ${response.code})"))
+      }
+    } catch (e: Exception) {
+      if (e is CancellationException) throw e
+      Log.e(TAG, "quickMatch exception", e)
+      Result.failure(e)
+    }
+  }
+
   fun getCoverUrl(server: AudiobookshelfServer, itemId: String): String =
     "${server.serverUrl.trimEnd('/')}/api/items/$itemId/cover?token=${server.token}"
 

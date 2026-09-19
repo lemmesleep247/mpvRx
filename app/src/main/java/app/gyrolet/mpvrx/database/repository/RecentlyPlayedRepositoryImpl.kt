@@ -34,6 +34,7 @@ class RecentlyPlayedRepositoryImpl(
     height: Int,
     launchSource: String?,
     playlistId: Int?,
+    artworkUrl: String?,
   ) = addMutex.withLock {
     // Check if there's an existing entry for this file
     val existingEntry = recentlyPlayedDao.getByFilePath(filePath)
@@ -54,6 +55,7 @@ class RecentlyPlayedRepositoryImpl(
           // Preserve the original launch source when reopening the same file
           launchSource = existingEntry.launchSource,
           playlistId = playlistId ?: existingEntry.playlistId,
+          artworkUrl = artworkUrl ?: existingEntry.artworkUrl,
         )
       recentlyPlayedDao.insert(entity)
     } else {
@@ -70,6 +72,7 @@ class RecentlyPlayedRepositoryImpl(
           timestamp = System.currentTimeMillis(),
           launchSource = launchSource,
           playlistId = playlistId,
+          artworkUrl = artworkUrl,
         )
       recentlyPlayedDao.insert(entity)
     }

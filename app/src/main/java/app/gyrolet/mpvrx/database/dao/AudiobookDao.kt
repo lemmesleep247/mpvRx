@@ -72,6 +72,13 @@ abstract class AudiobookDao {
     series = :series, seriesPart = :seriesPart WHERE id = :id""")
   abstract suspend fun updateDetails(id: Long, title: String, author: String, narrator: String, series: String, seriesPart: String)
 
+  @Query("""UPDATE audiobooks SET title = :title, author = :author, narrator = :narrator,
+    series = :series, seriesPart = :seriesPart, coverUri = :coverUri WHERE id = :id""")
+  abstract suspend fun updateDetails(id: Long, title: String, author: String, narrator: String, series: String, seriesPart: String, coverUri: String?)
+
+  @Query("UPDATE audiobooks SET coverUri = :coverUri WHERE id = :id")
+  abstract suspend fun updateCover(id: Long, coverUri: String?)
+
   @Query("""UPDATE audiobooks SET
     author = CASE WHEN author = '' THEN :author ELSE author END,
     narrator = CASE WHEN narrator = '' THEN :narrator ELSE narrator END,

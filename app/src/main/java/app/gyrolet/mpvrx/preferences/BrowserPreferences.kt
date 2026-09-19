@@ -85,24 +85,16 @@ class BrowserPreferences(
   val folderViewMode = preferenceStore.getEnum("folder_view_mode", FolderViewMode.AlbumView)
   val dualPaneForTablet = preferenceStore.getBoolean("dual_pane_for_tablet", true)
 
-  private val isTablet = context.resources.configuration.smallestScreenWidthDp >= 600
-  val maxColumns = if (isTablet) 8 else 4
+  val folderGridColumnsPortrait = preferenceStore.getInt("folder_grid_columns_portrait", 0)
+  val folderGridColumnsLandscape = preferenceStore.getInt("folder_grid_columns_landscape", 0)
 
-  private val _folderGridColumnsPortrait =
-    preferenceStore.getInt(
-      "folder_grid_columns_portrait",
-      if (isTablet) 4 else 3,
-    )
-  private val _folderGridColumnsLandscape = preferenceStore.getInt("folder_grid_columns_landscape", 5)
+  val videoGridColumnsPortrait = preferenceStore.getInt("video_grid_columns_portrait", 0)
+  val videoGridColumnsLandscape = preferenceStore.getInt("video_grid_columns_landscape", 0)
 
-  private val _videoGridColumnsPortrait = preferenceStore.getInt("video_grid_columns_portrait", if (isTablet) 4 else 2)
-  private val _videoGridColumnsLandscape = preferenceStore.getInt("video_grid_columns_landscape", 4)
-
-  val folderGridColumnsPortrait: Preference<Int> = CoercedPreference(_folderGridColumnsPortrait, maxColumns)
-  val folderGridColumnsLandscape: Preference<Int> = CoercedPreference(_folderGridColumnsLandscape, 8)
-
-  val videoGridColumnsPortrait: Preference<Int> = CoercedPreference(_videoGridColumnsPortrait, maxColumns)
-  val videoGridColumnsLandscape: Preference<Int> = CoercedPreference(_videoGridColumnsLandscape, 8)
+  val folderGridColumnsDualPanePortrait = preferenceStore.getInt("folder_grid_columns_dual_pane_portrait", 0)
+  val folderGridColumnsDualPaneLandscape = preferenceStore.getInt("folder_grid_columns_dual_pane_landscape", 0)
+  val videoGridColumnsDualPanePortrait = preferenceStore.getInt("video_grid_columns_dual_pane_portrait", 0)
+  val videoGridColumnsDualPaneLandscape = preferenceStore.getInt("video_grid_columns_dual_pane_landscape", 0)
 
   val showExtensionField = preferenceStore.getBoolean("show_extension_field", false)
   val showDurationField = preferenceStore.getBoolean("show_duration_field", true)

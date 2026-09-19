@@ -59,6 +59,7 @@ import app.gyrolet.mpvrx.preferences.AppearancePreferences
 import app.gyrolet.mpvrx.preferences.BrowserPreferences
 import app.gyrolet.mpvrx.preferences.ThumbnailQuality
 import app.gyrolet.mpvrx.preferences.VideoSwipeAction
+import app.gyrolet.mpvrx.presentation.components.RemoteImage
 import app.gyrolet.mpvrx.preferences.preference.collectAsState
 import app.gyrolet.mpvrx.ui.icons.Icon
 import app.gyrolet.mpvrx.ui.icons.Icons
@@ -333,7 +334,14 @@ fun VideoCard(
             contentAlignment = Alignment.Center,
           ) {
             if (showThumbnails) {
-              thumbnailBitmap?.let {
+              if (!video.artworkUrl.isNullOrBlank()) {
+                RemoteImage(
+                  url = video.artworkUrl,
+                  contentDescription = stringResource(R.string.ui_thumbnail),
+                  modifier = Modifier.matchParentSize(),
+                  contentScale = ContentScale.Crop,
+                )
+              } else thumbnailBitmap?.let {
                 Image(
                   bitmap = it,
                   contentDescription =
@@ -652,7 +660,14 @@ fun VideoCard(
             contentAlignment = Alignment.Center,
           ) {
             if (showThumbnails) {
-              listThumbnailBitmap?.let {
+              if (!video.artworkUrl.isNullOrBlank()) {
+                RemoteImage(
+                  url = video.artworkUrl,
+                  contentDescription = stringResource(R.string.ui_thumbnail),
+                  modifier = Modifier.matchParentSize(),
+                  contentScale = ContentScale.Crop,
+                )
+              } else listThumbnailBitmap?.let {
                 Image(
                   bitmap = it,
                   contentDescription =

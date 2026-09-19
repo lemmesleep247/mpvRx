@@ -24,6 +24,7 @@ import app.gyrolet.mpvrx.database.repository.VideoMetadataCacheRepository
 import app.gyrolet.mpvrx.domain.media.model.Video
 import app.gyrolet.mpvrx.domain.recentlyplayed.repository.RecentlyPlayedRepository
 import app.gyrolet.mpvrx.utils.permission.PermissionUtils
+import app.gyrolet.mpvrx.utils.media.HttpUtils
 import app.gyrolet.mpvrx.utils.storage.FileTypeUtils
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -313,6 +314,7 @@ class RecentlyPlayedViewModel(
         "mpd" -> "application/dash+xml"
         else -> "video/*"
       }
+    val isAudio = HttpUtils.isMusicStreamingUrl(uri)
 
     return Video(
       id = url.hashCode().toLong(),
@@ -332,7 +334,9 @@ class RecentlyPlayedViewModel(
       width = width,
       height = height,
       fps = 0f, // Network videos typically don't have fps metadata stored
-      resolution = formatResolution(width, height),
+      resolution = if (isAudio) "--" else formatResolution(width, height),
+      isAudio = isAudio,
+      artworkUrl = entity?.artworkUrl,
     )
   }
 

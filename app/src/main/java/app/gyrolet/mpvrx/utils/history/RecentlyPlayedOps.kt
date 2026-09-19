@@ -39,6 +39,7 @@ object RecentlyPlayedOps {
     height: Int = 0,
     launchSource: String? = null,
     playlistId: Int? = null,
+    artworkUrl: String? = null,
   ) {
     // Check if recently played feature is enabled
     if (!preferences.enableRecentlyPlayed.get()) return
@@ -58,6 +59,7 @@ object RecentlyPlayedOps {
       height,
       launchSource,
       playlistId,
+      artworkUrl,
     )
   }
 

@@ -95,11 +95,23 @@ internal class AudiobookImporter(private val context: Context, private val dao: 
     fun field(key: String): String = metadata.text(key).ifBlank { ordered.firstNotNullOfOrNull { it.tags[key]?.takeIf(String::isNotBlank) }.orEmpty() }
     val seriesValue = metadata.optJSONArray("series")?.opt(0)
     val series = seriesValue as? JSONObject
+    val parsedTitle = field("title").ifBlank { root?.name ?: ordered.first().track.title }
+    val parsedAuthor = metadata.names("authors").ifBlank { field("author") }
+
+    if (coverUri == null && parsedTitle.isNotBlank()) {
+      runCatching {
+        val onlineMatch = AudiobookCoverFetcher.search(parsedTitle, parsedAuthor).firstOrNull()
+        if (onlineMatch != null) {
+          coverUri = AudiobookCoverFetcher.downloadAndSaveCover(context, onlineMatch.coverUrl, sourceKey)
+        }
+      }
+    }
+
     val book = AudiobookEntity(
       sourceKey = sourceKey,
-      title = field("title").ifBlank { root?.name ?: ordered.first().track.title },
+      title = parsedTitle,
       subtitle = metadata.text("subtitle"),
-      author = metadata.names("authors").ifBlank { field("author") },
+      author = parsedAuthor,
       narrator = metadata.names("narrators").ifBlank { field("narrator") },
       series = series?.text("name") ?: (seriesValue as? String) ?: metadata.text("series"),
       seriesPart = series?.text("sequence") ?: metadata.text("seriesPart"),

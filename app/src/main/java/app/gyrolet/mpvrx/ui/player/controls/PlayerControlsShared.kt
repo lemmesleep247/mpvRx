@@ -210,7 +210,6 @@ fun RenderPlayerButton(
     PlayerButton.BOOKMARKS_CHAPTERS -> {
       ControlsButton(
         Icons.RoundedFilled.Bookmarks,
-        enabled = chapters.isNotEmpty(),
         onClick = { onOpenSheet(Sheets.Chapters) },
         onLongClick = addPlaybackBookmark,
         onLongClickLabel = stringResource(R.string.audiobook_add_bookmark),
@@ -784,23 +783,24 @@ fun RenderPlayerButton(
 
     PlayerButton.CURRENT_CHAPTER -> {
       val chapter = currentChapter?.let(chapters::getOrNull)
-      if (isPortrait || compact || chapter == null) {
+      if (!isPortrait && !compact && chapter != null) {
+        CurrentChapter(
+          chapter = chapter,
+          onClick = { onOpenSheet(Sheets.Chapters) },
+          onLongClick = addPlaybackBookmark,
+        )
+      } else if (chapters.isNotEmpty() || isPortrait || compact) {
+        // Small button: always show in portrait/compact, or when chapters exist in landscape
         ControlsButton(
           icon = Icons.RoundedFilled.Bookmarks,
-          enabled = chapters.isNotEmpty(),
           onClick = { onOpenSheet(Sheets.Chapters) },
           onLongClick = addPlaybackBookmark,
           onLongClickLabel = stringResource(R.string.audiobook_add_bookmark),
           title = stringResource(R.string.btn_label_bookmarks),
           modifier = Modifier.size(buttonSize),
         )
-      } else {
-        CurrentChapter(
-          chapter = chapter,
-          onClick = { onOpenSheet(Sheets.Chapters) },
-          onLongClick = addPlaybackBookmark,
-        )
       }
+      // If no chapters and landscape/non-compact: hide entirely (emit nothing)
     }
 
     PlayerButton.REPEAT_MODE -> {

@@ -420,6 +420,34 @@ class AudiobookshelfViewModel(
     }
   }
 
+  fun updateCover(bookId: String, coverUrl: String) {
+    val server = _uiState.value.activeServer ?: return
+    viewModelScope.launch(Dispatchers.IO) {
+      val res = repository.updateCoverUrl(server, bookId, coverUrl)
+      if (res.isSuccess) {
+        _uiState.value.activeLibrary?.let { lib ->
+          loadBooks(server, lib.id)
+        }
+      } else {
+        _uiState.update { it.copy(error = res.exceptionOrNull()?.localizedMessage ?: "Failed to update cover on server") }
+      }
+    }
+  }
+
+  fun quickMatch(bookId: String, provider: String = "audible") {
+    val server = _uiState.value.activeServer ?: return
+    viewModelScope.launch(Dispatchers.IO) {
+      val res = repository.quickMatch(server, bookId, provider)
+      if (res.isSuccess) {
+        _uiState.value.activeLibrary?.let { lib ->
+          loadBooks(server, lib.id)
+        }
+      } else {
+        _uiState.update { it.copy(error = res.exceptionOrNull()?.localizedMessage ?: "Quick match failed on server") }
+      }
+    }
+  }
+
   companion object {
     fun factory(application: Application): ViewModelProvider.Factory =
       viewModelFactory {

@@ -336,18 +336,27 @@ fun PlayerSheetHeader(
   modifier: Modifier = Modifier,
   actions: @Composable RowScope.() -> Unit = {},
 ) {
-  Row(
-    modifier = modifier.fillMaxWidth().heightIn(min = 60.dp).padding(start = 20.dp, end = 12.dp, bottom = 12.dp),
-    verticalAlignment = Alignment.CenterVertically,
+  Box(
+    modifier = modifier.fillMaxWidth().heightIn(min = 56.dp).padding(start = 12.dp, end = 12.dp, bottom = 4.dp),
   ) {
     Text(
       text = title,
-      modifier = Modifier.weight(1f).padding(end = 8.dp).semantics { heading() },
+      modifier =
+        Modifier
+          .fillMaxWidth()
+          .padding(horizontal = 48.dp)
+          .align(Alignment.Center)
+          .semantics { heading() },
       style = MaterialTheme.typography.titleLarge,
       fontWeight = FontWeight.SemiBold,
       color = MaterialTheme.colorScheme.onSurface,
+      textAlign = androidx.compose.ui.text.style.TextAlign.Center,
     )
-    actions()
+    Row(
+      modifier = Modifier.align(Alignment.CenterEnd),
+      verticalAlignment = Alignment.CenterVertically,
+      content = actions,
+    )
   }
 }
 

@@ -1326,7 +1326,7 @@ private fun GridContent(
     val isDualPaneActive = isTablet && dualPaneForTablet
     val isDualPane = isDualPaneActive && selectedFolderBucketId != null
 
-    val spansInfo = calculateResponsiveGridSpans(maxWidth = maxWidth)
+    val spansInfo = calculateResponsiveGridSpans(maxWidth = maxWidth, isDualPane = isDualPane)
     val computedColumns = spansInfo.spans / spansInfo.folderSpan
 
     LazyVerticalGrid(

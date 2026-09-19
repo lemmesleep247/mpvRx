@@ -98,6 +98,12 @@ class AudiobookshelfRepository(
   fun getCoverUrl(server: AudiobookshelfServer, itemId: String): String =
     client.getCoverUrl(server, itemId)
 
+  suspend fun updateCoverUrl(server: AudiobookshelfServer, itemId: String, coverUrl: String): Result<Unit> =
+    client.updateCoverUrl(server, itemId, coverUrl)
+
+  suspend fun quickMatch(server: AudiobookshelfServer, itemId: String, provider: String = "audible"): Result<Unit> =
+    client.quickMatch(server, itemId, provider)
+
   fun getTrackStreamUrl(server: AudiobookshelfServer, track: AudiobookshelfTrack, bookId: String): String =
     client.getTrackStreamUrl(server, track, bookId)
 }
