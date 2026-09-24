@@ -91,7 +91,10 @@ import app.gyrolet.mpvrx.preferences.PlayerPreferences
 import app.gyrolet.mpvrx.preferences.preference.collectAsState
 import app.gyrolet.mpvrx.ui.icons.AppIcon
 import app.gyrolet.mpvrx.ui.icons.Icon
+import app.gyrolet.mpvrx.ui.player.controls.components.rememberTvInitialFocusRequester
 import app.gyrolet.mpvrx.ui.player.controls.components.tvFocusGroup
+import app.gyrolet.mpvrx.ui.player.controls.components.tvInitialFocus
+import androidx.compose.ui.focus.focusProperties
 import app.gyrolet.mpvrx.ui.theme.AppMotion
 import app.gyrolet.mpvrx.ui.theme.LocalMotionPolicy
 import app.gyrolet.mpvrx.ui.theme.MotionPolicy
@@ -117,6 +120,10 @@ fun PlayerSheet(
   content: @Composable () -> Unit,
 ) {
   val scope = rememberCoroutineScope()
+  // TV/remote: request focus INTO the sheet content when it opens, so the D-pad can navigate/select
+  // its rows instead of being trapped behind the (hidden) first-layer player controls. Ported from
+  // mpvEx-TV; rememberTvInitialFocusRequester retries across the entrance animation and is TV-gated.
+  val sheetInitialFocus = rememberTvInitialFocusRequester()
   val dimBackground by koinInject<PlayerPreferences>().reduceMotion.collectAsState()
   val reducedMotion = AppMotion.playerReducedMotion()
   val currentSheetSpec by rememberUpdatedState<FiniteAnimationSpec<Float>>(
@@ -200,8 +207,9 @@ fun PlayerSheet(
           interactionSource = remember { MutableInteractionSource() },
           indication = null,
           onClick = internalOnDismissRequest,
-        ).fillMaxSize()
-        .background(Color.Black.copy(alpha))
+          ).fillMaxSize()
+          .focusProperties { canFocus = false }
+          .background(Color.Black.copy(alpha))
         .onSizeChanged {
           val anchors =
             DraggableAnchors {
@@ -227,6 +235,8 @@ fun PlayerSheet(
             },
           ).then(modifier)
           .tvFocusGroup()
+          .tvInitialFocus(sheetInitialFocus)
+          .focusProperties { canFocus = false }
           .offset {
             val baseOffset =
               anchoredDraggableState.offset

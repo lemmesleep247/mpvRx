@@ -45,7 +45,16 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentHeight
+import androidx.compose.foundation.focusable
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.focus.focusProperties
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onKeyEvent
+import androidx.compose.ui.input.key.type
+import app.gyrolet.mpvrx.ui.player.controls.components.tvFocusHighlight
+import app.gyrolet.mpvrx.utils.device.DeviceFormFactor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -63,6 +72,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.withFrameMillis
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
@@ -569,8 +579,53 @@ private fun SeekbarContent(
       }
     }
 
+  val isTelevision = DeviceFormFactor.isTelevision(LocalContext.current)
+  // TV remote scrubbing: the underlying Seeker is a touch-only slider (rendered at alpha 0),
+  // so the seekbar is not reachable or operable by the D-pad. When focused on Android TV,
+  // LEFT/RIGHT preview + commit a precise position so the remote can land on the bar and scrub.
+  var dpadSeekPosition by remember { mutableFloatStateOf(currentPos) }
+  val dpadStep = (safeDuration * 0.02f).coerceIn(1f, 30f)
+  val dpadBigStep = (safeDuration * 0.10f).coerceIn(5f, 120f)
+  var isDpadScrubbing by remember { mutableStateOf(false) }
+  LaunchedEffect(currentPos, isDpadScrubbing) {
+    if (!isDpadScrubbing) dpadSeekPosition = currentPos
+  }
+  val seekKeyModifier =
+    if (isTelevision) {
+      Modifier
+        .focusable()
+        .tvFocusHighlight(shape = RoundedCornerShape(percent = 50))
+        .onKeyEvent { event ->
+          if (event.type != KeyEventType.KeyDown && event.type != KeyEventType.KeyUp) {
+            return@onKeyEvent false
+          }
+          when (event.key) {
+            Key.DirectionLeft, Key.DirectionRight -> {
+              if (event.type == KeyEventType.KeyDown) {
+                val repeats = event.nativeKeyEvent?.repeatCount ?: 0
+                val step = if (repeats > 0) dpadBigStep else dpadStep
+                val dir = if (event.key == Key.DirectionLeft) -1f else 1f
+                isDpadScrubbing = true
+                dpadSeekPosition = (dpadSeekPosition + dir * step).coerceIn(0f, safeDuration)
+                onUserInteractionChange(true)
+                onUserPositionChange(dpadSeekPosition)
+                onValueChange(dpadSeekPosition)
+              } else {
+                onValueChangeFinished(dpadSeekPosition)
+                onUserInteractionChange(false)
+                isDpadScrubbing = false
+              }
+              true
+            }
+            else -> false
+          }
+        }
+    } else {
+      Modifier
+    }
+
   Box(
-    modifier = modifier,
+    modifier = modifier.then(seekKeyModifier),
     contentAlignment = Alignment.Center,
   ) {
     val waveSeekbarActive = showWavyVisualizer && waveFeatures != null && wavePalette != null
@@ -1732,7 +1787,8 @@ fun VideoTimer(
           interactionSource = interactionSource,
           indication = ripple(),
           onClick = onClick,
-        ).padding(horizontal = 4.dp)
+        ).focusProperties { canFocus = false }
+        .padding(horizontal = 4.dp)
         .wrapContentHeight(Alignment.CenterVertically),
     text = timeText,
     color = textColor,
