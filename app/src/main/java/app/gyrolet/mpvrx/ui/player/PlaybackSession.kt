@@ -855,8 +855,22 @@ object PlaybackSession : MPVLib.EventObserver {
     positionRestoreOverride: PlaybackPositionRestoreOverride? = null,
     initialPositionSeconds: Double? = null,
     flattenEditions: Boolean = false,
-  ): Long =
-    withCore(default = -1L) {
+  ): Long {
+    val smbPath = item?.networkSource?.let { source ->
+        try {
+            val conn = kotlinx.coroutines.runBlocking {
+                org.koin.java.KoinJavaComponent.get<app.gyrolet.mpvrx.repository.NetworkRepository>(
+                    app.gyrolet.mpvrx.repository.NetworkRepository::class.java
+                ).getConnectionById(source.connectionId)
+            }
+            if (conn != null) {
+                val host = conn.host
+                val filePath = source.relativePath.removePrefix("/")
+                "smb://$host/${conn.path.trim('/')}/$filePath"
+            } else null
+        } catch (_: Exception) { null }
+    }
+    return withCore(default = -1L) {
       if (_state.value.phase == PlaybackPhase.STOPPING) return@withCore -1L
       AudiobookPlayback.capture()
       val resolvedItem = item ?: PlaybackItem.fromUri(playableUri)
@@ -914,6 +928,7 @@ object PlaybackSession : MPVLib.EventObserver {
       MPVLib.setPropertyString("user-agent", userAgent ?: defaultUserAgent.orEmpty())
       MPVLib.setPropertyString("http-header-fields", headerFields)
       MPVLib.setPropertyString("force-media-title", "")
+      MPVLib.setPropertyString("user-data/mpvrx/original-path", smbPath ?: resolvedItem.originalUri)
 
       if (!_state.value.surfaceAttached) {
         MPVLib.setPropertyString("vo", "null")
@@ -938,6 +953,7 @@ object PlaybackSession : MPVLib.EventObserver {
       propBoolean.emit("pause", holdForPositionRestore || desiredPaused)
       generation
     }
+  }
 
   /** Publishes a terminal UI state when a load never produces a native completion event. */
   fun reportLoadTimeout(
