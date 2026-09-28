@@ -260,10 +260,12 @@ private fun MiniPlayerContent(
       )
     }
   }
+  val miniPlayerShape = RoundedCornerShape(20.dp)
 
   LiquidGlassSurface(
     modifier = Modifier
       .offset { IntOffset(offsetX.roundToInt(), 0) }
+      .clip(miniPlayerShape)
       .pointerInput(Unit) {
         detectHorizontalDragGestures(
           onDragEnd = {
@@ -290,7 +292,7 @@ private fun MiniPlayerContent(
         )
       }
       .clickable { launchPlayer() },
-    shape = RoundedCornerShape(20.dp),
+    shape = miniPlayerShape,
     style = LiquidGlassStyle.MiniPlayer,
     glassColor = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.30f),
     fallbackColor = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.96f),

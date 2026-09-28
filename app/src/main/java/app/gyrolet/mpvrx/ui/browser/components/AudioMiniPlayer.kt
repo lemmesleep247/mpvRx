@@ -71,11 +71,13 @@ fun AudioMiniPlayer(modifier: Modifier = Modifier) {
     sessionState.currentItem?.title?.takeIf { it.isNotBlank() }
       ?: rawMediaTitle?.takeIf { it.isNotBlank() }
       ?: "Audio Track"
+  val miniPlayerShape = RoundedCornerShape(24.dp)
 
   LiquidGlassSurface(
     modifier =
       modifier
         .fillMaxWidth()
+        .clip(miniPlayerShape)
         .clickable {
           val intent =
             Intent(context, PlayerActivity::class.java).apply {
@@ -88,7 +90,7 @@ fun AudioMiniPlayer(modifier: Modifier = Modifier) {
             }
           context.startActivity(intent)
         },
-      shape = RoundedCornerShape(24.dp),
+      shape = miniPlayerShape,
       style = LiquidGlassStyle.MiniPlayer,
       glassColor = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.30f),
       fallbackColor = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.95f),
