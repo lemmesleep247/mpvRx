@@ -13,7 +13,7 @@ import app.gyrolet.mpvrx.ui.player.PlaybackSession
 
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.snap
-import androidx.compose.foundation.background
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -27,6 +27,8 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.toggleable
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Surface
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
@@ -57,6 +59,7 @@ import app.gyrolet.mpvrx.ui.theme.AppMotion
 import app.gyrolet.mpvrx.ui.utils.rememberAppHaptics
 import kotlinx.collections.immutable.ImmutableList
 import org.koin.compose.koinInject
+import java.util.Locale
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -119,9 +122,8 @@ fun AudioTracksSheet(
           }
         }
         items(embeddedTracks, key = { it.id }) {
-          AudioTrackRow(
-            title = getTrackTitle(it),
-            details = audioTrackDetails(it),
+          AudioTrackCard(
+            track = it,
             isSelected = it.isSelected,
             onClick = { onSelect(it) },
             modifier = if (it.id == initialTrackId) Modifier.tvInitialFocus(initialFocusRequester) else Modifier,
@@ -133,9 +135,8 @@ fun AudioTracksSheet(
           }
         }
         items(externalTracks, key = { it.id }) {
-          AudioTrackRow(
-            title = getTrackTitle(it),
-            details = audioTrackDetails(it),
+          AudioTrackCard(
+            track = it,
             isSelected = it.isSelected,
             onClick = { onSelect(it) },
             modifier = if (it.id == initialTrackId) Modifier.tvInitialFocus(initialFocusRequester) else Modifier,
@@ -201,6 +202,65 @@ fun AudioTracksSheet(
 }
 
 @Composable
+fun AudioTrackCard(
+  track: TrackNode,
+  isSelected: Boolean,
+  onClick: () -> Unit,
+  modifier: Modifier = Modifier,
+  enabled: Boolean = true,
+) {
+  val haptics = rememberAppHaptics()
+  val reducedMotion = AppMotion.playerReducedMotion()
+  val shape = RoundedCornerShape(8.dp)
+  val containerColor by animateColorAsState(
+    targetValue =
+      if (isSelected) {
+        MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f)
+      } else {
+        MaterialTheme.colorScheme.surfaceContainerHigh
+      },
+    animationSpec = if (reducedMotion) snap() else AppMotion.Effect.Color,
+    label = "audioTrackSelection",
+  )
+  val badges = audioTrackBadges(track)
+  Surface(
+    modifier =
+      modifier
+        .fillMaxWidth()
+        .padding(horizontal = 8.dp, vertical = 3.dp)
+        .tvFocusHighlight(shape, enabled = enabled)
+        .selectable(selected = isSelected, enabled = enabled, role = Role.RadioButton) {
+          onClick()
+          if (!isSelected) haptics.selection(true)
+        },
+    shape = shape,
+    color = containerColor,
+    border = if (isSelected) BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.55f)) else null,
+  ) {
+    Row(
+      modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 10.dp),
+      verticalAlignment = Alignment.CenterVertically,
+      horizontalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+      RadioButton(
+        selected = isSelected,
+        onClick = null,
+        enabled = enabled,
+      )
+      Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(5.dp)) {
+        Text(
+          text = getTrackTitle(track),
+          style = MaterialTheme.typography.bodyMedium,
+          fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+          color = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurface,
+        )
+        TrackBadgeFlow(badges = badges, selected = isSelected)
+      }
+    }
+  }
+}
+
+@Composable
 fun AudioTrackRow(
   title: String,
   isSelected: Boolean,
@@ -211,57 +271,88 @@ fun AudioTrackRow(
 ) {
   val haptics = rememberAppHaptics()
   val reducedMotion = AppMotion.playerReducedMotion()
+  val shape = RoundedCornerShape(8.dp)
   val containerColor by animateColorAsState(
-    targetValue = MaterialTheme.colorScheme.primaryContainer.copy(alpha = if (isSelected) 0.35f else 0f),
+    targetValue =
+      if (isSelected) {
+        MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f)
+      } else {
+        MaterialTheme.colorScheme.surfaceContainerHigh
+      },
     animationSpec = if (reducedMotion) snap() else AppMotion.Effect.Color,
-    label = "audioTrackSelection",
+    label = "genericTrackSelection",
   )
-  Row(
+  Surface(
     modifier =
       modifier
         .fillMaxWidth()
-        .heightIn(min = 56.dp)
-        .padding(horizontal = 8.dp, vertical = 2.dp)
-        .background(containerColor, MaterialTheme.shapes.medium)
-        .tvFocusHighlight(MaterialTheme.shapes.medium, enabled = enabled)
+        .padding(horizontal = 8.dp, vertical = 3.dp)
+        .tvFocusHighlight(shape, enabled = enabled)
         .selectable(selected = isSelected, enabled = enabled, role = Role.RadioButton) {
           onClick()
           if (!isSelected) haptics.selection(true)
-        }
-        .padding(horizontal = 12.dp, vertical = 10.dp),
-    verticalAlignment = Alignment.CenterVertically,
-    horizontalArrangement = Arrangement.spacedBy(12.dp),
+        },
+    shape = shape,
+    color = containerColor,
+    border = if (isSelected) BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.55f)) else null,
   ) {
-    RadioButton(
-      selected = isSelected,
-      onClick = null,
-      enabled = enabled,
-    )
-    Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-      Text(
-        title,
-        style = MaterialTheme.typography.bodyLarge,
-        fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
-      )
-      details?.let { value ->
+    Row(
+      modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 10.dp),
+      verticalAlignment = Alignment.CenterVertically,
+      horizontalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+      RadioButton(selected = isSelected, onClick = null, enabled = enabled)
+      Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
         Text(
-          text = value,
-          style = MaterialTheme.typography.bodySmall,
-          color = MaterialTheme.colorScheme.onSurfaceVariant,
+          text = title,
+          style = MaterialTheme.typography.bodyMedium,
+          fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
         )
+        details?.let { value ->
+          Text(
+            text = value,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+          )
+        }
       }
     }
   }
 }
 
-private fun audioTrackDetails(track: TrackNode): String? {
-  val codec = track.codecDesc?.takeIf(String::isNotBlank) ?: track.codec?.takeIf(String::isNotBlank)
-  val bitrate =
-    track.effectiveBitrate
-      ?.takeIf { it > 0L }
-      ?.let { bitsPerSecond -> "${bitsPerSecond / 1_000L} kbps" }
-  return listOfNotNull(track.ytdlFormatId?.let { "#$it" }, codec, bitrate)
-    .distinct()
-    .joinToString(" • ")
-    .takeIf(String::isNotBlank)
+@Composable
+private fun audioTrackBadges(track: TrackNode): List<TrackBadge> {
+  val defaultLabel = stringResource(R.string.theme_default)
+  val forcedLabel = stringResource(R.string.track_badge_forced)
+  val externalLabel = stringResource(R.string.track_badge_external)
+  val descriptiveLabel = stringResource(R.string.track_badge_descriptive)
+  val monoLabel = stringResource(R.string.pref_audio_channels_mono)
+  val stereoLabel = stringResource(R.string.pref_audio_channels_stereo)
+  return remember(track, defaultLabel, forcedLabel, externalLabel, descriptiveLabel, monoLabel, stereoLabel) {
+    buildList {
+      track.ytdlFormatId?.let { add(TrackBadge("#$it")) }
+      track.effectiveLang?.takeIf(String::isNotBlank)?.let { add(TrackBadge(it.uppercase(Locale.ROOT))) }
+      (track.codec?.takeIf(String::isNotBlank) ?: track.codecDesc?.takeIf(String::isNotBlank))
+        ?.let { add(TrackBadge(it.uppercase(Locale.ROOT))) }
+      track.demuxChannels?.takeIf(String::isNotBlank)?.let { add(TrackBadge(it)) }
+        ?: track.audioChannels?.takeIf { it > 0 }?.let { channels ->
+          val label =
+            when (channels) {
+              1L -> monoLabel
+              2L -> stereoLabel
+              6L -> "5.1"
+              8L -> "7.1"
+              else -> "${channels}ch"
+            }
+          add(TrackBadge(label))
+        }
+      track.effectiveBitrate
+        ?.takeIf { it > 0L }
+        ?.let { bitsPerSecond -> add(TrackBadge("${bitsPerSecond / 1_000L} kbps")) }
+      if (track.default == true) add(TrackBadge(defaultLabel))
+      if (track.forced == true) add(TrackBadge(forcedLabel))
+      if (track.external == true) add(TrackBadge(externalLabel))
+      if (track.visualImpaired == true) add(TrackBadge(descriptiveLabel))
+    }.distinctBy(TrackBadge::text)
+  }
 }

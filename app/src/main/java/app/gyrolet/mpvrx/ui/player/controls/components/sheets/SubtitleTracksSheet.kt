@@ -11,7 +11,7 @@ package app.gyrolet.mpvrx.ui.player.controls.components.sheets
 
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.snap
-import androidx.compose.foundation.background
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -26,7 +26,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.toggleable
-import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -66,6 +66,7 @@ import app.gyrolet.mpvrx.ui.utils.rememberAppHaptics
 import app.gyrolet.mpvrx.utils.device.DeviceFormFactor
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.toImmutableList
+import java.util.Locale
 
 sealed class SubtitleItem {
   data class Track(
@@ -477,7 +478,7 @@ fun SubtitlesSheet(
             is SubtitleItem.Track -> {
               val track = item.node
               SubtitleTrackRow(
-                title = getTrackTitle(track),
+                track = track,
                 isSelected = isSubtitleSelected(track.id),
                 selectionIndicator = subtitleSelectionIndicator(track.id),
                 isExternal = track.external == true,
@@ -502,37 +503,44 @@ fun SubtitlesSheet(
             }
             is SubtitleItem.Off -> {
               val haptics = rememberAppHaptics()
-              Row(
+              val shape = RoundedCornerShape(8.dp)
+              Surface(
                 modifier =
                   Modifier
                     .fillMaxWidth()
-                    .heightIn(min = 56.dp)
-                    .padding(horizontal = 8.dp, vertical = 2.dp)
-                    .background(
-                      MaterialTheme.colorScheme.primaryContainer.copy(alpha = if (subtitlesOff) 0.35f else 0f),
-                      MaterialTheme.shapes.medium,
-                    )
+                    .padding(horizontal = 8.dp, vertical = 3.dp)
                     .tvInitialFocus(initialFocusRequester)
-                    .tvFocusHighlight(MaterialTheme.shapes.medium)
+                    .tvFocusHighlight(shape)
                     .selectable(selected = subtitlesOff, role = Role.RadioButton) {
                       onDisableSubtitles()
                       if (!subtitlesOff) haptics.selection(false)
-                    }
-                    .padding(horizontal = 12.dp, vertical = 10.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    },
+                shape = shape,
+                color =
+                  if (subtitlesOff) {
+                    MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f)
+                  } else {
+                    MaterialTheme.colorScheme.surfaceContainerHigh
+                  },
+                border = if (subtitlesOff) BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.55f)) else null,
               ) {
-                if (isTelevision) {
-                  RadioButton(selected = subtitlesOff, onClick = null)
-                } else {
-                  Checkbox(checked = subtitlesOff, onCheckedChange = null)
+                Row(
+                  modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp).padding(horizontal = 12.dp, vertical = 10.dp),
+                  verticalAlignment = Alignment.CenterVertically,
+                  horizontalArrangement = Arrangement.spacedBy(10.dp),
+                ) {
+                  if (isTelevision) {
+                    RadioButton(selected = subtitlesOff, onClick = null)
+                  } else {
+                    Checkbox(checked = subtitlesOff, onCheckedChange = null)
+                  }
+                  Text(
+                    stringResource(R.string.player_sheets_off),
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = if (subtitlesOff) FontWeight.Bold else FontWeight.Medium,
+                    modifier = Modifier.weight(1f),
+                  )
                 }
-                Text(
-                  stringResource(R.string.player_sheets_off),
-                  style = MaterialTheme.typography.bodyLarge,
-                  fontWeight = if (subtitlesOff) FontWeight.SemiBold else FontWeight.Normal,
-                  modifier = Modifier.weight(1f),
-                )
               }
             }
             SubtitleItem.Divider -> {
@@ -553,7 +561,7 @@ fun SubtitlesSheet(
 
 @Composable
 fun SubtitleTrackRow(
-  title: String,
+  track: TrackNode,
   isSelected: Boolean,
   selectionIndicator: String?,
   isExternal: Boolean,
@@ -566,70 +574,100 @@ fun SubtitleTrackRow(
 ) {
   val isTelevision = DeviceFormFactor.isTelevision(LocalContext.current)
   val haptics = rememberAppHaptics()
+  val shape = RoundedCornerShape(8.dp)
   val containerColor by animateColorAsState(
-    targetValue = MaterialTheme.colorScheme.primaryContainer.copy(alpha = if (isSelected) 0.35f else 0f),
+    targetValue =
+      if (isSelected) {
+        MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f)
+      } else {
+        MaterialTheme.colorScheme.surfaceContainerHigh
+      },
     animationSpec = AppMotion.spatial(AppMotion.Effect.Color, snap()),
     label = "subtitleTrackSelection",
   )
-  Row(
+  val badges = subtitleTrackBadges(track, selectionIndicator, isExternal)
+  Surface(
     modifier =
       modifier
         .fillMaxWidth()
-        .heightIn(min = 56.dp)
-        .padding(horizontal = 8.dp, vertical = 2.dp)
-        .background(containerColor, MaterialTheme.shapes.medium)
-        .tvFocusHighlight(MaterialTheme.shapes.medium)
+        .padding(horizontal = 8.dp, vertical = 3.dp)
+        .tvFocusHighlight(shape)
         .toggleable(value = isSelected, role = Role.Checkbox) { selected ->
           onToggle()
           haptics.selection(selected)
-        }
-        .padding(horizontal = 12.dp, vertical = 10.dp),
-    verticalAlignment = Alignment.CenterVertically,
-    horizontalArrangement = Arrangement.spacedBy(12.dp),
+        },
+    shape = shape,
+    color = containerColor,
+    border = if (isSelected) BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.55f)) else null,
   ) {
-    if (isTelevision) {
-      RadioButton(selected = isSelected, onClick = null)
-    } else {
-      Checkbox(checked = isSelected, onCheckedChange = null)
-    }
-    Text(
-      text = title,
-      modifier = Modifier.weight(1f),
-      style = MaterialTheme.typography.bodyLarge,
-      fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
-    )
-
-    if (isCurrentlyTranslating) {
-      androidx.compose.material3.CircularProgressIndicator(
-        modifier = Modifier.size(MaterialTheme.spacing.large),
-        strokeWidth = MaterialTheme.spacing.smaller,
-      )
-    }
-
-    if (isExternal) {
-      if (translationEnabled) {
-        PlayerSheetAction(
-          icon = Icons.RoundedFilled.Translate,
-          label = stringResource(R.string.ui_translate),
-          onClick = onTranslate,
-          enabled = !isCurrentlyTranslating,
-        )
+    Row(
+      modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 10.dp),
+      verticalAlignment = Alignment.CenterVertically,
+      horizontalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+      if (isTelevision) {
+        RadioButton(selected = isSelected, onClick = null)
+      } else {
+        Checkbox(checked = isSelected, onCheckedChange = null)
       }
-      PlayerSheetAction(Icons.RoundedFilled.Delete, stringResource(R.string.ui_remove), onRemove)
-    }
-    if (selectionIndicator != null) {
-      Surface(
-        shape = CircleShape,
-        color = MaterialTheme.colorScheme.primaryContainer,
-        contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-      ) {
+      Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(5.dp)) {
         Text(
-          text = selectionIndicator,
-          style = MaterialTheme.typography.labelMedium,
-          fontWeight = FontWeight.Bold,
-          modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+          text = getTrackTitle(track),
+          style = MaterialTheme.typography.bodyMedium,
+          fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+          color = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurface,
+        )
+        TrackBadgeFlow(badges = badges, selected = isSelected)
+      }
+      if (isCurrentlyTranslating) {
+        androidx.compose.material3.CircularProgressIndicator(
+          modifier = Modifier.size(MaterialTheme.spacing.large),
+          strokeWidth = MaterialTheme.spacing.smaller,
         )
       }
+      if (isExternal) {
+        if (translationEnabled) {
+          PlayerSheetAction(
+            icon = Icons.RoundedFilled.Translate,
+            label = stringResource(R.string.ui_translate),
+            onClick = onTranslate,
+            enabled = !isCurrentlyTranslating,
+          )
+        }
+        PlayerSheetAction(Icons.RoundedFilled.Delete, stringResource(R.string.ui_remove), onRemove)
+      }
     }
+  }
+}
+
+@Composable
+private fun subtitleTrackBadges(
+  track: TrackNode,
+  selectionIndicator: String?,
+  isExternal: Boolean,
+): List<TrackBadge> {
+  val primaryLabel = stringResource(R.string.track_badge_primary)
+  val secondaryLabel = stringResource(R.string.track_badge_secondary)
+  val defaultLabel = stringResource(R.string.theme_default)
+  val forcedLabel = stringResource(R.string.track_badge_forced)
+  val externalLabel = stringResource(R.string.track_badge_external)
+  return remember(track, selectionIndicator, isExternal, primaryLabel, secondaryLabel, defaultLabel, forcedLabel, externalLabel) {
+    buildList {
+      selectionIndicator?.let { indicator ->
+        val label = when (indicator) {
+          "P" -> primaryLabel
+          "S" -> secondaryLabel
+          else -> indicator
+        }
+        add(TrackBadge(label, emphasized = true))
+      }
+      track.effectiveLang?.takeIf(String::isNotBlank)?.let { add(TrackBadge(it.uppercase(Locale.ROOT))) }
+      (track.codec?.takeIf(String::isNotBlank) ?: track.codecDesc?.takeIf(String::isNotBlank))
+        ?.let { add(TrackBadge(it.uppercase(Locale.ROOT))) }
+      if (track.default == true) add(TrackBadge(defaultLabel))
+      if (track.forced == true) add(TrackBadge(forcedLabel))
+      if (track.hearingImpaired == true) add(TrackBadge("SDH"))
+      if (isExternal) add(TrackBadge(externalLabel))
+    }.distinctBy(TrackBadge::text)
   }
 }

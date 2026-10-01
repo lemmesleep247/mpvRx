@@ -402,6 +402,11 @@
   <string name="player_sheets_embedded_audio_tracks">مسارات صوت مضمنة</string>
   <string name="player_sheets_external_audio_tracks">مسارات صوت خارجية</string>
   <string name="player_sheets_tracks_off">إيقاف</string>
+  <string name="track_badge_forced">إجباري</string>
+  <string name="track_badge_external">خارجي</string>
+  <string name="track_badge_descriptive">وصفي</string>
+  <string name="track_badge_primary">أساسي</string>
+  <string name="track_badge_secondary">ثانوي</string>
   <string name="player_sheets_off">إيقاف</string>
   <string name="player_sheets_subtitles_settings_title">إعدادات الترجمة</string>
   <string name="player_sheets_subtitles_color_text">النص</string>

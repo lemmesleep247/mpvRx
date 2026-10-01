@@ -494,6 +494,11 @@
   <string name="player_sheets_embedded_audio_tracks">Embedded Audio</string>
   <string name="player_sheets_external_audio_tracks">External Audio</string>
   <string name="player_sheets_tracks_off">Off</string>
+  <string name="track_badge_forced">Forced</string>
+  <string name="track_badge_external">External</string>
+  <string name="track_badge_descriptive">Descriptive</string>
+  <string name="track_badge_primary">Primary</string>
+  <string name="track_badge_secondary">Secondary</string>
   <string name="player_sheets_track_title_w_lang" translatable="false">#%1$d: %2$s (%3$s)</string>
   <string name="player_sheets_track_title_wo_lang" translatable="false">#%1$d: %2$s</string>
   <string name="player_sheets_track_lang_wo_title" translatable="false">#%1$d: %2$s</string>

@@ -402,6 +402,11 @@ Siguiente: NEXT</string>
   <string name="player_sheets_embedded_audio_tracks">Pistas de audio incrustadas</string>
   <string name="player_sheets_external_audio_tracks">Pistas de audio externas</string>
   <string name="player_sheets_tracks_off">Desactivado</string>
+  <string name="track_badge_forced">Forzada</string>
+  <string name="track_badge_external">Externa</string>
+  <string name="track_badge_descriptive">Descriptiva</string>
+  <string name="track_badge_primary">Principal</string>
+  <string name="track_badge_secondary">Secundaria</string>
   <string name="player_sheets_off">Desactivado</string>
   <string name="player_sheets_subtitles_settings_title">Ajustes de subtítulos</string>
   <string name="player_sheets_subtitles_color_text">Texto</string>

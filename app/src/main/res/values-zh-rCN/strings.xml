@@ -402,6 +402,11 @@
   <string name="player_sheets_embedded_audio_tracks">内嵌音轨</string>
   <string name="player_sheets_external_audio_tracks">外部音轨</string>
   <string name="player_sheets_tracks_off">关闭</string>
+  <string name="track_badge_forced">强制</string>
+  <string name="track_badge_external">外部</string>
+  <string name="track_badge_descriptive">口述影像</string>
+  <string name="track_badge_primary">主字幕</string>
+  <string name="track_badge_secondary">副字幕</string>
   <string name="player_sheets_off">关闭</string>
   <string name="player_sheets_subtitles_settings_title">字幕设置</string>
   <string name="player_sheets_subtitles_color_text">文本</string>

@@ -402,6 +402,11 @@
   <string name="player_sheets_embedded_audio_tracks">Встроенные аудиодорожки</string>
   <string name="player_sheets_external_audio_tracks">Внешние аудиодорожки</string>
   <string name="player_sheets_tracks_off">Выкл.</string>
+  <string name="track_badge_forced">Принудительно</string>
+  <string name="track_badge_external">Внешняя</string>
+  <string name="track_badge_descriptive">Тифлокомментарий</string>
+  <string name="track_badge_primary">Основные</string>
+  <string name="track_badge_secondary">Дополнительные</string>
   <string name="player_sheets_off">Выкл.</string>
   <string name="player_sheets_subtitles_settings_title">Настройки субтитров</string>
   <string name="player_sheets_subtitles_color_text">Текст</string>

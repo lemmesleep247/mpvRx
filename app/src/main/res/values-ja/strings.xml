@@ -402,6 +402,11 @@
   <string name="player_sheets_embedded_audio_tracks">埋め込み音声トラック</string>
   <string name="player_sheets_external_audio_tracks">外部音声トラック</string>
   <string name="player_sheets_tracks_off">オフ</string>
+  <string name="track_badge_forced">強制</string>
+  <string name="track_badge_external">外部</string>
+  <string name="track_badge_descriptive">音声解説</string>
+  <string name="track_badge_primary">メイン</string>
+  <string name="track_badge_secondary">サブ</string>
   <string name="player_sheets_off">オフ</string>
   <string name="player_sheets_subtitles_settings_title">字幕設定</string>
   <string name="player_sheets_subtitles_color_text">テキスト</string>
