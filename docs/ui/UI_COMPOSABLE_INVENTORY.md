@@ -10,7 +10,7 @@ Generated from the starting checkout for completeness tracking. Entries are func
 | Support: nonvisual or shared host | `preferences/preference/Preference.kt` | `collectAsState` | 51 | Pending |
 | Support: nonvisual or shared host | `presentation/Screen.kt` | `Content` | 16 | Pending |
 | 1 Shared components | `presentation/components/AppPickerSheet.kt` | `AppPickerSheet` | 60 | Pending |
-| 1 Shared components | `presentation/components/ConfirmDialog.kt` | `ConfirmDialog` | 37 | Pending |
+| 1 Shared components | `presentation/components/ConfirmDialog.kt` | `ConfirmDialog` | 43 | Source migrated; NoVulkan APK built; visual checks pending |
 | 1 Shared components | `presentation/components/ExpandableCard.kt` | `ExpandableCard` | 45 | Pending |
 | 1 Shared components | `presentation/components/ExpandableCard.kt` | `PreviewExpandableCard` | 111 | Pending |
 | 1 Shared components | `presentation/components/ExposedTextDropDownMenu.kt` | `ExposedTextDropDownMenu` | 33 | Pending |

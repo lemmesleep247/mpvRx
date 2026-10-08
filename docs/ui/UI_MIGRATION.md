@@ -95,13 +95,21 @@ Baseline GitHub CI run 37729709630 on the starting SHA completed successfully fo
 
 Commit SHA is recorded in the subsequent progress entry once published; Git history is the authoritative commit list.
 
-### feat(ui): modernize shared sheet search fields
+### c4f30570a2675ec935774f859f52801794025f99 — feat(ui): modernize shared sheet search fields
 
 - Replaced the hand-drawn, fixed-height field with native Material3 TextField, the shared extra-large shape and surfaceContainerHigh. Native field measurement can grow with font scaling rather than clipping a 46 dp row.
 - Search and clear actions use native expressive IconButton shapes, 48 dp bounds and existing translated descriptions. Decorative search icons remain outside the action semantics when no submit callback exists.
 - The eleven caller locations include file/folder/playlist pickers, audiobook selection, font/model searches, subtitle-language choices and lyric translation. Their query/filter state, submit/clear callbacks, focus clearing and Search IME action are unchanged. No Liquid Glass implementation was replaced.
 - Local `:app:assembleNoVulkanDebug` succeeded and `:app:testNoVulkanDebugUnitTest` reported **NO-SOURCE**; `git diff --check` passed. A combined assembly/lint run completed APK assembly but ended with existing ktlint violations, so assembly was rerun separately to establish a successful build result.
-- The updated file has only its existing uppercase composable-name lint finding (the original had that finding plus a chain-formatting finding); no lint pass is claimed. Remaining variant CI and device visual checks are pending.
+- The updated file has only its existing uppercase composable-name lint finding (the original had that finding plus a chain-formatting finding); no lint pass is claimed. GitHub CI [37734959635](https://github.com/Riteshp2001/mpvRx/actions/runs/37734959635) subsequently completed **Standard, NoVulkan and FongMi release APK builds successfully**. Device visual checks remain pending.
+
+### feat(ui): make shared confirmation dialogs expressive and adaptive
+
+- Added native emphasized headline typography and heading semantics, shared 24/16/8 dp spacing and native expressive button shapes.
+- The body scrolls within the available dialog height, and actions wrap through FlowRow for narrow widths, landscape and large translated labels. The same BasicAlertDialog, confirm/cancel callbacks, custom-content slot and TV initial-focus/group/highlight helpers remain.
+- Reviewed both custom-content callers: secure-folder confirmation and recently-played deletion checkboxes. Their preference/deletion behavior is unchanged.
+- Local `:app:assembleNoVulkanDebug` succeeded; `:app:testNoVulkanDebugUnitTest` was **NO-SOURCE**; `git diff --check` passed. Full ktlint still fails on existing findings; ConfirmDialog has only its pre-existing composable-name finding. No lint or device visual pass is claimed.
+- Remaining variant CI and device checks are pending.
 
 ## Complete file checklist
 
@@ -115,15 +123,15 @@ Paths below are relative to app/src/main/java/app/gyrolet/mpvrx. Function-level 
 | Support: nonvisual or shared host | `preferences/preference/Preference.kt` | Host/support | None detected | Pending contextual review and visual validation |
 | Support: nonvisual or shared host | `presentation/Screen.kt` | Host/support | None detected | Pending contextual review and visual validation |
 | 1 Shared components | `presentation/components/AppPickerSheet.kt` | MaterialTheme, AppMotion, AppPickerSheet, PlayerSheet | fixed text/action height: 2 | Pending contextual review and visual validation |
-| 1 Shared components | `presentation/components/ConfirmDialog.kt` | MaterialTheme | None detected | Pending contextual review and visual validation |
+| 1 Shared components | `presentation/components/ConfirmDialog.kt` | Native expressive buttons, shared spacing, heading semantics | Long content and translated actions now adapt | Source migrated; NoVulkan debug APK built; remaining variants and visual checks pending |
 | 1 Shared components | `presentation/components/ExpandableCard.kt` | MaterialTheme | None detected | Pending contextual review and visual validation |
 | 1 Shared components | `presentation/components/ExposedTextDropDownMenu.kt` | Host/support | None detected | Pending contextual review and visual validation |
-| 1 Shared components | `presentation/components/LiquidGlassSurface.kt` | MaterialTheme, AppMotion, LiquidGlass | None detected | Pending contextual review and visual validation |
+| 1 Shared components | `presentation/components/LiquidGlassSurface.kt` | MaterialTheme, AppMotion, LiquidGlass | None detected | Source reviewed: retain Kyant backdrop/refraction, motion policy, styled fallback and caller-owned glass toggle; runtime checks pending |
 | 1 Shared components | `presentation/components/OutlinedNumericChooser.kt` | MaterialTheme | None detected | Pending contextual review and visual validation |
 | 1 Shared components | `presentation/components/OvalBox.kt` | Host/support | None detected | Pending contextual review and visual validation |
 | 1 Shared components | `presentation/components/PlayerSheet.kt` | MaterialTheme, AppMotion, PlayerSheet, heading() | local radii: 1, suppressed indication: 2 | Pending contextual review and visual validation |
 | 1 Shared components | `presentation/components/PlayerSheetSearchField.kt` | Native TextField, expressive IconButton, MaterialTheme | Initial fixed-height/radius/surface findings addressed | Source migrated; NoVulkan debug APK built; remaining variants and visual validation pending |
-| 1 Shared components | `presentation/components/RemoteImage.kt` | Host/support | None detected | Pending contextual review and visual validation |
+| 1 Shared components | `presentation/components/RemoteImage.kt` | Host/support | None detected | Source reviewed: retain remembered bitmap and stable URL identity; loader/cache/network logic outside UI scope |
 | 1 Shared components | `presentation/components/RepeatingIconButton.kt` | Host/support | None detected | Pending contextual review and visual validation |
 | 1 Shared components | `presentation/components/SliderItem.kt` | MaterialTheme | local radii: 3, fixed text/action height: 1 | Pending contextual review and visual validation |
 | 1 Shared components | `presentation/components/TintedSliderItem.kt` | MaterialTheme | local radii: 1 | Pending contextual review and visual validation |
@@ -211,7 +219,7 @@ Paths below are relative to app/src/main/java/app/gyrolet/mpvrx. Function-level 
 | 6 Player presentation | `ui/cast/CastPlayerButton.kt` | MaterialTheme | None detected | Pending contextual review and visual validation |
 | 6 Player presentation | `ui/cast/CastRemoteControllerScreen.kt` | MaterialTheme, AppPickerSheet | local radii: 1, local type sizes: 4, fixed text/action height: 5, suppressed indication: 1 | Pending contextual review and visual validation |
 | 1 Shared components | `ui/components/IconSwitch.kt` | MaterialTheme, AppMotion, minimumInteractiveComponentSize | suppressed indication: 1 | Pending contextual review and visual validation |
-| 1 Shared components | `ui/components/InlineSearchBar.kt` | Host/support | None detected | Pending contextual review and visual validation |
+| 1 Shared components | `ui/components/InlineSearchBar.kt` | Native M3 SearchBar/InputField | None detected | Source reviewed: retain native field semantics, Search IME/keyboard callback and status-bar inset ownership; runtime checks pending |
 | 1 Shared components | `ui/components/ThemedSegmentedButtonColors.kt` | MaterialTheme | None detected | Pending contextual review and visual validation |
 | 5 Network and other tabs | `ui/downloads/DownloadsScreen.kt` | MaterialTheme | local radii: 3 | Pending contextual review and visual validation |
 | 8 Remaining screens | `ui/editor/ExternalTextEditorActivity.kt` | MaterialTheme | None detected | Pending contextual review and visual validation |
