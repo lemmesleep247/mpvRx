@@ -103,13 +103,21 @@ Commit SHA is recorded in the subsequent progress entry once published; Git hist
 - Local `:app:assembleNoVulkanDebug` succeeded and `:app:testNoVulkanDebugUnitTest` reported **NO-SOURCE**; `git diff --check` passed. A combined assembly/lint run completed APK assembly but ended with existing ktlint violations, so assembly was rerun separately to establish a successful build result.
 - The updated file has only its existing uppercase composable-name lint finding (the original had that finding plus a chain-formatting finding); no lint pass is claimed. GitHub CI [37734959635](https://github.com/Riteshp2001/mpvRx/actions/runs/37734959635) subsequently completed **Standard, NoVulkan and FongMi release APK builds successfully**. Device visual checks remain pending.
 
-### feat(ui): make shared confirmation dialogs expressive and adaptive
+### f8530a1077422c69101dc04c7e046d5006111282 — feat(ui): make shared confirmation dialogs expressive and adaptive
 
 - Added native emphasized headline typography and heading semantics, shared 24/16/8 dp spacing and native expressive button shapes.
 - The body scrolls within the available dialog height, and actions wrap through FlowRow for narrow widths, landscape and large translated labels. The same BasicAlertDialog, confirm/cancel callbacks, custom-content slot and TV initial-focus/group/highlight helpers remain.
 - Reviewed both custom-content callers: secure-folder confirmation and recently-played deletion checkboxes. Their preference/deletion behavior is unchanged.
 - Local `:app:assembleNoVulkanDebug` succeeded; `:app:testNoVulkanDebugUnitTest` was **NO-SOURCE**; `git diff --check` passed. Full ktlint still fails on existing findings; ConfirmDialog has only its pre-existing composable-name finding. No lint or device visual pass is claimed.
-- Remaining variant CI and device checks are pending.
+- GitHub CI [37736324754](https://github.com/Riteshp2001/mpvRx/actions/runs/37736324754) completed **Standard, NoVulkan and FongMi release APK builds successfully**. Device visual checks remain pending.
+
+## Resume checkpoint
+
+All three UI commits are published on master. Each has a successful local NoVulkan debug APK build, and each passed Standard, NoVulkan and FongMi release APK assembly in GitHub CI. Configured unit-test tasks were NO-SOURCE; no automated test suite or playback/device result is claimed. Full ktlint remains blocked by existing style violations.
+
+Implementation is still in Phase 1: the foundation, shared sheet search field and confirmation dialog are migrated in source. Shared cards/controls, navigation, browser, music, network, player presentation, settings, secondary screens, accessible motion and the complete visual audit remain unfinished. The file/function checklist remains open for areas without contextual review; do not interpret the inventory as a completed audit.
+
+The local execution environment disconnected during software-emulator startup. The exec-server reported environment_offline / "Environment is not connected." This blocks further local source edits, compilation and runtime inspection until execution access is restored. No screenshot or device test succeeded. Resume from latest master, recheck AGENTS.md/tooling and continue shared components in focused, verified commits; preserve all functional and Liquid Glass boundaries above.
 
 ## Complete file checklist
 
