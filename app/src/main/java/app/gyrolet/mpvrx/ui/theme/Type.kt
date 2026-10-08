@@ -11,6 +11,7 @@ package app.gyrolet.mpvrx.ui.theme
 
 import androidx.compose.material3.Typography
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.text.ExperimentalTextApi
 import androidx.compose.ui.text.TextStyle
@@ -22,7 +23,7 @@ import androidx.compose.ui.unit.sp
 import app.gyrolet.mpvrx.R
 import java.util.Locale
 
-val SystemTypography = Typography()
+val SystemTypography = Typography().withExpressiveEmphasis()
 
 private const val GoogleSansRoundedAxis = 100f
 
@@ -130,7 +131,7 @@ fun typographyWithFontFamily(fontFamily: FontFamily): Typography =
       labelLarge = labelLarge.copy(fontFamily = fontFamily, fontWeight = FontWeight.SemiBold, letterSpacing = 0.sp),
       labelMedium = labelMedium.copy(fontFamily = fontFamily, fontWeight = FontWeight.Medium, letterSpacing = 0.sp),
       labelSmall = labelSmall.copy(fontFamily = fontFamily, fontWeight = FontWeight.Medium, letterSpacing = 0.sp),
-    )
+    ).withExpressiveEmphasis()
   }
 
 // Use PixelPlayer's rounded Google Sans Flex typography app-wide by default.
@@ -166,6 +167,7 @@ private fun String.requiresSystemFontFallback(): Boolean {
 // Bumps font weights one step heavier for expressive emphasis
 // ═══════════════════════════════════════════════════════════
 
+@Immutable
 data class EmphasizedTypography(
   val displayLarge: TextStyle,
   val displayMedium: TextStyle,
@@ -184,23 +186,43 @@ data class EmphasizedTypography(
   val labelSmall: TextStyle,
 )
 
+/** Keep native Material components and app headings on the same selected font and type scale. */
+private fun Typography.withExpressiveEmphasis(): Typography =
+  copy(
+    displayLargeEmphasized = displayLarge.copy(fontWeight = FontWeight.Black),
+    displayMediumEmphasized = displayMedium.copy(fontWeight = FontWeight.Black),
+    displaySmallEmphasized = displaySmall.copy(fontWeight = FontWeight.ExtraBold),
+    headlineLargeEmphasized = headlineLarge.copy(fontWeight = FontWeight.ExtraBold),
+    headlineMediumEmphasized = headlineMedium.copy(fontWeight = FontWeight.ExtraBold),
+    headlineSmallEmphasized = headlineSmall.copy(fontWeight = FontWeight.Bold),
+    titleLargeEmphasized = titleLarge.copy(fontWeight = FontWeight.Bold),
+    titleMediumEmphasized = titleMedium.copy(fontWeight = FontWeight.SemiBold),
+    titleSmallEmphasized = titleSmall.copy(fontWeight = FontWeight.SemiBold),
+    bodyLargeEmphasized = bodyLarge.copy(fontWeight = FontWeight.Medium),
+    bodyMediumEmphasized = bodyMedium.copy(fontWeight = FontWeight.Medium),
+    bodySmallEmphasized = bodySmall.copy(fontWeight = FontWeight.Medium),
+    labelLargeEmphasized = labelLarge.copy(fontWeight = FontWeight.Bold),
+    labelMediumEmphasized = labelMedium.copy(fontWeight = FontWeight.Bold),
+    labelSmallEmphasized = labelSmall.copy(fontWeight = FontWeight.Bold),
+  )
+
 fun emphasizedTypography(typography: Typography): EmphasizedTypography =
   EmphasizedTypography(
-    displayLarge = typography.displayLarge.copy(fontWeight = FontWeight.Black),
-    displayMedium = typography.displayMedium.copy(fontWeight = FontWeight.Black),
-    displaySmall = typography.displaySmall.copy(fontWeight = FontWeight.ExtraBold),
-    headlineLarge = typography.headlineLarge.copy(fontWeight = FontWeight.ExtraBold),
-    headlineMedium = typography.headlineMedium.copy(fontWeight = FontWeight.ExtraBold),
-    headlineSmall = typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
-    titleLarge = typography.titleLarge.copy(fontWeight = FontWeight.Bold),
-    titleMedium = typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
-    titleSmall = typography.titleSmall.copy(fontWeight = FontWeight.SemiBold),
-    bodyLarge = typography.bodyLarge.copy(fontWeight = FontWeight.Medium),
-    bodyMedium = typography.bodyMedium.copy(fontWeight = FontWeight.Medium),
-    bodySmall = typography.bodySmall.copy(fontWeight = FontWeight.Medium),
-    labelLarge = typography.labelLarge.copy(fontWeight = FontWeight.Bold),
-    labelMedium = typography.labelMedium.copy(fontWeight = FontWeight.Bold),
-    labelSmall = typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+    displayLarge = typography.displayLargeEmphasized,
+    displayMedium = typography.displayMediumEmphasized,
+    displaySmall = typography.displaySmallEmphasized,
+    headlineLarge = typography.headlineLargeEmphasized,
+    headlineMedium = typography.headlineMediumEmphasized,
+    headlineSmall = typography.headlineSmallEmphasized,
+    titleLarge = typography.titleLargeEmphasized,
+    titleMedium = typography.titleMediumEmphasized,
+    titleSmall = typography.titleSmallEmphasized,
+    bodyLarge = typography.bodyLargeEmphasized,
+    bodyMedium = typography.bodyMediumEmphasized,
+    bodySmall = typography.bodySmallEmphasized,
+    labelLarge = typography.labelLargeEmphasized,
+    labelMedium = typography.labelMediumEmphasized,
+    labelSmall = typography.labelSmallEmphasized,
   )
 
 val AppEmphasizedTypography = emphasizedTypography(AppTypography)
