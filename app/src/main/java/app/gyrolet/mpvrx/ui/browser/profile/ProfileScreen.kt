@@ -53,6 +53,7 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.IconButton
@@ -104,6 +105,8 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.compose.ui.text.font.FontWeight
@@ -632,6 +635,7 @@ private fun rememberProfileAvatar(path: String): ImageBitmap? {
   return avatar
 }
 
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 private fun ProfileOverviewCard(
   name: String,
@@ -687,7 +691,7 @@ private fun ProfileOverviewCard(
           contentColor = MaterialTheme.colorScheme.onPrimary,
           modifier =
             Modifier
-              .size(if (isTablet) 36.dp else 32.dp)
+              .size(48.dp)
               .tvFocusHighlight(CircleShape),
           shadowElevation = 3.dp,
         ) {
@@ -707,9 +711,10 @@ private fun ProfileOverviewCard(
       ) {
         Text(
           text = name.ifBlank { stringResource(R.string.ui_profile) },
-          style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
+          modifier = Modifier.semantics { heading() },
+          style = MaterialTheme.typography.titleLargeEmphasized,
           color = MaterialTheme.colorScheme.onSurface,
-          maxLines = 1,
+          maxLines = 2,
           overflow = TextOverflow.Ellipsis,
         )
         Surface(
@@ -822,6 +827,7 @@ private fun ProfileOverviewCard(
   }
 }
 
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 private fun ProfileShortcutTile(
   icon: AppIcon,
@@ -834,14 +840,14 @@ private fun ProfileShortcutTile(
 ) {
   Surface(
     onClick = onClick,
-    shape = RoundedCornerShape(16.dp),
+    shape = MaterialTheme.shapes.large,
     color = containerColor,
     contentColor = contentColor,
     border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)),
     modifier =
       modifier
         .heightIn(min = 64.dp)
-        .tvFocusHighlight(RoundedCornerShape(16.dp)),
+        .tvFocusHighlight(MaterialTheme.shapes.large),
   ) {
     Row(
       modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
@@ -865,30 +871,29 @@ private fun ProfileShortcutTile(
         if (count != null) {
           Text(
             text = count.toString(),
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.Bold,
+            style = MaterialTheme.typography.titleMediumEmphasized,
             color = MaterialTheme.colorScheme.onSurface,
           )
         }
         Text(
           text = label,
-          style = if (count == null) MaterialTheme.typography.titleSmall else MaterialTheme.typography.labelMedium,
-          fontWeight = if (count == null) FontWeight.SemiBold else FontWeight.Medium,
+          style = if (count == null) MaterialTheme.typography.titleSmallEmphasized else MaterialTheme.typography.labelMedium,
           color = MaterialTheme.colorScheme.onSurfaceVariant,
-          maxLines = 1,
+          maxLines = 2,
           overflow = TextOverflow.Ellipsis,
         )
       }
       Icon(
         Icons.RoundedFilled.ChevronRight,
         contentDescription = null,
-        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.65f),
+        tint = MaterialTheme.colorScheme.onSurfaceVariant,
         modifier = Modifier.size(18.dp),
       )
     }
   }
 }
 
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 private fun SectionHeader(
   title: String,
@@ -909,8 +914,8 @@ private fun SectionHeader(
     ) {
       Text(
         text = title,
-        style = MaterialTheme.typography.titleMedium,
-        fontWeight = FontWeight.Bold,
+        modifier = Modifier.weight(1f, fill = false).semantics { heading() },
+        style = MaterialTheme.typography.titleMediumEmphasized,
         color = MaterialTheme.colorScheme.onSurface,
       )
       if (count != null && count > 0) {

@@ -1,6 +1,21 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Translated to Ukrainian (Українська) by @WATCHER-00 (https://github.com/WATCHER-00) -->
 <resources>
+  <string name="pref_liquid_glass_material">Матеріал скла</string>
+  <string name="pref_liquid_glass_material_style">Стиль скла</string>
+  <string name="pref_liquid_glass_style_liquid">Рідке</string>
+  <string name="pref_liquid_glass_style_frosted">Матове</string>
+  <string name="pref_liquid_glass_style_transparent">Прозоре</string>
+  <string name="pref_liquid_glass_profile">Профіль скла</string>
+  <string name="pref_liquid_glass_profile_performance">Продуктивність</string>
+  <string name="pref_liquid_glass_profile_balanced">Збалансований</string>
+  <string name="pref_liquid_glass_profile_quality">Якість</string>
+  <string name="pref_liquid_glass_surface_opacity">Непрозорість поверхні</string>
+  <string name="pref_navigation_style">Стиль навігації</string>
+  <string name="pref_navigation_style_normal">Звичайний</string>
+  <string name="generic_increase">Збільшити</string>
+  <string name="generic_decrease">Зменшити</string>
+  <string name="generic_remove_from_favorites">Вилучити з обраного</string>
   <string name="app_name" translatable="false">mpvRx</string>
   <string name="generic_reset">Скинути</string>
   <string name="generic_back">Назад</string>

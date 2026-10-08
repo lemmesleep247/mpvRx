@@ -46,6 +46,9 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -163,14 +166,14 @@ object PreferencesScreen : Screen {
           title = {
             Text(
               text = stringResource(R.string.pref_preferences),
-              style = emphasizedTypography.headlineSmall,
+              style = emphasizedTypography.titleLarge,
             )
           },
           navigationIcon = {
             IconButton(onClick = { backstack.popSafely() }) {
               Icon(
                 Icons.RoundedFilled.ArrowBack,
-                contentDescription = null,
+                contentDescription = stringResource(R.string.back),
                 tint = colorScheme.secondary,
               )
             }
@@ -465,7 +468,8 @@ private fun SettingsSectionBlock(
     ) {
       Text(
         text = section.title,
-        style = emphasizedTypography.titleLarge,
+        modifier = Modifier.semantics { heading() },
+        style = emphasizedTypography.titleMedium,
         color = MaterialTheme.colorScheme.onSurface,
       )
     }
@@ -519,7 +523,7 @@ private fun SettingsDestinationRow(
 ) {
   val rowBgColor =
     if (isSelected) {
-      MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f)
+      MaterialTheme.colorScheme.secondaryContainer
     } else {
       Color.Transparent
     }
@@ -528,14 +532,16 @@ private fun SettingsDestinationRow(
       Modifier
         .fillMaxWidth()
         .tvFocusHighlight(MaterialTheme.shapes.medium, focusedScale = 1.01f)
+        .clip(MaterialTheme.shapes.medium)
         .background(rowBgColor)
+        .semantics { selected = isSelected }
         .clickable(onClick = onClick)
         .padding(horizontal = 14.dp, vertical = 13.dp),
     verticalAlignment = Alignment.CenterVertically,
   ) {
     Surface(
       shape = MaterialTheme.shapes.largeIncreased,
-      color = tint.copy(alpha = 0.18f),
+      color = if (isSelected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainerHighest,
     ) {
       Box(
         modifier = Modifier.size(48.dp),
@@ -545,7 +551,7 @@ private fun SettingsDestinationRow(
           imageVector = item.icon,
           contentDescription = null,
           modifier = Modifier.size(26.dp),
-          tint = tint,
+          tint = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer else tint,
         )
       }
     }
@@ -557,14 +563,14 @@ private fun SettingsDestinationRow(
         text = item.title,
         style = MaterialTheme.typography.titleMedium,
         fontWeight = FontWeight.SemiBold,
-        color = MaterialTheme.colorScheme.onSurface,
-        maxLines = 1,
+        color = if (isSelected) MaterialTheme.colorScheme.onSecondaryContainer else MaterialTheme.colorScheme.onSurface,
+        maxLines = 2,
         overflow = TextOverflow.Ellipsis,
       )
       Text(
         text = item.summary,
         style = MaterialTheme.typography.bodyMedium,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        color = if (isSelected) MaterialTheme.colorScheme.onSecondaryContainer else MaterialTheme.colorScheme.onSurfaceVariant,
         maxLines = 2,
         overflow = TextOverflow.Ellipsis,
       )
@@ -576,7 +582,7 @@ private fun SettingsDestinationRow(
       imageVector = Icons.RoundedFilled.ChevronRight,
       contentDescription = null,
       modifier = Modifier.size(24.dp),
-      tint = MaterialTheme.colorScheme.outline,
+      tint = MaterialTheme.colorScheme.onSurfaceVariant,
     )
   }
 }

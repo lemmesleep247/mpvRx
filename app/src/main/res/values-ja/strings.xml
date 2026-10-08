@@ -1,5 +1,23 @@
 <?xml version='1.0' encoding='UTF-8'?>
 <resources>
+  <string name="pref_liquid_glass_material">ガラス素材</string>
+  <string name="pref_liquid_glass_material_style">ガラスのスタイル</string>
+  <string name="pref_liquid_glass_style_liquid">液体</string>
+  <string name="pref_liquid_glass_style_frosted">すりガラス</string>
+  <string name="pref_liquid_glass_style_transparent">透明</string>
+  <string name="pref_liquid_glass_profile">ガラスプロファイル</string>
+  <string name="pref_liquid_glass_profile_performance">パフォーマンス</string>
+  <string name="pref_liquid_glass_profile_balanced">バランス</string>
+  <string name="pref_liquid_glass_profile_quality">品質</string>
+  <string name="pref_liquid_glass_surface_opacity">表面の不透明度</string>
+  <string name="pref_navigation_style">ナビゲーションのスタイル</string>
+  <string name="pref_navigation_style_normal">標準</string>
+  <string name="generic_expand">展開</string>
+  <string name="generic_collapse">折りたたむ</string>
+  <string name="generic_clear">クリア</string>
+  <string name="generic_increase">増やす</string>
+  <string name="generic_decrease">減らす</string>
+  <string name="generic_remove_from_favorites">お気に入りから削除</string>
   <string name="generic_reset">リセット</string>
   <string name="generic_share">共有</string>
   <string name="generic_confirm">確認</string>

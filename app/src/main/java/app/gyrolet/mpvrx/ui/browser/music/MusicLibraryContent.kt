@@ -1506,7 +1506,6 @@ private fun SongGridCard(
 ) {
   val selectionColor = animatedSelectionColor(
     selected = isSelected,
-    selectedColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.6f),
     unselectedColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = if (isPlaying) 0.35f else 0f),
   )
   Card(
@@ -1712,7 +1711,7 @@ private fun AlbumGridCard(
       .combinedClickable(onClick = onClick, onLongClick = onLongClick),
     shape = AppShapeScale.large,
     colors = CardDefaults.cardColors(
-      containerColor = animatedSelectionColor(isSelected, MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.6f))
+      containerColor = animatedSelectionColor(isSelected)
     )
   ) {
     Column(
@@ -1792,7 +1791,7 @@ private fun AlbumListCard(
       .semantics { selected = isSelected }
       .combinedClickable(onClick = onClick, onLongClick = onLongClick),
     shape = AppShapeScale.large,
-    color = animatedSelectionColor(isSelected, MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.6f))
+    color = animatedSelectionColor(isSelected)
   ) {
     Row(
       modifier = Modifier
@@ -1928,7 +1927,7 @@ private fun ArtistGridCard(
       .combinedClickable(onClick = onClick, onLongClick = onLongClick),
     shape = AppShapeScale.large,
     colors = CardDefaults.cardColors(
-      containerColor = animatedSelectionColor(isSelected, MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.6f))
+      containerColor = animatedSelectionColor(isSelected)
     )
   ) {
     Column(
@@ -1990,7 +1989,7 @@ private fun ArtistListCard(
       .semantics { selected = isSelected }
       .combinedClickable(onClick = onClick, onLongClick = onLongClick),
     shape = AppShapeScale.large,
-    color = animatedSelectionColor(isSelected, MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.6f))
+    color = animatedSelectionColor(isSelected)
   ) {
     Row(
       modifier = Modifier
@@ -2235,10 +2234,7 @@ private fun MusicPlaylistCard(
         .combinedClickable(onClick = onClick, onLongClick = onLongClick),
       shape = AppShapeScale.large,
       colors = CardDefaults.cardColors(
-        containerColor = animatedSelectionColor(
-          isSelected,
-          MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.6f),
-        )
+        containerColor = animatedSelectionColor(isSelected)
       )
     ) {
       Column(
@@ -2282,7 +2278,7 @@ private fun MusicPlaylistCard(
         .tvContextMenu(onLongClick)
         .semantics { selected = isSelected }
         .combinedClickable(onClick = onClick, onLongClick = onLongClick),
-      color = animatedSelectionColor(isSelected, MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f))
+        color = animatedSelectionColor(isSelected)
     ) {
       Row(
         modifier = Modifier

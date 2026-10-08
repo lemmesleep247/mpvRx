@@ -1,4 +1,22 @@
 <resources>
+  <string name="pref_liquid_glass_material">कांच की सामग्री</string>
+  <string name="pref_liquid_glass_material_style">कांच की शैली</string>
+  <string name="pref_liquid_glass_style_liquid">तरल</string>
+  <string name="pref_liquid_glass_style_frosted">धुंधला</string>
+  <string name="pref_liquid_glass_style_transparent">पारदर्शी</string>
+  <string name="pref_liquid_glass_profile">कांच प्रोफ़ाइल</string>
+  <string name="pref_liquid_glass_profile_performance">प्रदर्शन</string>
+  <string name="pref_liquid_glass_profile_balanced">संतुलित</string>
+  <string name="pref_liquid_glass_profile_quality">गुणवत्ता</string>
+  <string name="pref_liquid_glass_surface_opacity">सतह की अपारदर्शिता</string>
+  <string name="pref_navigation_style">नेविगेशन शैली</string>
+  <string name="pref_navigation_style_normal">सामान्य</string>
+  <string name="generic_expand">विस्तृत करें</string>
+  <string name="generic_collapse">संकुचित करें</string>
+  <string name="generic_clear">साफ़ करें</string>
+  <string name="generic_increase">बढ़ाएं</string>
+  <string name="generic_decrease">घटाएं</string>
+  <string name="generic_remove_from_favorites">पसंदीदा से हटाएं</string>
   <string name="app_name">mpvRx</string>
   <string name="generic_reset">रीसेट करें</string>
   <string name="generic_share">शेयर करें</string>

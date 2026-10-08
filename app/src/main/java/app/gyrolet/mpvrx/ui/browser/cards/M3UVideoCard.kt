@@ -261,7 +261,7 @@ fun M3UVideoCard(
               .matchParentSize()
               .padding(2.dp)
               .clip(AppShapeScale.large)
-              .background(MaterialTheme.colorScheme.tertiary.copy(alpha = 0.3f)),
+              .background(mediaSelectionColor),
         )
       }
 

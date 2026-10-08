@@ -315,6 +315,7 @@ fun FileSystemBrowserScreen(path: String? = null) {
   val selectedCount = selectionManager.selectedCount
   val totalCount = items.size
   val onlyVideosSelected = selectedVideos.isNotEmpty() && selectedFolders.isEmpty()
+  val foldersBlacklistedMessage = stringResource(app.gyrolet.mpvrx.R.string.pref_folders_blacklisted)
 
   suspend fun selectedPlayableVideos(): List<app.gyrolet.mpvrx.domain.media.model.Video> {
     val videosFromFolders =
@@ -600,7 +601,23 @@ fun FileSystemBrowserScreen(path: String? = null) {
                 selectionManager.clear()
               }
             },
-            onDeleteClick = { deleteDialogOpen = true },
+            onBlacklistClick =
+              if (selectedFolders.isNotEmpty()) {
+                {
+                  coroutineScope.launch {
+                    val paths = selectedFolders.map { it.path }.toSet()
+                    foldersPreferences.addBlacklistedFolders(paths, app.gyrolet.mpvrx.preferences.BlacklistScope.VIDEO_ONLY)
+                    selectionManager.clear()
+                    viewModel.refresh()
+                    android.widget.Toast
+                      .makeText(context, foldersBlacklistedMessage, android.widget.Toast.LENGTH_SHORT)
+                      .show()
+                  }
+                }
+              } else {
+                null
+              },
+            onDeleteClick = null,
             onSelectAll = { selectionManager.selectAll() },
             onInvertSelection = { selectionManager.invertSelection() },
             onDeselectAll = { selectionManager.clear() },

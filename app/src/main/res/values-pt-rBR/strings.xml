@@ -1,5 +1,23 @@
 <?xml version='1.0' encoding='UTF-8'?>
 <resources>
+  <string name="pref_liquid_glass_material">Material do vidro</string>
+  <string name="pref_liquid_glass_material_style">Estilo do vidro</string>
+  <string name="pref_liquid_glass_style_liquid">Líquido</string>
+  <string name="pref_liquid_glass_style_frosted">Fosco</string>
+  <string name="pref_liquid_glass_style_transparent">Transparente</string>
+  <string name="pref_liquid_glass_profile">Perfil do vidro</string>
+  <string name="pref_liquid_glass_profile_performance">Desempenho</string>
+  <string name="pref_liquid_glass_profile_balanced">Equilibrado</string>
+  <string name="pref_liquid_glass_profile_quality">Qualidade</string>
+  <string name="pref_liquid_glass_surface_opacity">Opacidade da superfície</string>
+  <string name="pref_navigation_style">Estilo de navegação</string>
+  <string name="pref_navigation_style_normal">Normal</string>
+  <string name="generic_expand">Expandir</string>
+  <string name="generic_collapse">Recolher</string>
+  <string name="generic_clear">Limpar</string>
+  <string name="generic_increase">Aumentar</string>
+  <string name="generic_decrease">Diminuir</string>
+  <string name="generic_remove_from_favorites">Remover dos favoritos</string>
   <string name="generic_reset">Redefinir</string>
   <string name="generic_share">Compartilhar</string>
   <string name="generic_confirm">Confirmar</string>

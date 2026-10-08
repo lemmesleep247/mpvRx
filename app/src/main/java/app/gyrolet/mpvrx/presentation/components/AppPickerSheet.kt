@@ -12,6 +12,7 @@ package app.gyrolet.mpvrx.presentation.components
 import android.content.res.Configuration
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
@@ -25,6 +26,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.SheetValue
@@ -35,6 +37,8 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -56,7 +60,7 @@ import app.gyrolet.mpvrx.ui.theme.MotionPolicy
  * Only ever fully open or gone: a half-expanded detent is a second thing to
  * get past on a phone and meaningless on a short landscape screen.
  */
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun AppPickerSheet(
   onDismissRequest: () -> Unit,
@@ -115,8 +119,8 @@ fun AppPickerSheet(
             } else if (title.isNotBlank()) {
               Text(
                 text = title,
-                style = MaterialTheme.typography.headlineSmall,
-                fontWeight = FontWeight.Bold,
+                modifier = Modifier.semantics { heading() },
+                style = MaterialTheme.typography.headlineSmallEmphasized,
                 color = MaterialTheme.colorScheme.onSurface,
               )
             }
@@ -156,6 +160,7 @@ fun AppPickerSheet(
           modifier =
             Modifier
               .fillMaxWidth()
+              .weight(1f, fill = false)
               .heightIn(max = bodyMaxHeight)
               .then(if (scrollContent) Modifier.verticalScroll(rememberScrollState()) else Modifier),
         ) {
@@ -164,10 +169,10 @@ fun AppPickerSheet(
 
         Spacer(Modifier.height(12.dp))
 
-        Row(
+        FlowRow(
           modifier = Modifier.fillMaxWidth(),
           horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End),
-          verticalAlignment = Alignment.CenterVertically,
+          verticalArrangement = Arrangement.spacedBy(8.dp),
           content = actions,
         )
       }

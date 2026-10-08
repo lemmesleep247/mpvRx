@@ -3,12 +3,17 @@ package app.gyrolet.mpvrx.ui.preferences.components
 import android.os.Build
 import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -23,6 +28,9 @@ import androidx.core.os.ConfigurationCompat
 import app.gyrolet.mpvrx.R
 import app.gyrolet.mpvrx.preferences.AppearancePreferences
 import app.gyrolet.mpvrx.preferences.LiquidGlassHighlightStyle
+import app.gyrolet.mpvrx.preferences.LiquidGlassMaterialStyle
+import app.gyrolet.mpvrx.preferences.LiquidGlassProfile
+import app.gyrolet.mpvrx.preferences.NavigationBarStyle
 import app.gyrolet.mpvrx.preferences.preference.Preference
 import app.gyrolet.mpvrx.preferences.preference.collectAsState
 import app.gyrolet.mpvrx.ui.icons.Icon
@@ -32,23 +40,94 @@ import app.gyrolet.mpvrx.ui.preferences.PreferenceDivider
 import app.gyrolet.mpvrx.ui.preferences.PreferenceSectionHeader
 import app.gyrolet.mpvrx.ui.preferences.settingsSearchTarget
 import me.zhanghai.compose.preference.ListPreference
-import me.zhanghai.compose.preference.SliderPreference
+import app.gyrolet.mpvrx.ui.preferences.components.AppSliderPreference as SliderPreference
 import java.text.NumberFormat
 import java.util.Locale
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 fun LazyListScope.liquidGlassPreferences(
   preferences: AppearancePreferences,
   enabled: Boolean,
 ) {
   item {
+    PreferenceSectionHeader(title = stringResource(R.string.pref_liquid_glass_material))
+  }
+  item {
+    val style by preferences.liquidGlassMaterialStyle.collectAsState()
+    val styleLabels = mapOf(
+      LiquidGlassMaterialStyle.Liquid to stringResource(R.string.pref_liquid_glass_style_liquid),
+      LiquidGlassMaterialStyle.Frosted to stringResource(R.string.pref_liquid_glass_style_frosted),
+      LiquidGlassMaterialStyle.Transparent to stringResource(R.string.pref_liquid_glass_style_transparent),
+    )
+    PreferenceCard {
+      ListPreference(
+        value = style,
+        onValueChange = preferences.liquidGlassMaterialStyle::set,
+        values = LiquidGlassMaterialStyle.entries,
+        valueToText = { AnnotatedString(styleLabels.getValue(it)) },
+        title = { Text(stringResource(R.string.pref_liquid_glass_material_style)) },
+        summary = { Text(styleLabels.getValue(style)) },
+        enabled = enabled,
+      )
+      PreferenceDivider()
+      LiquidGlassSlider(
+        preferences.liquidGlassSurfaceOpacity,
+        R.string.pref_liquid_glass_surface_opacity,
+        enabled,
+        0f..1f,
+      )
+    }
+  }
+  item {
+    PreferenceSectionHeader(title = stringResource(R.string.pref_liquid_glass_profile))
+  }
+  item {
+    FlowRow(
+      modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+      horizontalArrangement = Arrangement.spacedBy(8.dp),
+      verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+      LiquidGlassProfile.entries.forEach { profile ->
+        FilledTonalButton(
+          onClick = { preferences.applyLiquidGlassProfile(profile) },
+          enabled = enabled,
+          shapes = ButtonDefaults.shapes(),
+        ) {
+          Text(stringResource(when (profile) {
+            LiquidGlassProfile.Performance -> R.string.pref_liquid_glass_profile_performance
+            LiquidGlassProfile.Balanced -> R.string.pref_liquid_glass_profile_balanced
+            LiquidGlassProfile.Quality -> R.string.pref_liquid_glass_profile_quality
+          }))
+        }
+      }
+    }
+  }
+  item {
+    val navigationStyle by preferences.navigationBarStyle.collectAsState()
+    val labels = mapOf(
+      NavigationBarStyle.LiquidGlass to stringResource(R.string.pref_appearance_category_liquid_glass),
+      NavigationBarStyle.Normal to stringResource(R.string.pref_navigation_style_normal),
+    )
+    PreferenceCard {
+      ListPreference(
+        value = navigationStyle,
+        onValueChange = preferences.navigationBarStyle::set,
+        values = NavigationBarStyle.entries,
+        valueToText = { AnnotatedString(labels.getValue(it)) },
+        title = { Text(stringResource(R.string.pref_navigation_style)) },
+        summary = { Text(labels.getValue(navigationStyle)) },
+      )
+    }
+  }
+  item {
     PreferenceSectionHeader(title = stringResource(R.string.pref_liquid_glass_optics))
   }
   item {
     val lensSupported = Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU
+    val materialStyle by preferences.liquidGlassMaterialStyle.collectAsState()
     val refractionHeight by preferences.liquidGlassRefractionHeight.collectAsState()
     val refractionAmount by preferences.liquidGlassRefractionAmount.collectAsState()
-    val lensEnabled = enabled && lensSupported
+    val lensEnabled = enabled && lensSupported && materialStyle == LiquidGlassMaterialStyle.Liquid
     val lensActive = lensEnabled && refractionHeight > 0f && refractionAmount > 0f
     PreferenceCard {
       LiquidGlassSlider(preferences.liquidGlassOpacity, R.string.pref_liquid_glass_opacity, enabled, 0f..1f)

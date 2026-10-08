@@ -31,6 +31,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import app.gyrolet.mpvrx.ui.icons.AppIcon
 import app.gyrolet.mpvrx.ui.icons.Icon
+import app.gyrolet.mpvrx.ui.player.controls.PlayerButtonAlpha
 import com.kyant.backdrop.Backdrop
 
 object PlayerLiquidTokens {
@@ -44,16 +45,16 @@ object PlayerLiquidTokens {
     @Composable get() = MaterialTheme.colorScheme.onSurface
 
   val disabledContentColor: Color
-    @Composable get() = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
+    @Composable get() = MaterialTheme.colorScheme.onSurface.copy(alpha = PlayerButtonAlpha.DISABLED_CONTENT)
 
   val selectedContentColor: Color
     @Composable get() = MaterialTheme.colorScheme.primary
 
   val surfaceColor: Color
-    @Composable get() = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.32f)
+    @Composable get() = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = PlayerButtonAlpha.GLASS_CONTAINER)
 
   val selectedSurfaceColor: Color
-    @Composable get() = MaterialTheme.colorScheme.primary.copy(alpha = 0.22f)
+    @Composable get() = MaterialTheme.colorScheme.primary.copy(alpha = PlayerButtonAlpha.SELECTED_GLASS_CONTAINER)
 }
 
 @Composable

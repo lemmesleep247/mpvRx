@@ -25,6 +25,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.snap
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -52,6 +53,7 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -100,6 +102,7 @@ import app.gyrolet.mpvrx.ui.player.controls.components.rememberTvInitialFocusReq
 import app.gyrolet.mpvrx.ui.player.controls.components.tvFocusHighlight
 import app.gyrolet.mpvrx.ui.player.controls.components.tvInitialFocus
 import app.gyrolet.mpvrx.ui.theme.AppShapeScale
+import app.gyrolet.mpvrx.ui.theme.AppMotion
 import app.gyrolet.mpvrx.utils.device.DeviceFormFactor
 import app.gyrolet.mpvrx.utils.permission.PermissionUtils
 import kotlinx.coroutines.CancellationException
@@ -330,11 +333,10 @@ fun PermissionDeniedState(
   val goNext: () -> Unit = { if (stepIndex < steps.lastIndex) stepIndex++ }
   val finishSetup: () -> Unit = {
     browserPreferences.onboardingCompleted.set(true)
+    onNext?.invoke()
     if (restoredSettings) {
       (context as? Activity)?.recreate()
-    } else if (onNext != null) {
-      onNext()
-    } else {
+    } else if (onNext == null) {
       onRequestPermission()
     }
   }
@@ -847,6 +849,7 @@ fun PermissionDeniedState(
   }
 }
 
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 private fun PermissionSectionCard(
   title: String,
@@ -863,6 +866,7 @@ private fun PermissionSectionCard(
     } else {
       MaterialTheme.colorScheme.surfaceContainer
     },
+    animationSpec = if (AppMotion.shouldReduceMotion()) snap() else AppMotion.Effect.Color,
     label = "card_bg",
   )
 
@@ -879,7 +883,6 @@ private fun PermissionSectionCard(
   Card(
     modifier = modifier
       .fillMaxWidth()
-      .alpha(if (isGranted) 0.65f else 1f)
       .then(borderModifier)
       .tvFocusHighlight(
         AppShapeScale.largeIncreased,
@@ -900,9 +903,9 @@ private fun PermissionSectionCard(
       // Left Icon Container
       Surface(
         modifier = Modifier.size(44.dp),
-        shape = RoundedCornerShape(12.dp),
+        shape = MaterialTheme.shapes.medium,
         color = if (isGranted) {
-          MaterialTheme.colorScheme.surfaceVariant
+          MaterialTheme.colorScheme.surfaceContainerHighest
         } else {
           MaterialTheme.colorScheme.primaryContainer
         },
@@ -935,13 +938,9 @@ private fun PermissionSectionCard(
         ) {
           Text(
             text = title,
-            style = if (isTelevision) MaterialTheme.typography.titleLarge else MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.Bold,
-            color = if (isGranted) {
-              MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
-            } else {
-              MaterialTheme.colorScheme.onSurface
-            },
+            modifier = Modifier.weight(1f, fill = false),
+            style = if (isTelevision) MaterialTheme.typography.titleLargeEmphasized else MaterialTheme.typography.titleMediumEmphasized,
+            color = MaterialTheme.colorScheme.onSurface,
           )
 
           if (isGranted) {
@@ -991,20 +990,20 @@ private fun PermissionSectionCard(
   }
 }
 
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 private fun PillBadge(text: String) {
   Box(
     modifier = Modifier
       .background(
-        color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.7f),
-        shape = RoundedCornerShape(50),
+        color = MaterialTheme.colorScheme.primaryContainer,
+        shape = AppShapeScale.full,
       )
       .padding(horizontal = 8.dp, vertical = 2.dp),
   ) {
     Text(
       text = text,
-      style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
-      fontWeight = FontWeight.Bold,
+      style = MaterialTheme.typography.labelSmallEmphasized,
       color = MaterialTheme.colorScheme.onPrimaryContainer,
     )
   }

@@ -20,20 +20,22 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import app.gyrolet.mpvrx.R
 import app.gyrolet.mpvrx.ui.icons.Icon
 import app.gyrolet.mpvrx.ui.icons.Icons
 import app.gyrolet.mpvrx.ui.player.TrackNode
+import app.gyrolet.mpvrx.ui.player.controls.components.tvFocusHighlight
 import app.gyrolet.mpvrx.ui.theme.spacing
 
 data class TrackBadge(
@@ -41,7 +43,7 @@ data class TrackBadge(
   val emphasized: Boolean = false,
 )
 
-@OptIn(ExperimentalLayoutApi::class)
+@OptIn(ExperimentalLayoutApi::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun TrackBadgeFlow(
   badges: List<TrackBadge>,
@@ -58,24 +60,23 @@ fun TrackBadgeFlow(
       val containerColor =
         when {
           badge.emphasized -> MaterialTheme.colorScheme.primary
-          selected -> MaterialTheme.colorScheme.primary.copy(alpha = 0.14f)
+          selected -> MaterialTheme.colorScheme.primaryContainer
           else -> MaterialTheme.colorScheme.surfaceContainerHighest
         }
       val contentColor =
         when {
           badge.emphasized -> MaterialTheme.colorScheme.onPrimary
-          selected -> MaterialTheme.colorScheme.primary
+          selected -> MaterialTheme.colorScheme.onPrimaryContainer
           else -> MaterialTheme.colorScheme.onSurfaceVariant
         }
       Surface(
-        shape = RoundedCornerShape(6.dp),
+        shape = MaterialTheme.shapes.small,
         color = containerColor,
         contentColor = contentColor,
       ) {
         Text(
           text = badge.text,
-          style = MaterialTheme.typography.labelSmall,
-          fontWeight = FontWeight.SemiBold,
+          style = MaterialTheme.typography.labelSmallEmphasized,
           modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
         )
       }
@@ -83,6 +84,7 @@ fun TrackBadgeFlow(
   }
 }
 
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun AddTrackRow(
   title: String,
@@ -94,7 +96,9 @@ fun AddTrackRow(
     modifier =
       modifier
         .fillMaxWidth()
-        .clickable(onClick = onClick)
+        .tvFocusHighlight(MaterialTheme.shapes.medium, focusedScale = 1.01f)
+        .clip(MaterialTheme.shapes.medium)
+        .clickable(role = Role.Button, onClick = onClick)
         .heightIn(min = 56.dp)
         .padding(horizontal = 20.dp, vertical = 8.dp),
     verticalAlignment = Alignment.CenterVertically,
@@ -107,7 +111,7 @@ fun AddTrackRow(
     )
     Text(
       text = title,
-      style = MaterialTheme.typography.bodyLarge,
+      style = MaterialTheme.typography.bodyLargeEmphasized,
       modifier = Modifier.weight(1f),
     )
     Row(

@@ -47,6 +47,9 @@ import app.gyrolet.mpvrx.ui.player.controls.components.tvInitialFocus
 import kotlinx.collections.immutable.ImmutableList
 
 enum class LiquidGlassHighlightStyle { Component, Default, Ambient, Plain }
+enum class LiquidGlassMaterialStyle { Liquid, Frosted, Transparent }
+enum class LiquidGlassProfile { Performance, Balanced, Quality }
+enum class NavigationBarStyle { LiquidGlass, Normal }
 
 class AppearancePreferences(
   preferenceStore: PreferenceStore,
@@ -69,6 +72,8 @@ class AppearancePreferences(
   val customWallpaperUseColors = preferenceStore.getBoolean("custom_wallpaper_use_colors", false)
   val amoledMode = preferenceStore.getBoolean("amoled_mode", false)
   val liquidGlassEnabled = preferenceStore.getBoolean("liquid_glass_enabled", true)
+  val liquidGlassMaterialStyle = preferenceStore.getEnum("liquid_glass_material_style", LiquidGlassMaterialStyle.Liquid)
+  val liquidGlassSurfaceOpacity = preferenceStore.getFloat("liquid_glass_surface_opacity", 1f)
   val liquidGlassOpacity = preferenceStore.getFloat("liquid_glass_opacity", 1f)
   val liquidGlassBlur = preferenceStore.getFloat("liquid_glass_blur", 1f)
   val liquidGlassRefractionHeight = preferenceStore.getFloat("liquid_glass_refraction_height", 1f)
@@ -88,6 +93,10 @@ class AppearancePreferences(
   val liquidGlassInnerShadowStrength = preferenceStore.getFloat("liquid_glass_inner_shadow_strength", 1f)
   val liquidGlassInnerShadowRadius = preferenceStore.getFloat("liquid_glass_inner_shadow_radius", 1f)
   val navigationBarGlow = preferenceStore.getBoolean("navigation_bar_glow", true)
+  val navigationBarStyle = preferenceStore.getEnum(
+    "navigation_bar_style",
+    if (liquidGlassEnabled.get()) NavigationBarStyle.LiquidGlass else NavigationBarStyle.Normal,
+  )
   val useSystemFont = preferenceStore.getBoolean("use_system_font", false)
   val googleFontFamily = preferenceStore.getString("google_font_family", "")
   val googleFontRevision = preferenceStore.getInt("google_font_revision", 0)
@@ -112,12 +121,43 @@ class AppearancePreferences(
 
   fun resetLiquidGlassOptions() {
     listOf<Preference<*>>(
+      liquidGlassMaterialStyle, liquidGlassSurfaceOpacity,
       liquidGlassOpacity, liquidGlassBlur, liquidGlassRefractionHeight, liquidGlassRefractionAmount,
       liquidGlassDepthEffect, liquidGlassChromaticAberration, liquidGlassVibrancy,
       liquidGlassSaturation, liquidGlassBrightness, liquidGlassContrast,
       liquidGlassHighlightStyle, liquidGlassHighlightStrength, liquidGlassHighlightWidth, liquidGlassHighlightBlur,
       liquidGlassShadowStrength, liquidGlassShadowRadius, liquidGlassInnerShadowStrength, liquidGlassInnerShadowRadius,
     ).forEach { it.delete() }
+  }
+
+  fun applyLiquidGlassProfile(profile: LiquidGlassProfile) {
+    resetLiquidGlassOptions()
+    liquidGlassHighlightStyle.set(LiquidGlassHighlightStyle.Ambient)
+    liquidGlassDepthEffect.set(false)
+    when (profile) {
+      LiquidGlassProfile.Performance -> {
+        liquidGlassMaterialStyle.set(LiquidGlassMaterialStyle.Transparent)
+        liquidGlassSurfaceOpacity.set(0.55f)
+      }
+      LiquidGlassProfile.Balanced -> {
+        liquidGlassMaterialStyle.set(LiquidGlassMaterialStyle.Liquid)
+        liquidGlassBlur.set(1f)
+        liquidGlassRefractionHeight.set(1.6f)
+        liquidGlassRefractionAmount.set(1.2f)
+        liquidGlassChromaticAberration.set(false)
+        liquidGlassSaturation.set(1.2f)
+        liquidGlassSurfaceOpacity.set(0.5f)
+      }
+      LiquidGlassProfile.Quality -> {
+        liquidGlassMaterialStyle.set(LiquidGlassMaterialStyle.Liquid)
+        liquidGlassBlur.set(2f)
+        liquidGlassRefractionHeight.set(2f)
+        liquidGlassRefractionAmount.set(1.6f)
+        liquidGlassChromaticAberration.set(true)
+        liquidGlassSaturation.set(1.4f)
+        liquidGlassSurfaceOpacity.set(0.5f)
+      }
+    }
   }
 
   val topLeftControls =

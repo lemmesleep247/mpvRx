@@ -11,6 +11,7 @@ package app.gyrolet.mpvrx.ui.browser.components
 
 import android.content.Intent
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.snap
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
@@ -30,6 +31,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -42,9 +44,10 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import app.gyrolet.mpvrx.R
 import app.gyrolet.mpvrx.presentation.components.LiquidGlassStyle
 import app.gyrolet.mpvrx.presentation.components.LiquidGlassSurface
 import app.gyrolet.mpvrx.ui.icons.Icon
@@ -53,7 +56,9 @@ import app.gyrolet.mpvrx.ui.player.MediaPlaybackService
 import app.gyrolet.mpvrx.ui.player.PlaybackSession
 import app.gyrolet.mpvrx.ui.player.PlayerActivity
 import app.gyrolet.mpvrx.ui.player.controls.components.MiniAudioVisualizer
+import app.gyrolet.mpvrx.ui.theme.AppMotion
 
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun AudioMiniPlayer(modifier: Modifier = Modifier) {
   val isServiceRunning = MediaPlaybackService.isForegroundActive()
@@ -67,10 +72,11 @@ fun AudioMiniPlayer(modifier: Modifier = Modifier) {
   if (!isServiceRunning || sessionState.currentItem == null) return
 
   val isPlaying = paused == false
+  val reduceMotion = AppMotion.playerReducedMotion()
   val title =
     sessionState.currentItem?.title?.takeIf { it.isNotBlank() }
       ?: rawMediaTitle?.takeIf { it.isNotBlank() }
-      ?: "Audio Track"
+      ?: stringResource(R.string.btn_label_audio)
   val miniPlayerShape = RoundedCornerShape(24.dp)
 
   LiquidGlassSurface(
@@ -93,7 +99,7 @@ fun AudioMiniPlayer(modifier: Modifier = Modifier) {
       shape = miniPlayerShape,
       style = LiquidGlassStyle.MiniPlayer,
       glassColor = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.30f),
-      fallbackColor = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.95f),
+      fallbackColor = MaterialTheme.colorScheme.surfaceContainerHigh,
   ) {
     val primaryContainerColor = MaterialTheme.colorScheme.primaryContainer
 
@@ -124,7 +130,7 @@ fun AudioMiniPlayer(modifier: Modifier = Modifier) {
           Modifier
             .size(42.dp)
             .clip(CircleShape)
-            .background(MaterialTheme.colorScheme.surfaceVariant),
+            .background(MaterialTheme.colorScheme.surfaceContainerHighest),
         contentAlignment = Alignment.Center,
       ) {
         MiniAudioVisualizer(
@@ -144,11 +150,11 @@ fun AudioMiniPlayer(modifier: Modifier = Modifier) {
       ) {
         Text(
           text = title,
-          style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
+          style = MaterialTheme.typography.bodyMediumEmphasized,
           color = MaterialTheme.colorScheme.onSurface,
           maxLines = 1,
           overflow = TextOverflow.Ellipsis,
-          modifier = Modifier.basicMarquee(),
+          modifier = if (reduceMotion) Modifier else Modifier.basicMarquee(),
         )
         Row(
           verticalAlignment = Alignment.CenterVertically,
@@ -161,7 +167,7 @@ fun AudioMiniPlayer(modifier: Modifier = Modifier) {
             barCount = 3,
           )
           Text(
-            text = if (isPlaying) "Playing" else "Paused",
+            text = stringResource(if (isPlaying) R.string.notification_playing else R.string.downloads_paused),
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             maxLines = 1,
@@ -180,11 +186,11 @@ fun AudioMiniPlayer(modifier: Modifier = Modifier) {
             ),
           )
         },
-        modifier = Modifier.size(36.dp),
+        modifier = Modifier.size(48.dp),
       ) {
         Icon(
           imageVector = Icons.RoundedFilled.SkipPrevious,
-          contentDescription = null,
+          contentDescription = stringResource(R.string.pref_gesture_media_previous),
           tint = MaterialTheme.colorScheme.onSurface,
           modifier = Modifier.size(24.dp),
         )
@@ -199,16 +205,18 @@ fun AudioMiniPlayer(modifier: Modifier = Modifier) {
             ),
           )
         },
-        modifier = Modifier.size(36.dp),
+        modifier = Modifier.size(48.dp),
       ) {
         AnimatedContent(
           targetState = isPlaying,
-          transitionSpec = { fadeIn() togetherWith fadeOut() },
+          transitionSpec = {
+            if (reduceMotion) fadeIn(snap()) togetherWith fadeOut(snap()) else fadeIn() togetherWith fadeOut()
+          },
           label = "mini_play_pause",
         ) { playing ->
           Icon(
             imageVector = if (playing) Icons.RoundedFilled.Pause else Icons.RoundedFilled.PlayArrow,
-            contentDescription = null,
+            contentDescription = stringResource(if (playing) R.string.audiobook_pause else R.string.ui_play),
             tint = MaterialTheme.colorScheme.onSurface,
             modifier = Modifier.size(26.dp),
           )
@@ -224,11 +232,11 @@ fun AudioMiniPlayer(modifier: Modifier = Modifier) {
             ),
           )
         },
-        modifier = Modifier.size(36.dp),
+        modifier = Modifier.size(48.dp),
       ) {
         Icon(
           imageVector = Icons.RoundedFilled.SkipNext,
-          contentDescription = null,
+          contentDescription = stringResource(R.string.pref_gesture_media_next),
           tint = MaterialTheme.colorScheme.onSurface,
           modifier = Modifier.size(24.dp),
         )
@@ -243,11 +251,11 @@ fun AudioMiniPlayer(modifier: Modifier = Modifier) {
             ),
           )
         },
-        modifier = Modifier.size(32.dp),
+        modifier = Modifier.size(48.dp),
       ) {
         Icon(
           imageVector = Icons.RoundedFilled.Close,
-          contentDescription = null,
+          contentDescription = stringResource(R.string.ui_close),
           tint = MaterialTheme.colorScheme.onSurfaceVariant,
           modifier = Modifier.size(18.dp),
         )

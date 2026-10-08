@@ -21,6 +21,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
+import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -30,6 +31,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import app.gyrolet.mpvrx.preferences.AppearancePreferences
@@ -39,6 +41,7 @@ import app.gyrolet.mpvrx.ui.icons.Icon
 import app.gyrolet.mpvrx.ui.icons.Icons
 import app.gyrolet.mpvrx.ui.liquidglass.AdaptiveControlsButton
 import app.gyrolet.mpvrx.ui.player.controls.LocalPlayerButtonsClickEvent
+import app.gyrolet.mpvrx.ui.player.controls.PlayerButtonAlpha
 import app.gyrolet.mpvrx.ui.theme.LocalDarkAppColorScheme
 import app.gyrolet.mpvrx.ui.theme.spacing
 import org.koin.compose.koinInject
@@ -57,13 +60,15 @@ private fun playerButtonColorScheme(
   if (forceDark) LocalDarkAppColorScheme.current ?: MaterialTheme.colorScheme else MaterialTheme.colorScheme
 
 @Composable
-internal fun playerButtonContainerColor(): Color = playerButtonColorScheme().surfaceContainer.copy(alpha = 0.55f)
+internal fun playerButtonContainerColor(): Color =
+  playerButtonColorScheme().surfaceContainerHigh.copy(alpha = PlayerButtonAlpha.CONTAINER)
 
 @Composable
 internal fun playerButtonContentColor(): Color = playerButtonColorScheme().onSurface
 
 @Composable
-internal fun playerButtonBorderColor(): Color = playerButtonColorScheme().outlineVariant.copy(alpha = 0.4f)
+internal fun playerButtonBorderColor(): Color =
+  playerButtonColorScheme().outlineVariant.copy(alpha = PlayerButtonAlpha.BORDER)
 
 @Suppress("ModifierClickableOrder")
 @OptIn(ExperimentalFoundationApi::class)
@@ -89,7 +94,7 @@ fun ControlsButton(
       modifier = modifier.tvFocusHighlight(CircleShape, enabled),
       onLongClick = onLongClick,
       title = title,
-      color = if (enabled) resolvedColor else resolvedColor.copy(alpha = 0.38f),
+      color = if (enabled) resolvedColor else resolvedColor.copy(alpha = PlayerButtonAlpha.DISABLED_CONTENT),
       useGlass = true,
       buttonSize = 40.dp,
     )
@@ -102,10 +107,12 @@ fun ControlsButton(
   Surface(
     modifier =
       modifier
+        .minimumInteractiveComponentSize()
         .tvFocusHighlight(CircleShape, enabled)
         .clip(CircleShape)
         .combinedClickable(
           enabled = enabled,
+          role = Role.Button,
           onClick = {
             clickEvent()
             onClick()
@@ -136,7 +143,7 @@ fun ControlsButton(
     Icon(
       imageVector = icon,
       contentDescription = title,
-      tint = if (enabled) resolvedColor else resolvedColor.copy(alpha = 0.38f),
+      tint = if (enabled) resolvedColor else resolvedColor.copy(alpha = PlayerButtonAlpha.DISABLED_CONTENT),
       modifier =
         Modifier
           .padding(MaterialTheme.spacing.small)

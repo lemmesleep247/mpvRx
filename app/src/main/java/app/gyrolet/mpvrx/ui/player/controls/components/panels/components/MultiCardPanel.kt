@@ -28,6 +28,7 @@ import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -43,14 +44,17 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.constraintlayout.compose.ConstraintLayout
+import app.gyrolet.mpvrx.R
 import app.gyrolet.mpvrx.ui.icons.Icon
 import app.gyrolet.mpvrx.ui.icons.Icons
 import app.gyrolet.mpvrx.ui.player.controls.CARDS_MAX_WIDTH
 import app.gyrolet.mpvrx.ui.theme.spacing
 
-@OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun MultiCardPanel(
   onDismissRequest: () -> Unit,
@@ -80,12 +84,13 @@ fun MultiCardPanel(
           title = {
             Text(
               text = stringResource(titleRes),
-              style = MaterialTheme.typography.headlineMedium.copy(shadow = Shadow(blurRadius = 20f)),
+              modifier = Modifier.semantics { heading() },
+              style = MaterialTheme.typography.titleLargeEmphasized.copy(shadow = Shadow(blurRadius = 20f)),
             )
           },
           navigationIcon = {
             IconButton(onClick = onDismissRequest) {
-              Icon(imageVector = Icons.RoundedFilled.ArrowBack, contentDescription = null)
+              Icon(imageVector = Icons.RoundedFilled.ArrowBack, contentDescription = stringResource(R.string.back))
             }
           },
           colors = TopAppBarDefaults.topAppBarColors().copy(containerColor = Color.Transparent),
@@ -120,13 +125,14 @@ fun MultiCardPanel(
         ) {
           Text(
             text = stringResource(titleRes),
+            modifier = Modifier.weight(1f).semantics { heading() },
             style =
-              MaterialTheme.typography.headlineMedium.copy(
+              MaterialTheme.typography.titleLargeEmphasized.copy(
                 shadow = Shadow(blurRadius = 20f),
               ),
           )
           IconButton(onDismissRequest) {
-            Icon(imageVector = Icons.RoundedFilled.Close, contentDescription = null)
+            Icon(imageVector = Icons.RoundedFilled.Close, contentDescription = stringResource(R.string.ui_close))
           }
         }
         repeat(cardCount) { cards(it, Modifier) }

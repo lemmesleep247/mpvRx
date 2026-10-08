@@ -40,6 +40,7 @@ import com.kyant.backdrop.shadow.InnerShadow
 import com.kyant.backdrop.shadow.Shadow
 import app.gyrolet.mpvrx.preferences.AppearancePreferences
 import app.gyrolet.mpvrx.preferences.LiquidGlassHighlightStyle
+import app.gyrolet.mpvrx.preferences.LiquidGlassMaterialStyle
 import app.gyrolet.mpvrx.preferences.preference.collectAsState
 import org.koin.compose.koinInject
 import kotlinx.coroutines.CoroutineScope
@@ -70,7 +71,14 @@ data class LiquidGlassSettings(
     val shadowRadius: Float,
     val innerShadowStrength: Float,
     val innerShadowRadius: Float,
+    val materialStyle: LiquidGlassMaterialStyle = LiquidGlassMaterialStyle.Liquid,
+    val surfaceOpacity: Float = 1f,
 ) {
+    val refractive: Boolean get() = materialStyle == LiquidGlassMaterialStyle.Liquid
+    val transparent: Boolean get() = materialStyle == LiquidGlassMaterialStyle.Transparent
+
+    fun surfaceColor(base: Color): Color = base.copy(alpha = (base.alpha * surfaceOpacity).coerceIn(0f, 1f))
+
     fun highlight(base: Highlight): Highlight = base.copy(
         style = when (highlightStyle) {
             LiquidGlassHighlightStyle.Component -> base.style
@@ -78,19 +86,19 @@ data class LiquidGlassSettings(
             LiquidGlassHighlightStyle.Ambient -> Highlight.Ambient.style
             LiquidGlassHighlightStyle.Plain -> Highlight.Plain.style
         },
-        alpha = (base.alpha * highlightStrength).coerceIn(0f, 1f),
+        alpha = if (refractive) (base.alpha * highlightStrength).coerceIn(0f, 1f) else 0f,
         width = base.width * highlightWidth,
         blurRadius = base.blurRadius * highlightBlur,
     )
 
     fun shadow(base: Shadow): Shadow = base.copy(
-        color = base.color.copy(alpha = (base.color.alpha * shadowStrength).coerceIn(0f, 1f)),
+        color = base.color.copy(alpha = if (transparent) 0f else (base.color.alpha * shadowStrength).coerceIn(0f, 1f)),
         radius = base.radius * shadowRadius,
         offset = DpOffset(base.offset.x * shadowRadius, base.offset.y * shadowRadius),
     )
 
     fun innerShadow(base: InnerShadow): InnerShadow = base.copy(
-        color = base.color.copy(alpha = (base.color.alpha * innerShadowStrength).coerceIn(0f, 1f)),
+        color = base.color.copy(alpha = if (refractive) (base.color.alpha * innerShadowStrength).coerceIn(0f, 1f) else 0f),
         radius = base.radius * innerShadowRadius,
         offset = DpOffset(base.offset.x * innerShadowRadius, base.offset.y * innerShadowRadius),
     )
@@ -99,6 +107,8 @@ data class LiquidGlassSettings(
 @Composable
 fun rememberLiquidGlassSettings(): LiquidGlassSettings {
     val preferences = koinInject<AppearancePreferences>()
+    val materialStyle by preferences.liquidGlassMaterialStyle.collectAsState()
+    val surfaceOpacity by preferences.liquidGlassSurfaceOpacity.collectAsState()
     val opacity by preferences.liquidGlassOpacity.collectAsState()
     val blur by preferences.liquidGlassBlur.collectAsState()
     val refractionHeight by preferences.liquidGlassRefractionHeight.collectAsState()
@@ -128,6 +138,7 @@ fun rememberLiquidGlassSettings(): LiquidGlassSettings {
         highlightStyle, highlightStrength.bounded(1f), highlightWidth.bounded(1f), highlightBlur.bounded(1f),
         shadowStrength.bounded(1f), shadowRadius.bounded(1f),
         innerShadowStrength.bounded(1f), innerShadowRadius.bounded(1f),
+        materialStyle, surfaceOpacity.bounded(1f, 0f..1f),
     )
 }
 
@@ -139,10 +150,11 @@ fun BackdropEffectScope.liquidGlassEffects(
     vibrant: Boolean = false,
     refractionEnabled: Boolean = true,
 ) {
+    if (settings.transparent) return
     if (vibrant && settings.vibrancy) vibrancy()
     colorControls(settings.brightness, settings.contrast, settings.saturation)
     if (settings.blur > 0f) blur(blurRadius * settings.blur)
-    if (refractionEnabled) {
+    if (refractionEnabled && settings.refractive) {
         lens(
             refractionHeight * settings.refractionHeight,
             refractionAmount * settings.refractionAmount,

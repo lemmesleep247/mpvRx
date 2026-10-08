@@ -24,6 +24,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.unit.dp
 import app.gyrolet.mpvrx.ui.icons.Icon
 import app.gyrolet.mpvrx.ui.icons.Icons
+import app.gyrolet.mpvrx.ui.theme.AppMotion
 import kotlinx.coroutines.isActive
 
 /**
@@ -36,6 +37,7 @@ fun DoubleTapSeekTriangles(
   isForward: Boolean,
   modifier: Modifier = Modifier,
 ) {
+  val reduceMotion = AppMotion.playerReducedMotion()
   val animationDuration = 750L
   val stepDuration = (animationDuration / 5).toInt()
 
@@ -45,7 +47,13 @@ fun DoubleTapSeekTriangles(
   val tweenIn = remember(stepDuration) { tween<Float>(stepDuration) }
   val tweenOut = remember(stepDuration) { tween<Float>(stepDuration) }
 
-  LaunchedEffect(animationDuration) {
+  LaunchedEffect(animationDuration, reduceMotion) {
+    if (reduceMotion) {
+      alpha1.snapTo(1f)
+      alpha2.snapTo(1f)
+      alpha3.snapTo(1f)
+      return@LaunchedEffect
+    }
     while (isActive) {
       alpha1.animateTo(1f, animationSpec = tweenIn)
       alpha2.animateTo(1f, animationSpec = tweenIn)

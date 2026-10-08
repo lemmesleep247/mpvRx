@@ -16,6 +16,14 @@ import app.gyrolet.mpvrx.ui.player.controls.components.LocalForceDarkPlayerButto
 import app.gyrolet.mpvrx.ui.player.controls.components.LocalHidePlayerButtonsBackground
 import app.gyrolet.mpvrx.ui.theme.LocalDarkAppColorScheme
 
+internal object PlayerButtonAlpha {
+  const val CONTAINER = 0.55f
+  const val BORDER = 0.4f
+  const val DISABLED_CONTENT = 0.38f
+  const val GLASS_CONTAINER = 0.32f
+  const val SELECTED_GLASS_CONTAINER = 0.22f
+}
+
 /**
  * Carries the background visibility choice through every player-button implementation.
  *

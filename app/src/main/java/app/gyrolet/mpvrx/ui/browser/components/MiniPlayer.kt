@@ -20,6 +20,7 @@ import android.view.SurfaceHolder
 import android.view.SurfaceView
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.snap
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
@@ -48,6 +49,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -75,7 +77,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
@@ -100,6 +102,8 @@ import app.gyrolet.mpvrx.ui.player.TrackNode
 import app.gyrolet.mpvrx.ui.player.declaredMediaKind
 import app.gyrolet.mpvrx.ui.player.playerArtworkAnchor
 import app.gyrolet.mpvrx.ui.player.toObject
+import app.gyrolet.mpvrx.ui.theme.AppMotion
+import app.gyrolet.mpvrx.ui.theme.AppShapeScale
 import app.gyrolet.mpvrx.ui.utils.LocalBackStack
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -170,6 +174,7 @@ fun MiniPlayer(modifier: Modifier = Modifier) {
   }
 }
 
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 private fun MiniPlayerContent(
   context: Context,
@@ -266,7 +271,8 @@ private fun MiniPlayerContent(
       )
     }
   }
-  val miniPlayerShape = RoundedCornerShape(20.dp)
+  val miniPlayerShape = AppShapeScale.largeIncreased
+  val reduceMotion = AppMotion.playerReducedMotion()
 
   LiquidGlassSurface(
     modifier = Modifier
@@ -316,7 +322,7 @@ private fun MiniPlayerContent(
     shape = miniPlayerShape,
     style = LiquidGlassStyle.MiniPlayer,
     glassColor = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.30f),
-    fallbackColor = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.96f),
+    fallbackColor = MaterialTheme.colorScheme.surfaceContainerHigh,
   ) {
     val progressColor = MaterialTheme.colorScheme.primary
 
@@ -398,15 +404,15 @@ private fun MiniPlayerContent(
           key(currentItem?.stableId ?: currentItem?.originalUri) {
             Text(
               text = title,
-              style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
+              style = MaterialTheme.typography.bodyMediumEmphasized,
               color = MaterialTheme.colorScheme.onSurface,
               maxLines = 1,
               overflow = TextOverflow.Ellipsis,
-              modifier = Modifier.basicMarquee(),
+              modifier = if (reduceMotion) Modifier else Modifier.basicMarquee(),
             )
           }
           Text(
-            text = if (isPlaying) "Playing Video" else "Paused",
+            text = stringResource(if (isPlaying) R.string.notification_playing else R.string.downloads_paused),
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             maxLines = 1,
@@ -426,16 +432,18 @@ private fun MiniPlayerContent(
                 ),
               )
             },
-            modifier = Modifier.size(36.dp),
+            modifier = Modifier.size(48.dp),
           ) {
             AnimatedContent(
               targetState = isPlaying,
-              transitionSpec = { fadeIn() togetherWith fadeOut() },
+              transitionSpec = {
+                if (reduceMotion) fadeIn(snap()) togetherWith fadeOut(snap()) else fadeIn() togetherWith fadeOut()
+              },
               label = "mini_video_play_pause",
             ) { playing ->
               Icon(
                 imageVector = if (playing) Icons.RoundedFilled.Pause else Icons.RoundedFilled.PlayArrow,
-                contentDescription = null,
+                contentDescription = stringResource(if (playing) R.string.audiobook_pause else R.string.ui_play),
                 tint = MaterialTheme.colorScheme.onSurface,
                 modifier = Modifier.size(26.dp),
               )
@@ -444,11 +452,11 @@ private fun MiniPlayerContent(
 
           IconButton(
             onClick = { dismissPlayer() },
-            modifier = Modifier.size(32.dp),
+            modifier = Modifier.size(48.dp),
           ) {
             Icon(
               imageVector = Icons.RoundedFilled.Close,
-              contentDescription = null,
+              contentDescription = stringResource(R.string.ui_close),
               tint = MaterialTheme.colorScheme.onSurfaceVariant,
               modifier = Modifier.size(18.dp),
             )
@@ -491,7 +499,7 @@ private fun MiniPlayerContent(
             .size(48.dp)
             .playerArtworkAnchor(PlayerArtworkDestination.MINI, currentItem?.stableId, coverArt, 10.dp)
             .clip(RoundedCornerShape(10.dp))
-            .background(MaterialTheme.colorScheme.surfaceVariant),
+            .background(MaterialTheme.colorScheme.surfaceContainerHighest),
           contentAlignment = Alignment.Center,
         ) {
           val artworkImageBitmap = remember(coverArt) { coverArt?.asImageBitmap() }
@@ -522,11 +530,11 @@ private fun MiniPlayerContent(
           key(currentItem?.stableId ?: currentItem?.originalUri ?: audiobook?.book?.id) {
             Text(
               text = title,
-              style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
+              style = MaterialTheme.typography.bodyMediumEmphasized,
               color = MaterialTheme.colorScheme.onSurface,
               maxLines = 1,
               overflow = TextOverflow.Ellipsis,
-              modifier = Modifier.basicMarquee(),
+              modifier = if (reduceMotion) Modifier else Modifier.basicMarquee(),
             )
           }
           val statusText = when {
@@ -537,7 +545,7 @@ private fun MiniPlayerContent(
               val timeInfo = "$posText / $durText"
               if (author != null) "$author • $timeInfo" else timeInfo
             }
-            else -> if (isPlaying) "Playing" else "Paused"
+            else -> stringResource(if (isPlaying) R.string.notification_playing else R.string.downloads_paused)
           }
           Text(
             text = statusText,
@@ -559,16 +567,18 @@ private fun MiniPlayerContent(
               ),
             )
           },
-          modifier = Modifier.size(36.dp),
+          modifier = Modifier.size(48.dp),
         ) {
           AnimatedContent(
             targetState = isPlaying,
-            transitionSpec = { fadeIn() togetherWith fadeOut() },
+            transitionSpec = {
+              if (reduceMotion) fadeIn(snap()) togetherWith fadeOut(snap()) else fadeIn() togetherWith fadeOut()
+            },
             label = "mini_play_pause",
           ) { playing ->
             Icon(
               imageVector = if (playing) Icons.RoundedFilled.Pause else Icons.RoundedFilled.PlayArrow,
-              contentDescription = null,
+              contentDescription = stringResource(if (playing) R.string.audiobook_pause else R.string.ui_play),
               tint = MaterialTheme.colorScheme.onSurface,
               modifier = Modifier.size(26.dp),
             )
@@ -584,11 +594,11 @@ private fun MiniPlayerContent(
               ),
             )
           },
-          modifier = Modifier.size(36.dp),
+          modifier = Modifier.size(48.dp),
         ) {
           Icon(
             imageVector = Icons.RoundedFilled.SkipNext,
-            contentDescription = null,
+            contentDescription = stringResource(R.string.pref_gesture_media_next),
             tint = MaterialTheme.colorScheme.onSurface,
             modifier = Modifier.size(24.dp),
           )
@@ -597,11 +607,11 @@ private fun MiniPlayerContent(
         // Close Action Button
         IconButton(
           onClick = { dismissPlayer() },
-          modifier = Modifier.size(32.dp),
+          modifier = Modifier.size(48.dp),
         ) {
           Icon(
             imageVector = Icons.RoundedFilled.Close,
-            contentDescription = null,
+            contentDescription = stringResource(R.string.ui_close),
             tint = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.size(18.dp),
           )

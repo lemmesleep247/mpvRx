@@ -50,7 +50,9 @@ import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.shape.ZeroCornerSize
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.PlainTooltip
 import androidx.compose.material3.Surface
@@ -356,23 +358,36 @@ fun PlayerSheetDragHandle() {
   }
 }
 
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun PlayerSheetHeader(
   title: String,
   modifier: Modifier = Modifier,
   actions: @Composable RowScope.() -> Unit = {},
 ) {
-  Box(
-    modifier = modifier.fillMaxWidth().padding(start = 12.dp, end = 12.dp),
+  Row(
+    modifier = modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+    horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(12.dp),
+    verticalAlignment = Alignment.CenterVertically,
   ) {
+    if (title.isNotBlank()) {
+      Text(
+        text = title,
+        modifier = Modifier.weight(1f).semantics { heading() },
+        style = MaterialTheme.typography.titleLargeEmphasized,
+        color = MaterialTheme.colorScheme.onSurface,
+      )
+    } else {
+      androidx.compose.foundation.layout.Spacer(Modifier.weight(1f))
+    }
     Row(
-      modifier = Modifier.align(Alignment.CenterEnd),
       verticalAlignment = Alignment.CenterVertically,
       content = actions,
     )
   }
 }
 
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun PlayerSheetSectionHeader(
   title: String,
@@ -381,13 +396,12 @@ fun PlayerSheetSectionHeader(
   Text(
     text = title,
     modifier = modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 12.dp).semantics { heading() },
-    style = MaterialTheme.typography.labelLarge,
-    fontWeight = FontWeight.SemiBold,
+    style = MaterialTheme.typography.labelLargeEmphasized,
     color = MaterialTheme.colorScheme.onSurfaceVariant,
   )
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun PlayerSheetAction(
   icon: AppIcon,
@@ -400,7 +414,12 @@ fun PlayerSheetAction(
     tooltip = { PlainTooltip { Text(label) } },
     state = rememberTooltipState(),
   ) {
-    IconButton(onClick = onClick, enabled = enabled, modifier = Modifier.size(48.dp)) {
+    IconButton(
+      onClick = onClick,
+      enabled = enabled,
+      shapes = IconButtonDefaults.shapes(),
+      modifier = Modifier.size(48.dp),
+    ) {
       Icon(icon, contentDescription = label, modifier = Modifier.size(24.dp))
     }
   }

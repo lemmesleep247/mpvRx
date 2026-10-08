@@ -1,5 +1,23 @@
 <?xml version='1.0' encoding='UTF-8'?>
 <resources>
+  <string name="pref_liquid_glass_material">مادة الزجاج</string>
+  <string name="pref_liquid_glass_material_style">نمط الزجاج</string>
+  <string name="pref_liquid_glass_style_liquid">سائل</string>
+  <string name="pref_liquid_glass_style_frosted">مصنفر</string>
+  <string name="pref_liquid_glass_style_transparent">شفاف</string>
+  <string name="pref_liquid_glass_profile">إعداد الزجاج</string>
+  <string name="pref_liquid_glass_profile_performance">الأداء</string>
+  <string name="pref_liquid_glass_profile_balanced">متوازن</string>
+  <string name="pref_liquid_glass_profile_quality">الجودة</string>
+  <string name="pref_liquid_glass_surface_opacity">عتامة السطح</string>
+  <string name="pref_navigation_style">نمط التنقل</string>
+  <string name="pref_navigation_style_normal">عادي</string>
+  <string name="generic_expand">توسيع</string>
+  <string name="generic_collapse">طي</string>
+  <string name="generic_clear">مسح</string>
+  <string name="generic_increase">زيادة</string>
+  <string name="generic_decrease">تقليل</string>
+  <string name="generic_remove_from_favorites">إزالة من المفضلة</string>
   <string name="generic_reset">إعادة تعيين</string>
   <string name="generic_share">مشاركة</string>
   <string name="generic_confirm">تأكيد</string>

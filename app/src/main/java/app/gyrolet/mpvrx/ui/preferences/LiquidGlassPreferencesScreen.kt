@@ -5,6 +5,7 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -40,6 +41,7 @@ import androidx.compose.ui.semantics.toggleableState
 import androidx.compose.ui.state.ToggleableState
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.Dp
 import app.gyrolet.mpvrx.R
 import app.gyrolet.mpvrx.preferences.AppearancePreferences
 import app.gyrolet.mpvrx.preferences.preference.collectAsState
@@ -103,48 +105,47 @@ object LiquidGlassPreferencesScreen : Screen {
       ProvidePreferenceLocals {
         val (listState, highlight) =
           rememberSettingsSearchList(LiquidGlassPreferencesScreen, MaterialTheme.colorScheme.primary)
-        LazyColumn(
-          state = listState,
-          modifier = Modifier.fillMaxSize().padding(padding).then(highlight),
-          contentPadding = PaddingValues(bottom = 28.dp),
+        BoxWithConstraints(
+          modifier = Modifier.fillMaxSize().padding(padding),
         ) {
-          item {
-            PreferenceSectionHeader(
-              title = stringResource(R.string.pref_layout_preview),
-              topPadding = 16.dp,
+          val compactPreview = maxHeight < 420.dp
+          Column(Modifier.fillMaxSize()) {
+            LiquidGlassPreview(
+              enabled = enabled && supported,
+              height = if (compactPreview) 112.dp else 200.dp,
+              compact = compactPreview,
             )
-          }
-          item {
-            LiquidGlassPreview(enabled = enabled && supported)
-          }
-          item {
-            PreferenceSectionHeader(title = stringResource(R.string.pref_section_general))
-          }
-          item {
-            PreferenceCard {
-              SwitchPreference(
-                value = enabled && supported,
-                onValueChange = preferences.liquidGlassEnabled::set,
-                title = { Text(stringResource(R.string.pref_appearance_liquid_glass_title)) },
-                summary = {
-                  Text(
-                    text =
-                      stringResource(
-                        if (supported) {
-                          R.string.pref_appearance_liquid_glass_summary
-                        } else {
-                          R.string.pref_appearance_liquid_glass_summary_unavailable
-                        },
-                      ),
-                    color = MaterialTheme.colorScheme.outline,
+            LazyColumn(
+              state = listState,
+              modifier = Modifier.weight(1f).fillMaxWidth().then(highlight),
+              contentPadding = PaddingValues(bottom = 28.dp),
+            ) {
+              item {
+                PreferenceSectionHeader(title = stringResource(R.string.pref_section_general))
+              }
+              item {
+                PreferenceCard {
+                  SwitchPreference(
+                    value = enabled && supported,
+                    onValueChange = preferences.liquidGlassEnabled::set,
+                    title = { Text(stringResource(R.string.pref_appearance_liquid_glass_title)) },
+                    summary = {
+                      Text(
+                        text = stringResource(
+                          if (supported) R.string.pref_appearance_liquid_glass_summary
+                          else R.string.pref_appearance_liquid_glass_summary_unavailable,
+                        ),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                      )
+                    },
+                    enabled = supported,
+                    modifier = Modifier.settingsSearchTarget(R.string.pref_appearance_liquid_glass_title),
                   )
-                },
-                enabled = supported,
-                modifier = Modifier.settingsSearchTarget(R.string.pref_appearance_liquid_glass_title),
-              )
+                }
+              }
+              liquidGlassPreferences(preferences, enabled = enabled && supported)
             }
           }
-          liquidGlassPreferences(preferences, enabled = enabled && supported)
         }
       }
     }
@@ -152,7 +153,7 @@ object LiquidGlassPreferencesScreen : Screen {
 }
 
 @Composable
-private fun LiquidGlassPreview(enabled: Boolean) {
+private fun LiquidGlassPreview(enabled: Boolean, height: Dp = 200.dp, compact: Boolean = false) {
   val backdrop = rememberLayerBackdrop()
   val settings = rememberLiquidGlassSettings()
   val colors = MaterialTheme.colorScheme
@@ -167,7 +168,7 @@ private fun LiquidGlassPreview(enabled: Boolean) {
       Modifier
         .fillMaxWidth()
         .padding(horizontal = 16.dp, vertical = 8.dp)
-        .height(200.dp)
+        .height(height)
         .clip(shape),
     contentAlignment = Alignment.Center,
   ) {
@@ -187,10 +188,10 @@ private fun LiquidGlassPreview(enabled: Boolean) {
     Column(
       modifier =
         Modifier
-          .padding(20.dp)
+          .padding(if (compact) 8.dp else 20.dp)
           .fillMaxWidth()
           .then(
-            if (enabled) {
+            if (enabled && !settings.transparent) {
               Modifier.drawBackdrop(
                 backdrop = backdrop,
                 shape = { shape },
@@ -207,19 +208,24 @@ private fun LiquidGlassPreview(enabled: Boolean) {
                 highlight = { settings.highlight(Highlight.Default) },
                 shadow = { settings.shadow(Shadow.Default) },
                 innerShadow = { settings.innerShadow(InnerShadow(radius = 4.dp, alpha = 0.2f)) },
-                onDrawSurface = { drawRect(colors.surface.copy(alpha = 0.35f)) },
+                onDrawSurface = { drawRect(settings.surfaceColor(colors.surface.copy(alpha = 0.35f))) },
               )
             } else {
-              Modifier.background(colors.surfaceContainerHigh, shape)
+              Modifier.background(
+                if (enabled) settings.surfaceColor(colors.surface.copy(alpha = 0.35f)) else colors.surfaceContainerHigh,
+                shape,
+              )
             },
-          ).padding(16.dp),
+          ).padding(if (compact) 8.dp else 16.dp),
       verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-      Text(
-        text = stringResource(R.string.app_name),
-        style = MaterialTheme.typography.titleMedium,
-        color = colors.onSurface,
-      )
+      if (!compact) {
+        Text(
+          text = stringResource(R.string.app_name),
+          style = MaterialTheme.typography.titleMedium,
+          color = colors.onSurface,
+        )
+      }
       Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,

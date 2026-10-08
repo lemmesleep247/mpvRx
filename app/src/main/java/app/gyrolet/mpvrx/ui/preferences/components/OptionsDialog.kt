@@ -9,7 +9,6 @@
 
 package app.gyrolet.mpvrx.ui.preferences.components
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -17,7 +16,10 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
@@ -26,6 +28,8 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import app.gyrolet.mpvrx.presentation.components.AppPickerSheet
 import app.gyrolet.mpvrx.ui.player.controls.components.rememberTvInitialFocusRequester
@@ -33,6 +37,7 @@ import app.gyrolet.mpvrx.ui.player.controls.components.tvFocusGroup
 import app.gyrolet.mpvrx.ui.player.controls.components.tvFocusHighlight
 import app.gyrolet.mpvrx.ui.player.controls.components.tvInitialFocus
 
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun <T> OptionsDialog(
   title: String,
@@ -52,7 +57,7 @@ fun <T> OptionsDialog(
     title = title,
     scrollContent = false,
     actions = {
-      TextButton(onClick = onDismiss) {
+      TextButton(onClick = onDismiss, shapes = ButtonDefaults.shapes()) {
         Text(
           text =
             androidx.compose.ui.res
@@ -81,18 +86,23 @@ fun <T> OptionsDialog(
                       Modifier
                     },
                   ).tvFocusHighlight(MaterialTheme.shapes.medium, focusedScale = 1.01f)
-                  .clickable { onOptionSelected(option) }
+                  .clip(MaterialTheme.shapes.medium)
+                  .selectable(
+                    selected = option == selectedOption,
+                    role = Role.RadioButton,
+                    onClick = { onOptionSelected(option) },
+                  )
                   .padding(horizontal = 16.dp, vertical = 12.dp),
               verticalAlignment = Alignment.CenterVertically,
             ) {
               RadioButton(
                 selected = option == selectedOption,
-                onClick = { onOptionSelected(option) },
+                onClick = null,
               )
               Text(
                 text = optionLabel(option),
                 style = MaterialTheme.typography.bodyLarge,
-                modifier = Modifier.padding(start = 16.dp),
+                modifier = Modifier.weight(1f).padding(start = 16.dp),
               )
             }
           }

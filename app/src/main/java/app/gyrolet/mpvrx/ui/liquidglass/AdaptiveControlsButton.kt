@@ -14,15 +14,18 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.ripple
+import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -30,6 +33,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import app.gyrolet.mpvrx.preferences.AppearancePreferences
@@ -37,11 +41,14 @@ import app.gyrolet.mpvrx.preferences.preference.collectAsState
 import app.gyrolet.mpvrx.ui.icons.AppIcon
 import app.gyrolet.mpvrx.ui.icons.Icon
 import app.gyrolet.mpvrx.ui.player.controls.LocalPlayerButtonsClickEvent
+import app.gyrolet.mpvrx.ui.player.controls.PlayerButtonAlpha
+import app.gyrolet.mpvrx.ui.player.controls.components.playerButtonContainerColor
+import app.gyrolet.mpvrx.ui.player.controls.components.playerButtonContentColor
 import app.gyrolet.mpvrx.ui.theme.spacing
 import com.kyant.backdrop.Backdrop
 import org.koin.compose.koinInject
 
-@OptIn(ExperimentalFoundationApi::class)
+@OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun AdaptiveControlsButton(
   onClick: () -> Unit,
@@ -59,9 +66,10 @@ fun AdaptiveControlsButton(
   val preferences = koinInject<AppearancePreferences>()
   val liquidGlassEnabled by preferences.liquidGlassEnabled.collectAsState()
   val clickEvent = LocalPlayerButtonsClickEvent.current
-  val resolvedTint = color ?: PlayerLiquidTokens.contentColor
+  val resolvedTint = color ?: if (liquidGlassEnabled) PlayerLiquidTokens.contentColor else playerButtonContentColor()
   val resolvedSurface =
-    surfaceColor.takeUnless { it == Color.Unspecified } ?: PlayerLiquidTokens.surfaceColor
+    surfaceColor.takeUnless { it == Color.Unspecified }
+      ?: if (liquidGlassEnabled) PlayerLiquidTokens.surfaceColor else playerButtonContainerColor()
 
   if (liquidGlassEnabled) {
     LiquidPillButton(
@@ -102,8 +110,10 @@ fun AdaptiveControlsButton(
     Surface(
       modifier =
         modifier
+          .minimumInteractiveComponentSize()
           .clip(CircleShape)
           .combinedClickable(
+            role = Role.Button,
             onClick = {
               clickEvent()
               onClick()
@@ -121,14 +131,14 @@ fun AdaptiveControlsButton(
         if (hideBackground || !useGlass) {
           null
         } else {
-          BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.40f))
+          BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = PlayerButtonAlpha.BORDER))
         },
     ) {
       Row(
         modifier =
           Modifier
             .padding(horizontal = if (text != null) 8.dp else 0.dp)
-            .height(buttonSize)
+            .heightIn(min = buttonSize)
             .widthIn(min = buttonSize),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.Center,
@@ -148,7 +158,7 @@ fun AdaptiveControlsButton(
           if (icon != null) Spacer(Modifier.width(4.dp))
           Text(
             text = text,
-            style = MaterialTheme.typography.labelLarge,
+            style = MaterialTheme.typography.labelLargeEmphasized,
             color = resolvedTint,
             maxLines = 1,
           )
@@ -179,9 +189,11 @@ fun AdaptiveControlsContainer(
   val liquidGlassEnabled by preferences.liquidGlassEnabled.collectAsState()
   val clickEvent = LocalPlayerButtonsClickEvent.current
   val resolvedTint =
-    color.takeUnless { it == Color.Unspecified } ?: PlayerLiquidTokens.contentColor
+    color.takeUnless { it == Color.Unspecified }
+      ?: if (liquidGlassEnabled) PlayerLiquidTokens.contentColor else playerButtonContentColor()
   val resolvedSurface =
-    surfaceColor.takeUnless { it == Color.Unspecified } ?: PlayerLiquidTokens.surfaceColor
+    surfaceColor.takeUnless { it == Color.Unspecified }
+      ?: if (liquidGlassEnabled) PlayerLiquidTokens.surfaceColor else playerButtonContainerColor()
 
   if (liquidGlassEnabled) {
     LiquidPillButton(
@@ -212,15 +224,17 @@ fun AdaptiveControlsContainer(
         if (hideBackground || !useGlass) {
           null
         } else {
-          BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.40f))
+          BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = PlayerButtonAlpha.BORDER))
         },
       modifier =
         modifier
-          .height(buttonSize)
+          .then(if (isInteractive) Modifier.minimumInteractiveComponentSize() else Modifier)
+          .heightIn(min = buttonSize)
           .clip(CircleShape)
           .then(
             if (isInteractive) {
               Modifier.combinedClickable(
+                role = Role.Button,
                 interactionSource = remember { MutableInteractionSource() },
                 indication = ripple(bounded = true),
                 onClick = {

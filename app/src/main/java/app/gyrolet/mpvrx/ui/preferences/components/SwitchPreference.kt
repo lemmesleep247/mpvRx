@@ -15,11 +15,13 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.selection.toggleable
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ProvideTextStyle
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
@@ -27,6 +29,7 @@ import app.gyrolet.mpvrx.ui.components.IconSwitch
 import app.gyrolet.mpvrx.ui.player.controls.components.tvFocusHighlight
 import app.gyrolet.mpvrx.ui.utils.rememberAppHaptics
 
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun SwitchPreference(
   value: Boolean,
@@ -35,23 +38,26 @@ fun SwitchPreference(
   summary: @Composable (() -> Unit)? = null,
   icon: @Composable (() -> Unit)? = null,
   enabled: Boolean = true,
-  titleStyle: TextStyle = MaterialTheme.typography.bodyLarge,
+  titleStyle: TextStyle = MaterialTheme.typography.bodyLargeEmphasized,
   summaryStyle: TextStyle = MaterialTheme.typography.bodyMedium,
   switchModifier: Modifier = Modifier,
   modifier: Modifier = Modifier,
 ) {
   val haptics = rememberAppHaptics()
+  val updateValue: (Boolean) -> Unit = { checked ->
+    if (checked != value) {
+      onValueChange(checked)
+      haptics.selection(checked)
+    }
+  }
   Row(
     modifier =
       modifier
         .fillMaxWidth()
         .tvFocusHighlight(MaterialTheme.shapes.medium, enabled = enabled, focusedScale = 1.01f)
-        .toggleable(value = value, enabled = enabled, role = Role.Switch) { checked ->
-          if (checked != value) {
-            onValueChange(checked)
-            haptics.selection(checked)
-          }
-        }.padding(horizontal = 16.dp, vertical = 12.dp),
+        .clip(MaterialTheme.shapes.medium)
+        .toggleable(value = value, enabled = enabled, role = Role.Switch, onValueChange = updateValue)
+        .padding(horizontal = 16.dp, vertical = 12.dp),
     verticalAlignment = Alignment.CenterVertically,
   ) {
     if (icon != null) {
@@ -73,7 +79,7 @@ fun SwitchPreference(
         title()
       }
       if (summary != null) {
-        ProvideTextStyle(value = summaryStyle.copy(color = MaterialTheme.colorScheme.outline)) {
+        ProvideTextStyle(value = summaryStyle.copy(color = MaterialTheme.colorScheme.onSurfaceVariant)) {
           summary()
         }
       }
@@ -81,12 +87,7 @@ fun SwitchPreference(
 
     IconSwitch(
       checked = value,
-      onCheckedChange = { checked ->
-        if (checked != value) {
-          onValueChange(checked)
-          haptics.selection(checked)
-        }
-      },
+      onCheckedChange = updateValue,
       enabled = enabled,
       modifier = switchModifier,
     )

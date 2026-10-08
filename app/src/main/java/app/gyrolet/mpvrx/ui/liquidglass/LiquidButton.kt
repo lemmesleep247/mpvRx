@@ -6,6 +6,7 @@ package app.gyrolet.mpvrx.ui.liquidglass
 
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.LocalIndication
+import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
@@ -17,12 +18,14 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.isSpecified
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.ui.util.fastCoerceAtMost
 import androidx.compose.ui.util.lerp
 import com.kyant.backdrop.Backdrop
@@ -58,6 +61,26 @@ fun LiquidButton(
   content: @Composable RowScope.() -> Unit,
 ) {
   val glassSettings = rememberLiquidGlassSettings()
+  if (glassSettings.transparent) {
+    val filmColor = if (surfaceColor.isSpecified) surfaceColor else MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.32f)
+    Row(
+      modifier = modifier
+        .clip(Capsule())
+        .background(glassSettings.surfaceColor(filmColor))
+        .combinedClickable(
+          enabled = enabled,
+          role = Role.Button,
+          onClick = onClick,
+          onLongClick = onLongClick,
+        )
+        .height(height)
+        .padding(horizontal = horizontalPadding),
+      horizontalArrangement = Arrangement.spacedBy(spacing, Alignment.CenterHorizontally),
+      verticalAlignment = Alignment.CenterVertically,
+      content = content,
+    )
+    return
+  }
   val animationScope = rememberCoroutineScope()
   val interactiveHighlight =
     remember(animationScope) {
@@ -104,9 +127,9 @@ fun LiquidButton(
           onDrawSurface = {
             if (tint.isSpecified) {
               drawRect(tint, blendMode = BlendMode.Hue)
-              drawRect(tint.copy(alpha = 0.75f))
+              drawRect(glassSettings.surfaceColor(tint.copy(alpha = 0.75f)))
             }
-            if (surfaceColor.isSpecified) drawRect(surfaceColor)
+            if (surfaceColor.isSpecified) drawRect(glassSettings.surfaceColor(surfaceColor))
           },
         ).combinedClickable(
           enabled = enabled,

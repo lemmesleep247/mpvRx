@@ -22,6 +22,10 @@ import androidx.compose.ui.unit.dp
 import app.gyrolet.mpvrx.ui.theme.AppMotion
 import app.gyrolet.mpvrx.ui.liquidglass.liquidGlassEffects
 import app.gyrolet.mpvrx.ui.liquidglass.rememberLiquidGlassSettings
+import app.gyrolet.mpvrx.preferences.AppearancePreferences
+import app.gyrolet.mpvrx.preferences.preference.collectAsState
+import androidx.compose.runtime.getValue
+import org.koin.compose.koinInject
 import com.kyant.backdrop.backdrops.LayerBackdrop
 import com.kyant.backdrop.backdrops.layerBackdrop
 import com.kyant.backdrop.backdrops.rememberLayerBackdrop
@@ -76,6 +80,9 @@ fun LiquidGlassSurface(
   content: @Composable BoxScope.() -> Unit,
 ) {
   val glassSettings = rememberLiquidGlassSettings()
+  val preferences = koinInject<AppearancePreferences>()
+  val glassEnabled by preferences.liquidGlassEnabled.collectAsState()
+  val renderGlass = glassEnabled && backdrop != null
   val reducedMotion = AppMotion.shouldReduceMotion()
   val blurRadius = if (style == LiquidGlassStyle.MiniPlayer) 12.dp else 8.dp
   val refractionHeight = if (style == LiquidGlassStyle.MiniPlayer) 18.dp else 14.dp
@@ -83,7 +90,7 @@ fun LiquidGlassSurface(
   val shadowElevation: Dp = if (style == LiquidGlassStyle.MiniPlayer) 10.dp else 8.dp
 
   val surfaceModifier =
-    if (backdrop != null) {
+    if (renderGlass && !glassSettings.transparent) {
       modifier
         .shadow(
           if (glassSettings.shadowStrength > 0f) shadowElevation * glassSettings.shadowRadius else 0.dp,
@@ -93,7 +100,7 @@ fun LiquidGlassSurface(
         )
         .clip(shape)
         .drawBackdrop(
-          backdrop = backdrop,
+          backdrop = checkNotNull(backdrop),
           shape = {
             when {
               cornerRadius != null -> RoundedRectangle(cornerRadius)
@@ -125,14 +132,14 @@ fun LiquidGlassSurface(
           },
           onDrawSurface = {
             drawRect(fallbackColor.copy(alpha = 0.08f))
-            drawRect(glassColor)
+            drawRect(glassSettings.surfaceColor(glassColor))
           },
         )
     } else {
       modifier
-        .shadow(shadowElevation, shape)
+        .shadow(if (glassSettings.transparent && renderGlass) 0.dp else shadowElevation, shape)
         .clip(shape)
-        .background(fallbackColor)
+        .background(if (renderGlass) glassSettings.surfaceColor(glassColor) else fallbackColor)
     }
 
   CompositionLocalProvider(LocalContentColor provides contentColor) {

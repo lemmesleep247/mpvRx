@@ -123,7 +123,7 @@ fun LiquidToggle(
                 .clip(Capsule())
                 .drawBehind {
                     val frac = dampedDragAnimation.value
-                    drawRect(lerp(trackColor, accentColor, frac))
+                    drawRect(glassSettings.surfaceColor(lerp(trackColor, accentColor, frac)))
                 }
                 .size(64f.dp, 28f.dp)
         )
@@ -193,7 +193,7 @@ fun LiquidToggle(
                     },
                     onDrawSurface = {
                         val progress = dampedDragAnimation.pressProgress
-                        drawRect(Color.White.copy(alpha = 1f - progress))
+                        drawRect(glassSettings.surfaceColor(Color.White.copy(alpha = 1f - progress)))
                     }
                 )
                 .size(40f.dp, 24f.dp)

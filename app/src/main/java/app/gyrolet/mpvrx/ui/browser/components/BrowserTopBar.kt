@@ -29,6 +29,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -204,7 +205,7 @@ fun BrowserTopBar(
 /**
  * Normal mode top bar
  */
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 private fun NormalTopBar(
   title: String,
@@ -347,16 +348,15 @@ private fun NormalTopBar(
               }
             },
             style =
-              if (forceHeadlineSmall || onBackClick != null) {
-                MaterialTheme.typography.headlineSmall
+              if (forceHeadlineSmall) {
+                MaterialTheme.typography.headlineSmallEmphasized
               } else {
-                MaterialTheme.typography.headlineMedium
+                MaterialTheme.typography.titleLargeEmphasized
               },
-            fontWeight = FontWeight.ExtraBold,
             color = MaterialTheme.colorScheme.primary.onWallpaper(),
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
-            modifier = titleModifier,
+            modifier = titleModifier.weight(1f, fill = false),
           )
           if (titleTrailing != null) {
             titleTrailing()

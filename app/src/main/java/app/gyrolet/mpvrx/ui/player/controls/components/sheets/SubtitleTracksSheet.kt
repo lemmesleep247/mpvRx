@@ -28,6 +28,7 @@ import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Checkbox
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
@@ -42,6 +43,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -83,6 +85,7 @@ sealed class SubtitleItem {
   object Off : SubtitleItem()
 }
 
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun SubtitlesSheet(
   tracks: ImmutableList<TrackNode>,
@@ -504,7 +507,7 @@ fun SubtitlesSheet(
             }
             is SubtitleItem.Off -> {
               val haptics = rememberAppHaptics()
-              val shape = RoundedCornerShape(8.dp)
+              val shape = MaterialTheme.shapes.medium
               Surface(
                 modifier =
                   Modifier
@@ -512,6 +515,7 @@ fun SubtitlesSheet(
                     .padding(horizontal = 8.dp, vertical = 3.dp)
                     .tvInitialFocus(initialFocusRequester)
                     .tvFocusHighlight(shape)
+                    .clip(shape)
                     .selectable(selected = subtitlesOff, role = Role.RadioButton) {
                       onDisableSubtitles()
                       if (!subtitlesOff) haptics.selection(false)
@@ -519,7 +523,7 @@ fun SubtitlesSheet(
                 shape = shape,
                 color =
                   if (subtitlesOff) {
-                    MaterialTheme.colorScheme.tertiary.copy(alpha = 0.15f)
+                    MaterialTheme.colorScheme.secondaryContainer
                   } else {
                     MaterialTheme.colorScheme.surfaceContainerHigh
                   },
@@ -547,8 +551,8 @@ fun SubtitlesSheet(
                   }
                   Text(
                     stringResource(R.string.player_sheets_off),
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = if (subtitlesOff) FontWeight.Bold else FontWeight.Medium,
+                    style = if (subtitlesOff) MaterialTheme.typography.bodyLargeEmphasized else MaterialTheme.typography.bodyLarge,
+                    color = if (subtitlesOff) MaterialTheme.colorScheme.onSecondaryContainer else MaterialTheme.colorScheme.onSurface,
                     modifier = Modifier.weight(1f),
                   )
                 }
@@ -570,6 +574,7 @@ fun SubtitlesSheet(
   }
 }
 
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun SubtitleTrackRow(
   track: TrackNode,
@@ -585,11 +590,11 @@ fun SubtitleTrackRow(
 ) {
   val isTelevision = DeviceFormFactor.isTelevision(LocalContext.current)
   val haptics = rememberAppHaptics()
-  val shape = RoundedCornerShape(8.dp)
+  val shape = MaterialTheme.shapes.medium
   val containerColor by animateColorAsState(
     targetValue =
       if (isSelected) {
-        MaterialTheme.colorScheme.tertiary.copy(alpha = 0.15f)
+        MaterialTheme.colorScheme.secondaryContainer
       } else {
         MaterialTheme.colorScheme.surfaceContainerHigh
       },
@@ -610,6 +615,7 @@ fun SubtitleTrackRow(
         .fillMaxWidth()
         .padding(horizontal = 8.dp, vertical = 3.dp)
         .tvFocusHighlight(shape)
+        .clip(shape)
         .toggleable(value = isSelected, role = Role.Checkbox) { selected ->
           onToggle()
           haptics.selection(selected)
@@ -631,9 +637,8 @@ fun SubtitleTrackRow(
       Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(5.dp)) {
         Text(
           text = getTrackTitle(track),
-          style = MaterialTheme.typography.bodyMedium,
-          fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-          color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
+          style = if (isSelected) MaterialTheme.typography.bodyLargeEmphasized else MaterialTheme.typography.bodyLarge,
+          color = if (isSelected) MaterialTheme.colorScheme.onSecondaryContainer else MaterialTheme.colorScheme.onSurface,
         )
         TrackBadgeFlow(badges = badges, selected = isSelected)
       }

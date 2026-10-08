@@ -20,12 +20,15 @@ import app.gyrolet.mpvrx.ui.icons.Icon
 import app.gyrolet.mpvrx.ui.icons.Icons
 import app.gyrolet.mpvrx.ui.theme.AppMotion
 
+internal val mediaSelectionColor: Color
+  @Composable get() = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.3f)
+
 @Composable
 internal fun animatedSelectionColor(
   selected: Boolean,
-  selectedColor: Color = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.3f),
-  unselectedColor: Color = selectedColor.copy(alpha = 0f),
+  unselectedColor: Color = mediaSelectionColor.copy(alpha = 0f),
 ): Color {
+  val selectedColor = mediaSelectionColor
   val color by animateColorAsState(
     targetValue = if (selected) selectedColor else unselectedColor,
     animationSpec = AppMotion.spatial(AppMotion.Effect.Color, snap()),
