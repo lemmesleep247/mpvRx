@@ -32,7 +32,7 @@ Repository AGENTS.md requests Graft context first. The checkout contains neither
 | --- | --- | --- |
 | Native emphasized Material typography does not follow the selected custom font | Type.kt copies only the baseline slots while app emphasis is a separate scale | Populate native emphasis slots and have the app adapter read them |
 | Duplicated shape values | Shapes.kt repeats radii in AppShapes and AppShapeScale | Reuse one token source, retain existing values |
-| Search actions smaller than 48dp and a fixed 46dp field | PlayerSheetSearchField.kt | Native icon actions, flexible minimum height and tonal search treatment; retain callbacks and IME behavior |
+| Search actions smaller than 48dp and a fixed 46dp field | PlayerSheetSearchField.kt | Source migrated to native text/icon controls with flexible height; NoVulkan APK built; visual checks pending |
 | Settings feedback suppressed | SettingsComponents.kt indication=null | Clipped ripple and accessible grouped row presentation |
 | Folder press feedback suppressed | NetworkFolderCard.kt indication=null | Restore a bounded state layer while retaining click/long-press actions |
 | Perpetual empty-state animation ignores reduced motion | EmptyState.kt unconditional infinite transition | Remove idle motion or respect policy; constrain readable content and allow scrolling |
@@ -45,7 +45,7 @@ Repository AGENTS.md requests Graft context first. The checkout contains neither
 | Phase | Files in inventory | Checklist | Status |
 | --- | ---: | --- | --- |
 | 0 Foundation | 6 | Typography, colors, shapes, spacing, elevation, state and motion tokens, font fallback | Native typography and shared shapes compiled; NoVulkan debug APK built; full matrix and visual checks pending |
-| 1 Shared components | 18 | Buttons/icon buttons/groups, chips, switch/checkbox/radio, sliders/progress, menus/tooltips, cards/lists, dialogs/snackbars/text fields | Pending |
+| 1 Shared components | 18 | Buttons/icon buttons/groups, chips, switch/checkbox/radio, sliders/progress, menus/tooltips, cards/lists, dialogs/snackbars/text fields | Search field source migrated and built; remaining controls and runtime checks pending |
 | 2 Navigation | 14 | Main/floating bar, top/search bars, contextual actions, FABs, tabs, large-screen shell, transitions, all customizable destinations | Pending |
 | 3 Home/browser | 29 | Folder/tree/list/grid/recent, cards/thumbnails, sort/filter, actions, empty/loading/permission states, compressor | Pending |
 | 4 Music | 10 | Local songs/albums/artists/playlists, Navidrome/Jellyfin music, shared rows/cards, artwork, mini-player, details | Pending |
@@ -82,16 +82,26 @@ Baseline GitHub CI run 37729709630 on the starting SHA completed successfully fo
 
 ## Commit log
 
-### refactor(ui): establish expressive design tokens
+### 686d2529ca19981d624b9c22bb38dadb4a6d96c9 — refactor(ui): establish expressive design tokens
 
 - Native Material3 emphasized typography now inherits the selected font, sizes, line heights and tracking. Existing app emphasis reads those same native slots, preserving its weight choices. Theme.kt already remembers typography by font/locale selection, so this does not add per-frame typography work.
 - AppShapes reuses AppShapeScale; all eight corner values are retained. Spacing and emphasized typography are immutable Compose values.
 - Added the exhaustive source inventory and migration checklist. The inventory does not claim a completed contextual or visual audit.
 - Local `:app:assembleNoVulkanDebug` completed successfully, including Kotlin/Java compilation, resources, all configured native ABIs, dexing, signing and packaging. `:app:testNoVulkanDebugUnitTest` completed as **NO-SOURCE**. `git diff --check` passed.
 - The first multi-variant run was interrupted after a JVM heap warning; a second assembly attempt lost its daemon to the workspace memory limit. Serial validation with one worker and a 4 GB heap succeeded. These are local validation settings, with no repository build changes.
-- Standard/FongMi and release checks remain pending. The initial ktlint attempt was blocked by a concurrent Gradle cache lock; focused lint remains pending. Runtime theme/orientation/font-scaling/RTL/glass checks remain pending. A software-only emulator was stopped to free build resources; no device or playback performance result is claimed.
+- GitHub CI [37733809827](https://github.com/Riteshp2001/mpvRx/actions/runs/37733809827) subsequently completed release APK builds successfully for **Standard, NoVulkan and FongMi**. Standard/FongMi debug compilation remains pending.
+- The initial ktlint attempt was blocked by a concurrent Gradle cache lock. The retry ran and failed on widespread existing style violations; all 21 Type.kt findings concern unchanged font constants/definitions and formatting. Shapes.kt and Spacing.kt had no findings. No full-app lint pass is claimed.
+- Runtime theme/orientation/font-scaling/RTL/glass checks remain pending. A software-only emulator was stopped to free build resources; no device or playback performance result is claimed.
 
 Commit SHA is recorded in the subsequent progress entry once published; Git history is the authoritative commit list.
+
+### feat(ui): modernize shared sheet search fields
+
+- Replaced the hand-drawn, fixed-height field with native Material3 TextField, the shared extra-large shape and surfaceContainerHigh. Native field measurement can grow with font scaling rather than clipping a 46 dp row.
+- Search and clear actions use native expressive IconButton shapes, 48 dp bounds and existing translated descriptions. Decorative search icons remain outside the action semantics when no submit callback exists.
+- The eleven caller locations include file/folder/playlist pickers, audiobook selection, font/model searches, subtitle-language choices and lyric translation. Their query/filter state, submit/clear callbacks, focus clearing and Search IME action are unchanged. No Liquid Glass implementation was replaced.
+- Local `:app:assembleNoVulkanDebug` succeeded and `:app:testNoVulkanDebugUnitTest` reported **NO-SOURCE**; `git diff --check` passed. A combined assembly/lint run completed APK assembly but ended with existing ktlint violations, so assembly was rerun separately to establish a successful build result.
+- The updated file has only its existing uppercase composable-name lint finding (the original had that finding plus a chain-formatting finding); no lint pass is claimed. Remaining variant CI and device visual checks are pending.
 
 ## Complete file checklist
 
@@ -112,7 +122,7 @@ Paths below are relative to app/src/main/java/app/gyrolet/mpvrx. Function-level 
 | 1 Shared components | `presentation/components/OutlinedNumericChooser.kt` | MaterialTheme | None detected | Pending contextual review and visual validation |
 | 1 Shared components | `presentation/components/OvalBox.kt` | Host/support | None detected | Pending contextual review and visual validation |
 | 1 Shared components | `presentation/components/PlayerSheet.kt` | MaterialTheme, AppMotion, PlayerSheet, heading() | local radii: 1, suppressed indication: 2 | Pending contextual review and visual validation |
-| 1 Shared components | `presentation/components/PlayerSheetSearchField.kt` | MaterialTheme, PlayerSheet | local radii: 1, fixed text/action height: 1, legacy surface role: 1 | Pending contextual review and visual validation |
+| 1 Shared components | `presentation/components/PlayerSheetSearchField.kt` | Native TextField, expressive IconButton, MaterialTheme | Initial fixed-height/radius/surface findings addressed | Source migrated; NoVulkan debug APK built; remaining variants and visual validation pending |
 | 1 Shared components | `presentation/components/RemoteImage.kt` | Host/support | None detected | Pending contextual review and visual validation |
 | 1 Shared components | `presentation/components/RepeatingIconButton.kt` | Host/support | None detected | Pending contextual review and visual validation |
 | 1 Shared components | `presentation/components/SliderItem.kt` | MaterialTheme | local radii: 3, fixed text/action height: 1 | Pending contextual review and visual validation |

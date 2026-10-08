@@ -26,7 +26,7 @@ Generated from the starting checkout for completeness tracking. Entries are func
 | 1 Shared components | `presentation/components/PlayerSheet.kt` | `PlayerSheetHeader` | 359 | Pending |
 | 1 Shared components | `presentation/components/PlayerSheet.kt` | `PlayerSheetSectionHeader` | 363 | Pending |
 | 1 Shared components | `presentation/components/PlayerSheet.kt` | `PlayerSheetAction` | 391 | Pending |
-| 1 Shared components | `presentation/components/PlayerSheetSearchField.kt` | `PlayerSheetSearchField` | 53 | Pending |
+| 1 Shared components | `presentation/components/PlayerSheetSearchField.kt` | `PlayerSheetSearchField` | 38 | Source migrated; NoVulkan APK built; visual checks pending |
 | 1 Shared components | `presentation/components/RemoteImage.kt` | `RemoteImage` | 47 | Pending |
 | 1 Shared components | `presentation/components/RepeatingIconButton.kt` | `RepeatingIconButton` | 32 | Pending |
 | 1 Shared components | `presentation/components/SliderItem.kt` | `SliderItem` | 38 | Pending |
