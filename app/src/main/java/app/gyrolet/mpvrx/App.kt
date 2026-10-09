@@ -22,6 +22,8 @@ import android.os.StrictMode
 import android.os.SystemClock
 import android.util.Log
 import android.view.View
+import androidx.compose.ui.AndroidComposeUiFlags
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import app.gyrolet.mpvrx.database.repository.VideoMetadataCacheRepository
@@ -33,7 +35,7 @@ import app.gyrolet.mpvrx.preferences.AppearancePreferences
 import app.gyrolet.mpvrx.preferences.DecoderPreferences
 import app.gyrolet.mpvrx.preferences.PlayerPreferences
 import app.gyrolet.mpvrx.presentation.crash.CrashActivity
-import app.gyrolet.mpvrx.presentation.crash.CrashReportStore
+import app.gyrolet.mpvrx.presentation.crash.GlobalExceptionHandler
 import app.gyrolet.mpvrx.domain.network.NetworkImageRepository
 import app.gyrolet.mpvrx.repository.NetworkRepository
 import app.gyrolet.mpvrx.ui.player.MediaPlayerWidget
@@ -44,7 +46,6 @@ import app.gyrolet.mpvrx.ui.player.PlayerActivity
 import app.gyrolet.mpvrx.ui.theme.AppTheme
 import app.gyrolet.mpvrx.ui.theme.DarkMode
 import app.gyrolet.mpvrx.utils.media.VideoCodecSupportInspector
-import com.developer.crashx.config.CrashConfig
 import `is`.xyz.mpv.FastThumbnails
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
@@ -110,8 +111,14 @@ class App :
     private val IDLE_BACKGROUND_PHASES = setOf(PlaybackPhase.IDLE, PlaybackPhase.UNINITIALIZED)
   }
 
+  @OptIn(ExperimentalComposeUiApi::class)
   override fun onCreate() {
     super.onCreate()
+
+    // Material3 alpha29 brings Compose UI 1.13.0-alpha01, which re-enables out-of-frame
+    // IME dispatch. Batch StopInput/StartInput on the next frame so focus transfers don't
+    // briefly hide/reopen the keyboard (AndroidX b/530704636). Applies to every form/sheet.
+    AndroidComposeUiFlags.isOutOfFrameSchedulerForTextInputEventsEnabled = false
 
     val processName =
       if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
@@ -120,33 +127,13 @@ class App :
         getSystemService(ActivityManager::class.java).runningAppProcesses
           ?.firstOrNull { it.pid == Process.myPid() }?.processName
       }
-    if (processName == "$packageName:crash" || processName == "$packageName:crashx_error") {
+    if (processName == "$packageName:crash") {
       startKoin {
         androidContext(this@App)
         modules(PreferencesModule)
       }
       return
     }
-
-    CrashConfig.Builder.create()
-      .enabled(true)
-      .errorActivity(CrashActivity::class.java)
-      .restartActivity(MainActivity::class.java)
-      .backgroundMode(CrashConfig.BACKGROUND_MODE_SHOW_CUSTOM)
-      .minTimeBetweenCrashesMs(5_000)
-      .maxStackTraceSize(96 * 1024)
-      .trackActivities(true)
-      .maxActivityLogEntries(32)
-      .showErrorDetails(true)
-      .showReportButton(true)
-      .showCloseButton(true)
-      .logErrorOnRestart(false)
-      .includeStackTrace(true)
-      .includeBuildDate(false)
-      .crashIdPrefix("MPVRX")
-      .additionalReportInfo("mpvRx ${BuildConfig.VERSION_NAME} (${BuildConfig.GIT_SHA})")
-      .apply()
-    CrashReportStore.install(this)
 
     configureDebugStrictMode()
 
@@ -167,6 +154,7 @@ class App :
     registerActivityLifecycleCallbacks(this)
     PlaybackSession.addObserver(PlaybackPerformanceTrace)
     startPlaybackPerformanceTracing()
+    Thread.setDefaultUncaughtExceptionHandler(GlobalExceptionHandler(applicationContext, CrashActivity::class.java))
     startIdleMpvCoreReaper()
     prewarmPlaybackStartup()
     startWidgetUpdates()

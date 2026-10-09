@@ -38,7 +38,7 @@ import com.kyant.shapes.RoundedRectangle
 
 typealias LiquidGlassBackdrop = LayerBackdrop
 
-private val LocalLiquidGlassBackdrop = staticCompositionLocalOf<LiquidGlassBackdrop?> { null }
+internal val LocalLiquidGlassBackdrop = staticCompositionLocalOf<LiquidGlassBackdrop?> { null }
 
 @Composable
 fun rememberLiquidGlassBackdrop(): LiquidGlassBackdrop = rememberLayerBackdrop()
@@ -63,6 +63,7 @@ fun ProvideLiquidGlassBackdrop(
 enum class LiquidGlassStyle {
   MiniPlayer,
   Navigation,
+  Editing,
 }
 
 /** Kyant-backed liquid glass surface shared by mini players and floating action bars. */
@@ -84,21 +85,26 @@ fun LiquidGlassSurface(
   val glassEnabled by preferences.liquidGlassEnabled.collectAsState()
   val renderGlass = glassEnabled && backdrop != null
   val reducedMotion = AppMotion.shouldReduceMotion()
-  val blurRadius = if (style == LiquidGlassStyle.MiniPlayer) 12.dp else 8.dp
-  val refractionHeight = if (style == LiquidGlassStyle.MiniPlayer) 18.dp else 14.dp
-  val refractionAmount = if (style == LiquidGlassStyle.MiniPlayer) 26.dp else 22.dp
+  val blurRadius = when (style) {
+    LiquidGlassStyle.MiniPlayer -> 12.dp
+    LiquidGlassStyle.Navigation -> 8.dp
+    LiquidGlassStyle.Editing -> 2.dp
+  }
+  val refractionHeight = when (style) {
+    LiquidGlassStyle.MiniPlayer -> 18.dp
+    LiquidGlassStyle.Navigation -> 14.dp
+    LiquidGlassStyle.Editing -> 12.dp
+  }
+  val refractionAmount = when (style) {
+    LiquidGlassStyle.MiniPlayer -> 26.dp
+    LiquidGlassStyle.Navigation -> 22.dp
+    LiquidGlassStyle.Editing -> 24.dp
+  }
   val shadowElevation: Dp = if (style == LiquidGlassStyle.MiniPlayer) 10.dp else 8.dp
 
   val surfaceModifier =
     if (renderGlass && !glassSettings.transparent) {
       modifier
-        .shadow(
-          if (glassSettings.shadowStrength > 0f) shadowElevation * glassSettings.shadowRadius else 0.dp,
-          shape,
-          ambientColor = Color.Black.copy(alpha = glassSettings.shadowStrength.coerceAtMost(1f)),
-          spotColor = Color.Black.copy(alpha = glassSettings.shadowStrength.coerceAtMost(1f)),
-        )
-        .clip(shape)
         .drawBackdrop(
           backdrop = checkNotNull(backdrop),
           shape = {
@@ -116,7 +122,11 @@ fun LiquidGlassSurface(
             )
           },
           highlight = {
-            glassSettings.highlight(Highlight.Ambient.copy(alpha = (if (reducedMotion) 0.28f else 0.52f) * glowStrength))
+            if (style == LiquidGlassStyle.Editing) {
+              glassSettings.highlight(Highlight.Default)
+            } else {
+              glassSettings.highlight(Highlight.Ambient.copy(alpha = (if (reducedMotion) 0.28f else 0.52f) * glowStrength))
+            }
           },
           shadow = {
             glassSettings.shadow(Shadow(
@@ -131,7 +141,6 @@ fun LiquidGlassSurface(
             ))
           },
           onDrawSurface = {
-            drawRect(fallbackColor.copy(alpha = 0.08f))
             drawRect(glassSettings.surfaceColor(glassColor))
           },
         )

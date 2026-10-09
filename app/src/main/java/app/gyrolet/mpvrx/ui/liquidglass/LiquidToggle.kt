@@ -11,6 +11,7 @@ import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
@@ -49,12 +50,19 @@ fun LiquidToggle(
     onSelect: (Boolean) -> Unit,
     backdrop: Backdrop,
     modifier: Modifier = Modifier,
-    accentColor: Color = MaterialTheme.colorScheme.primary,
+    accentColor: Color = LiquidControlColors.accent,
     enabled: Boolean = true,
     isInteractive: Boolean = true,
 ) {
     val glassSettings = rememberLiquidGlassSettings()
-    val trackColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f)
+    val trackColor = LiquidControlColors.inactiveTrack
+    val thumbFilm = androidx.compose.ui.graphics.lerp(
+        MaterialTheme.colorScheme.surfaceContainerHigh,
+        accentColor,
+        0.18f,
+    )
+    val currentSelected = rememberUpdatedState(selected)
+    val currentOnSelect = rememberUpdatedState(onSelect)
 
     val density = LocalDensity.current
     val isLtr = LocalLayoutDirection.current == LayoutDirection.Ltr
@@ -62,7 +70,7 @@ fun LiquidToggle(
     val animationScope = rememberCoroutineScope()
     var didDrag by remember { mutableStateOf(false) }
     var fraction by remember { mutableFloatStateOf(if (selected()) 1f else 0f) }
-    val dampedDragAnimation = remember(animationScope, enabled) {
+    val dampedDragAnimation = remember(animationScope, enabled, isLtr, dragWidth) {
         DampedDragAnimation(
             animationScope = animationScope,
             initialValue = fraction,
@@ -75,11 +83,11 @@ fun LiquidToggle(
                 if (!enabled) return@DampedDragAnimation
                 if (didDrag) {
                     fraction = if (targetValue >= 0.5f) 1f else 0f
-                    onSelect(fraction == 1f)
+                    currentOnSelect.value(fraction == 1f)
                     didDrag = false
                 } else {
-                    fraction = if (selected()) 0f else 1f
-                    onSelect(fraction == 1f)
+                    fraction = if (currentSelected.value()) 0f else 1f
+                    currentOnSelect.value(fraction == 1f)
                 }
             },
             onDrag = { _, dragAmount ->
@@ -193,7 +201,13 @@ fun LiquidToggle(
                     },
                     onDrawSurface = {
                         val progress = dampedDragAnimation.pressProgress
-                        drawRect(glassSettings.surfaceColor(Color.White.copy(alpha = 1f - progress)))
+                        // Off = white; on = the existing themed film, with a smooth transition.
+                        val film = lerp(
+                            Color.White,
+                            thumbFilm.copy(alpha = 0.72f - 0.28f * progress),
+                            dampedDragAnimation.value.coerceIn(0f, 1f),
+                        )
+                        drawRect(glassSettings.surfaceColor(film))
                     }
                 )
                 .size(40f.dp, 24f.dp)

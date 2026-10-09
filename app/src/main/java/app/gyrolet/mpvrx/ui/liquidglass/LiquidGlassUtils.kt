@@ -12,6 +12,7 @@ import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.runtime.Composable
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawWithContent
@@ -42,6 +43,7 @@ import app.gyrolet.mpvrx.preferences.AppearancePreferences
 import app.gyrolet.mpvrx.preferences.LiquidGlassHighlightStyle
 import app.gyrolet.mpvrx.preferences.LiquidGlassMaterialStyle
 import app.gyrolet.mpvrx.preferences.preference.collectAsState
+import app.gyrolet.mpvrx.ui.player.controls.PlayerButtonAlpha
 import org.koin.compose.koinInject
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.android.awaitFrame
@@ -51,6 +53,21 @@ import kotlinx.coroutines.launch
 import kotlin.math.abs
 
 val LocalKyantPlayerBackdrop = staticCompositionLocalOf<Backdrop?> { null }
+
+object LiquidControlColors {
+    val accent: Color
+        @Composable get() = MaterialTheme.colorScheme.primary
+    val content: Color
+        @Composable get() = MaterialTheme.colorScheme.onSurface
+    val disabledContent: Color
+        @Composable get() = content.copy(alpha = PlayerButtonAlpha.DISABLED_CONTENT)
+    val surface: Color
+        @Composable get() = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = PlayerButtonAlpha.GLASS_CONTAINER)
+    val selectedSurface: Color
+        @Composable get() = accent.copy(alpha = PlayerButtonAlpha.SELECTED_GLASS_CONTAINER)
+    val inactiveTrack: Color
+        @Composable get() = content.copy(alpha = 0.2f)
+}
 
 data class LiquidGlassSettings(
     val opacity: Float,

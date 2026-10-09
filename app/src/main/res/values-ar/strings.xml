@@ -5,10 +5,6 @@
   <string name="pref_liquid_glass_style_liquid">سائل</string>
   <string name="pref_liquid_glass_style_frosted">مصنفر</string>
   <string name="pref_liquid_glass_style_transparent">شفاف</string>
-  <string name="pref_liquid_glass_profile">إعداد الزجاج</string>
-  <string name="pref_liquid_glass_profile_performance">الأداء</string>
-  <string name="pref_liquid_glass_profile_balanced">متوازن</string>
-  <string name="pref_liquid_glass_profile_quality">الجودة</string>
   <string name="pref_liquid_glass_surface_opacity">عتامة السطح</string>
   <string name="pref_navigation_style">نمط التنقل</string>
   <string name="pref_navigation_style_normal">عادي</string>

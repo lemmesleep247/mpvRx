@@ -4,10 +4,6 @@
   <string name="pref_liquid_glass_style_liquid">तरल</string>
   <string name="pref_liquid_glass_style_frosted">धुंधला</string>
   <string name="pref_liquid_glass_style_transparent">पारदर्शी</string>
-  <string name="pref_liquid_glass_profile">कांच प्रोफ़ाइल</string>
-  <string name="pref_liquid_glass_profile_performance">प्रदर्शन</string>
-  <string name="pref_liquid_glass_profile_balanced">संतुलित</string>
-  <string name="pref_liquid_glass_profile_quality">गुणवत्ता</string>
   <string name="pref_liquid_glass_surface_opacity">सतह की अपारदर्शिता</string>
   <string name="pref_navigation_style">नेविगेशन शैली</string>
   <string name="pref_navigation_style_normal">सामान्य</string>

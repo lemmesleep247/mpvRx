@@ -238,6 +238,7 @@ room {
 }
 
 dependencies {
+  testImplementation("junit:junit:4.13.2")
   implementation(libs.androidx.activity.compose)
   implementation(platform(libs.androidx.compose.bom))
   implementation(libs.androidx.ui)
@@ -252,7 +253,6 @@ dependencies {
   implementation(libs.androidx.appcompat)
   implementation(libs.androidx.core.ktx)
   implementation(libs.androidx.core.splashscreen)
-  implementation(libs.crashx)
   implementation(libs.kmp.vibrate)
   implementation(libs.androidx.compose.constraintlayout)
   implementation(libs.androidx.preference.ktx)

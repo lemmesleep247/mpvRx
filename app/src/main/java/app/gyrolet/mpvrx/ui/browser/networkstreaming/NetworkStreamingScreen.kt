@@ -174,6 +174,9 @@ object NetworkStreamingScreen : Screen {
     var editingConnection by remember { mutableStateOf<NetworkConnection?>(null) }
     var showTorrentPicker by remember { mutableStateOf(false) }
     val navigationBarHeight = app.gyrolet.mpvrx.ui.browser.LocalNavigationBarHeight.current
+    // Main tabs already include mini-player clearance in their navigation height. Pushed
+    // screens (such as Profile -> Network) have no navigation bar, so reserve it here.
+    val bottomOverlayClearance = maxOf(navigationBarHeight, app.gyrolet.mpvrx.ui.browser.NavigationBarState.miniPlayerClearance)
     val coroutineScope = rememberCoroutineScope()
 
     // yt-dlp install gate for the "paste link -> Play" flow: instead of silently installing
@@ -447,7 +450,7 @@ object NetworkStreamingScreen : Screen {
                   stringResource(R.string.ui_add_connection),
                 )
               },
-              modifier = Modifier.padding(bottom = navigationBarHeight),
+              modifier = Modifier.padding(bottom = bottomOverlayClearance),
             )
           }
           NetworkTab.MEDIA.ordinal -> {
@@ -455,7 +458,7 @@ object NetworkStreamingScreen : Screen {
               onClick = { showAddMediaDialog = true },
               icon = { Icon(Icons.RoundedFilled.Add, contentDescription = null) },
               text = { Text("Add Media") },
-              modifier = Modifier.padding(bottom = navigationBarHeight),
+              modifier = Modifier.padding(bottom = bottomOverlayClearance),
             )
           }
         }
@@ -591,6 +594,7 @@ object NetworkStreamingScreen : Screen {
 
       AddConnectionSheet(
         isOpen = showAddSheet,
+        savedConnections = connections,
         onDismiss = { showAddSheet = false },
         onSave = { connection ->
           viewModel.addConnection(connection)
@@ -665,6 +669,7 @@ object NetworkStreamingScreen : Screen {
       editingConnection?.let { connection ->
         EditConnectionSheet(
           connection = connection,
+          savedConnections = connections,
           isOpen = true,
           onDismiss = { editingConnection = null },
           onSave = { updatedConnection, clearPassword ->
@@ -784,9 +789,10 @@ private fun LocalNetworkContent(
   onManageBookmarks: () -> Unit,
 ) {
   val navBarHeight = app.gyrolet.mpvrx.ui.browser.LocalNavigationBarHeight.current.takeIf { it > 0.dp } ?: 88.dp
+  val bottomOverlayClearance = maxOf(navBarHeight, app.gyrolet.mpvrx.ui.browser.NavigationBarState.miniPlayerClearance)
   LazyColumn(
     modifier = Modifier.fillMaxSize(),
-    contentPadding = PaddingValues(start = 16.dp, top = 12.dp, end = 16.dp, bottom = navBarHeight + 16.dp),
+    contentPadding = PaddingValues(start = 16.dp, top = 12.dp, end = 16.dp, bottom = bottomOverlayClearance + 16.dp),
     verticalArrangement = Arrangement.spacedBy(16.dp),
   ) {
     // 1. Stream Link Section (URL input & recent streams with Save to Media action)
@@ -862,6 +868,7 @@ private fun MediaContent(
 
   var selectedDetailGroup by remember { mutableStateOf<MediaStreamGroup?>(null) }
   val navBarHeight = app.gyrolet.mpvrx.ui.browser.LocalNavigationBarHeight.current.takeIf { it > 0.dp } ?: 88.dp
+  val bottomOverlayClearance = maxOf(navBarHeight, app.gyrolet.mpvrx.ui.browser.NavigationBarState.miniPlayerClearance)
 
   val heroGroups =
     remember(mediaGroups) {
@@ -892,7 +899,7 @@ private fun MediaContent(
     if (mediaGroups.isEmpty()) {
       LazyColumn(
         modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(start = 16.dp, top = 16.dp, end = 16.dp, bottom = navBarHeight + 16.dp),
+        contentPadding = PaddingValues(start = 16.dp, top = 16.dp, end = 16.dp, bottom = bottomOverlayClearance + 16.dp),
       ) {
         item {
           EmptyStateCard(
@@ -905,7 +912,7 @@ private fun MediaContent(
     } else {
       LazyColumn(
         modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(bottom = navBarHeight + 24.dp),
+        contentPadding = PaddingValues(bottom = bottomOverlayClearance + 24.dp),
         verticalArrangement = Arrangement.spacedBy(18.dp),
       ) {
         // 1. Featured Hero Carousel Banner

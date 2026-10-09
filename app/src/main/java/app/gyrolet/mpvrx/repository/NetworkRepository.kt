@@ -457,7 +457,7 @@ class NetworkRepository(
       useHttps == other.useHttps
 
   /**
-   * Only the WebDAV client classifies credential rejections today; the rest surface them as
+   * SMB and WebDAV classify credential rejections; the other clients surface them as
    * generic failures, which read as "unreachable" — the safer of the two to be wrong about.
    */
   private companion object {

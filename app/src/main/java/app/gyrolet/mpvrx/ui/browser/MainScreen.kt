@@ -848,9 +848,9 @@ internal fun ExpressivePillNavigationBar(
 
   val surfaceColor = MaterialTheme.colorScheme.surfaceContainerHigh
   val accentColor = MaterialTheme.colorScheme.primary
-  val mutedColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = if (liquidGlassEnabled) 0.78f else 1f)
-  val selectedSurface = if (liquidGlassEnabled) accentColor.copy(alpha = 0.15f) else MaterialTheme.colorScheme.secondaryContainer
-  val selectedContent = if (liquidGlassEnabled) accentColor else MaterialTheme.colorScheme.onSecondaryContainer
+  val mutedColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.78f)
+  val selectedSurface = accentColor.copy(alpha = 0.15f)
+  val selectedContent = accentColor
   val accentBrush = Brush.linearGradient(listOf(accentColor, MaterialTheme.colorScheme.secondary))
 
   val tabRow: @Composable (Boolean) -> Unit = { active ->
@@ -880,8 +880,8 @@ internal fun ExpressivePillNavigationBar(
                 verticalArrangement = Arrangement.Center,
               ) {
                 Box(Modifier.size(iconSize).graphicsLayer { translationY = 2.dp.toPx() * labelFraction }
-                  .then(if (liquidGlassEnabled && active && tab != MainScreen.MainTab.PROFILE) Modifier.navigationAccentMask(accentBrush) else Modifier)) {
-                  MainTabIcon(tab, if (liquidGlassEnabled && active && tab != MainScreen.MainTab.PROFILE) Color.White else contentColor, null, iconSize)
+                  .then(if (active && tab != MainScreen.MainTab.PROFILE) Modifier.navigationAccentMask(accentBrush) else Modifier)) {
+                  MainTabIcon(tab, if (active && tab != MainScreen.MainTab.PROFILE) Color.White else contentColor, null, iconSize)
                 }
                 Box(Modifier.height(labelHeight * labelFraction).fillMaxWidth().clipToBounds().graphicsLayer { alpha = labelFraction }) {
                 Text(

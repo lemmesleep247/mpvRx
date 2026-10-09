@@ -69,6 +69,7 @@ fun PlaylistActionSheet(
   onCreateXtreamPlaylist: suspend (String, String, String) -> Result<Long>,
   context: android.content.Context,
   modifier: Modifier = Modifier,
+  savedXtreamServerUrls: List<String> = emptyList(),
 ) {
   var showCreateDialog by remember { mutableStateOf(false) }
   var showM3UDialog by remember { mutableStateOf(false) }
@@ -622,6 +623,7 @@ fun PlaylistActionSheet(
 
   AddXtreamPlaylistDialog(
     isOpen = showXtreamDialog,
+    savedServerUrls = savedXtreamServerUrls,
     onDismiss = { showXtreamDialog = false },
     onImported = {
       showXtreamDialog = false

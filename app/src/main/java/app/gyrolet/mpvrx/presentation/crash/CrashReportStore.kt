@@ -6,9 +6,7 @@ import android.os.Build
 import android.os.Process
 import android.os.SystemClock
 import android.util.AtomicFile
-import android.util.Log
 import app.gyrolet.mpvrx.BuildConfig
-import com.developer.crashx.CrashActivity as CrashX
 import org.json.JSONObject
 import java.io.BufferedWriter
 import java.io.File
@@ -17,33 +15,14 @@ import java.util.Date
 import java.util.IdentityHashMap
 import java.util.Locale
 import java.util.UUID
-import java.util.concurrent.atomic.AtomicBoolean
 
 internal object CrashReportStore {
-  private const val TAG = "CrashReportStore"
-  private val handlingCrash = AtomicBoolean(false)
-
-  fun install(context: Context) {
-    val application = context.applicationContext
-    val crashHandler = Thread.getDefaultUncaughtExceptionHandler() ?: return
-    Thread.setDefaultUncaughtExceptionHandler { thread, throwable ->
-      if (handlingCrash.compareAndSet(false, true)) {
-        try {
-          capture(application, thread, throwable)
-        } catch (captureError: Throwable) {
-          Log.e(TAG, "Unable to save the full crash report", captureError)
-        } finally {
-          crashHandler.uncaughtException(thread, throwable)
-        }
-      }
-    }
-  }
-
-  private fun capture(
+  // Called by the app's native exception handler, before the crashing process exits.
+  fun capture(
     context: Context,
     thread: Thread,
     throwable: Throwable,
-  ) {
+  ): String {
     val directory = reportDirectory(context)
     val metadata = AtomicFile(File(directory, "metadata.json"))
     metadata.delete()
@@ -83,6 +62,7 @@ internal object CrashReportStore {
         .put("throwableClass", throwable.javaClass.name)
         .put("completed", false),
     )
+    return reportId
   }
 
   private fun writeThrowable(
@@ -111,39 +91,27 @@ internal object CrashReportStore {
     intent: Intent,
   ): File {
     val directory = reportDirectory(context)
-    val crashId = CrashX.getCrashIdFromIntent(intent)
-    val metadata =
-      runCatching {
-        AtomicFile(File(directory, "metadata.json")).openRead().bufferedReader().use { JSONObject(it.readText()) }
-      }.getOrNull()
-    val reportId =
-      runCatching { UUID.fromString(metadata?.optString("reportId")) }.getOrNull() ?: UUID.randomUUID()
+    val crashId = intent.getStringExtra("crash_report_id").orEmpty()
+    val metadata = runCatching {
+      AtomicFile(File(directory, "metadata.json")).openRead().bufferedReader().use { JSONObject(it.readText()) }
+    }.getOrNull()
+    val reportId = runCatching { UUID.fromString(crashId) }.getOrNull() ?: UUID.randomUUID()
     val report = File(directory, "mpvrx-crash-$reportId.txt")
-    if (
-      metadata != null && metadata.optString("crashId") == crashId &&
-      metadata.optBoolean("completed") && report.isFile
-    ) {
-      return report
-    }
-    val hasFullException =
-      metadata != null && !metadata.optBoolean("completed") &&
-        metadata.optString("throwableClass") == CrashX.getThrowableClassFromIntent(intent) &&
-        File(directory, "exception.txt").isFile
+    val matchingCapture = crashId.isNotBlank() && metadata?.optString("reportId") == crashId
+    if (matchingCapture && metadata?.optBoolean("completed") == true && report.isFile) return report
+    val hasFullException = matchingCapture && File(directory, "exception.txt").isFile
     writeAtomically(report) { writer ->
       if (hasFullException) {
         AtomicFile(File(directory, "exception.txt")).openRead().bufferedReader().use { it.copyTo(writer) }
       } else {
-        writer.appendLine("Full on-disk exception capture was unavailable. CrashX fallback details follow.")
-        writer.appendLine(CrashX.getAllErrorDetailsFromIntent(context, intent))
+        writer.appendLine("Full on-disk exception capture was unavailable.")
+        writer.appendLine(intent.getStringExtra("exception").orEmpty())
       }
       writer.appendLine()
       writer.appendLine("=== Recovery metadata ===")
-      writer.appendLine("CrashX ID: $crashId")
-      writer.appendLine("Crash date: ${CrashX.getCrashDateFromIntent(intent)}")
-      writer.appendLine("Crash thread: ${CrashX.getThreadNameFromIntent(intent)}")
-      writer.appendLine()
-      writer.appendLine("=== Recent activity lifecycle ===")
-      writer.appendLine(CrashX.getActivityLogFromIntent(intent).orEmpty())
+      writer.appendLine("Report ID: $reportId")
+      writer.appendLine("Exception type: ${intent.getStringExtra("crash_exception_class").orEmpty()}")
+      writer.appendLine("Crash thread: ${intent.getStringExtra("crash_thread").orEmpty()}")
       writer.appendLine()
       writer.appendLine("=== Available logcat buffers ===")
       val crashedProcessId = metadata?.optInt("processId", -1)?.takeIf { hasFullException && it > 0 }
@@ -165,7 +133,7 @@ internal object CrashReportStore {
     }
     writeMetadata(
       directory,
-      (metadata ?: JSONObject()).put("reportId", reportId.toString()).put("crashId", crashId).put("completed", true),
+      (metadata?.takeIf { matchingCapture } ?: JSONObject()).put("reportId", reportId.toString()).put("completed", true),
     )
     directory.listFiles { file -> file.name.startsWith("mpvrx-crash-") && file.extension == "txt" }
       ?.sortedByDescending(File::lastModified)?.drop(5)?.forEach { it.delete() }

@@ -39,8 +39,11 @@ import app.gyrolet.mpvrx.utils.media.VideoCodecSupportInspector
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withTimeoutOrNull
 import `is`.xyz.mpv.BaseMPVView
 import `is`.xyz.mpv.KeyMapping
 import `is`.xyz.mpv.MPVLib
@@ -70,14 +73,31 @@ class MPVView(
   var isExiting = false
   private var lastRequestedFrameRate = Float.NaN
   var forceOpenGlFallback = false
-  var isSurfaceReady = false
+  private val surfaceReadiness = MutableStateFlow(false)
+  var isSurfaceReady: Boolean
+    get() = surfaceReadiness.value
+    private set(value) {
+      surfaceReadiness.value = value
+    }
+  var surfaceAttachmentGeneration = 0L
     private set
   var onSurfaceReady: (() -> Unit)? = null
+  @Volatile
   var surfaceBindingEnabled = true
     set(value) {
       field = value
       if (!value) isSurfaceReady = false
     }
+
+  /** Suspend the media loader rather than blocking SurfaceHolder or the native mpv lock. */
+  internal suspend fun awaitSurfaceReady(): Boolean =
+    withTimeoutOrNull(5_000L) {
+      surfaceReadiness.first { ready ->
+        ready && surfaceBindingEnabled && holder.surface.isValid &&
+          PlaybackSession.state.value.surfaceAttached
+      }
+      true
+    } ?: false
 
   /**
    * Configures the process-wide player and binds this view as its current rendering surface.
@@ -512,12 +532,22 @@ class MPVView(
 
   override fun surfaceCreated(holder: android.view.SurfaceHolder) {
     if (!surfaceBindingEnabled) return
-    isSurfaceReady =
+    isSurfaceReady = false
+    val bound =
       PlaybackSession.bindSurface(holder.surface, width, height, this, ownerIsActive = { surfaceBindingEnabled })
+    isSurfaceReady = bound
+    if (bound) surfaceAttachmentGeneration++
+    val attachedGeneration = surfaceAttachmentGeneration
     applyFrameRate()
-    post {
-      if (isSurfaceReady && holder.surface.isValid) {
-        onSurfaceReady?.invoke()
+    if (bound) {
+      post {
+        // Ignore a callback queued for a Surface that has since been destroyed/replaced.
+        if (isSurfaceReady && surfaceBindingEnabled && holder.surface.isValid &&
+          PlaybackSession.state.value.surfaceAttached &&
+          surfaceAttachmentGeneration == attachedGeneration
+        ) {
+          onSurfaceReady?.invoke()
+        }
       }
     }
   }

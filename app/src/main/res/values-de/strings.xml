@@ -5,10 +5,6 @@
   <string name="pref_liquid_glass_style_liquid">Flüssig</string>
   <string name="pref_liquid_glass_style_frosted">Mattiert</string>
   <string name="pref_liquid_glass_style_transparent">Transparent</string>
-  <string name="pref_liquid_glass_profile">Glasprofil</string>
-  <string name="pref_liquid_glass_profile_performance">Leistung</string>
-  <string name="pref_liquid_glass_profile_balanced">Ausgewogen</string>
-  <string name="pref_liquid_glass_profile_quality">Qualität</string>
   <string name="pref_liquid_glass_surface_opacity">Deckkraft der Oberfläche</string>
   <string name="pref_navigation_style">Navigationsstil</string>
   <string name="pref_navigation_style_normal">Normal</string>

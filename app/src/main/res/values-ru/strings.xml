@@ -5,10 +5,6 @@
   <string name="pref_liquid_glass_style_liquid">Жидкое</string>
   <string name="pref_liquid_glass_style_frosted">Матовое</string>
   <string name="pref_liquid_glass_style_transparent">Прозрачное</string>
-  <string name="pref_liquid_glass_profile">Профиль стекла</string>
-  <string name="pref_liquid_glass_profile_performance">Производительность</string>
-  <string name="pref_liquid_glass_profile_balanced">Сбалансированный</string>
-  <string name="pref_liquid_glass_profile_quality">Качество</string>
   <string name="pref_liquid_glass_surface_opacity">Непрозрачность поверхности</string>
   <string name="pref_navigation_style">Стиль навигации</string>
   <string name="pref_navigation_style_normal">Обычный</string>

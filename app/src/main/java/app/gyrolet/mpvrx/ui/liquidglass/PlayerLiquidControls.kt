@@ -42,19 +42,19 @@ object PlayerLiquidTokens {
   val PillHeight: Dp = 40.dp
 
   val contentColor: Color
-    @Composable get() = MaterialTheme.colorScheme.onSurface
+    @Composable get() = LiquidControlColors.content
 
   val disabledContentColor: Color
-    @Composable get() = MaterialTheme.colorScheme.onSurface.copy(alpha = PlayerButtonAlpha.DISABLED_CONTENT)
+    @Composable get() = LiquidControlColors.disabledContent
 
   val selectedContentColor: Color
-    @Composable get() = MaterialTheme.colorScheme.primary
+    @Composable get() = LiquidControlColors.accent
 
   val surfaceColor: Color
-    @Composable get() = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = PlayerButtonAlpha.GLASS_CONTAINER)
+    @Composable get() = LiquidControlColors.surface
 
   val selectedSurfaceColor: Color
-    @Composable get() = MaterialTheme.colorScheme.primary.copy(alpha = PlayerButtonAlpha.SELECTED_GLASS_CONTAINER)
+    @Composable get() = LiquidControlColors.selectedSurface
 }
 
 @Composable

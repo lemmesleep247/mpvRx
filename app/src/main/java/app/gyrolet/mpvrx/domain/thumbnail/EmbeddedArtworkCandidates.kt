@@ -99,8 +99,9 @@ internal object EmbeddedArtworkResolver {
   fun decodeEmbeddedArtwork(
     videoPath: String?,
     retriever: MediaMetadataRetriever,
+    pictureBytes: ByteArray? = retriever.embeddedPicture,
   ): Bitmap? =
-    decodeRetrieverArtwork(retriever)
+    decodeRetrieverArtwork(retriever, pictureBytes)
       ?: MatroskaEmbeddedArtworkExtractor.decode(videoPath)
       ?: decodeSidecar(videoPath)
 
@@ -115,8 +116,11 @@ internal object EmbeddedArtworkResolver {
           ?.let { decodeFileSampled(it.path) }
       }
 
-  fun decodeRetrieverArtwork(retriever: MediaMetadataRetriever): Bitmap? {
-    retriever.embeddedPicture
+  fun decodeRetrieverArtwork(
+    retriever: MediaMetadataRetriever,
+    pictureBytes: ByteArray? = retriever.embeddedPicture,
+  ): Bitmap? {
+    pictureBytes
       ?.takeIf { it.isNotEmpty() }
       ?.let { bytes -> decodeByteArraySampled(bytes) }
       ?.let { return it }

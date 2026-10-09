@@ -5,10 +5,6 @@
   <string name="pref_liquid_glass_style_liquid">Líquido</string>
   <string name="pref_liquid_glass_style_frosted">Esmerilado</string>
   <string name="pref_liquid_glass_style_transparent">Transparente</string>
-  <string name="pref_liquid_glass_profile">Perfil de vidrio</string>
-  <string name="pref_liquid_glass_profile_performance">Rendimiento</string>
-  <string name="pref_liquid_glass_profile_balanced">Equilibrado</string>
-  <string name="pref_liquid_glass_profile_quality">Calidad</string>
   <string name="pref_liquid_glass_surface_opacity">Opacidad de la superficie</string>
   <string name="pref_navigation_style">Estilo de navegación</string>
   <string name="pref_navigation_style_normal">Normal</string>

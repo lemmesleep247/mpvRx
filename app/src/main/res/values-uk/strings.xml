@@ -6,10 +6,6 @@
   <string name="pref_liquid_glass_style_liquid">Рідке</string>
   <string name="pref_liquid_glass_style_frosted">Матове</string>
   <string name="pref_liquid_glass_style_transparent">Прозоре</string>
-  <string name="pref_liquid_glass_profile">Профіль скла</string>
-  <string name="pref_liquid_glass_profile_performance">Продуктивність</string>
-  <string name="pref_liquid_glass_profile_balanced">Збалансований</string>
-  <string name="pref_liquid_glass_profile_quality">Якість</string>
   <string name="pref_liquid_glass_surface_opacity">Непрозорість поверхні</string>
   <string name="pref_navigation_style">Стиль навігації</string>
   <string name="pref_navigation_style_normal">Звичайний</string>

@@ -289,9 +289,9 @@ fun BrowserBottomBar(
       ) {
         LiquidGlassSurface(
           shape = CircleShape,
-          style = LiquidGlassStyle.MiniPlayer,
+          style = LiquidGlassStyle.Editing,
           glassColor = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.30f),
-          fallbackColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+          fallbackColor = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.96f),
           backdrop = backdrop,
         ) {
           Row(

@@ -1647,6 +1647,12 @@ private fun LiquidSeekbar(
 ) {
   val glassSettings = rememberLiquidGlassSettings()
   val accentColor = MaterialTheme.colorScheme.primary
+  // Scoped only to the playback Liquid seekbar; preference sliders keep their own colors.
+  val liquidThumbFilm = androidx.compose.ui.graphics.lerp(
+    MaterialTheme.colorScheme.surfaceContainerHigh,
+    accentColor,
+    0.18f,
+  )
   val (readAheadAlpha, emptyAlpha) = rememberSeekbarTrackAlphas()
   val isPressed by interactionSource.collectIsPressedAsState()
   val isDragged by interactionSource.collectIsDraggedAsState()
@@ -1845,7 +1851,12 @@ private fun LiquidSeekbar(
           },
           onDrawSurface = {
             val progress = dampedDragAnimation.pressProgress
-            drawRect(Color.White.copy(alpha = 1f - progress))
+            val film = androidx.compose.ui.graphics.lerp(
+              Color.White,
+              liquidThumbFilm.copy(alpha = 0.72f - 0.28f * progress),
+              progress.coerceIn(0f, 1f),
+            )
+            drawRect(glassSettings.surfaceColor(film))
           },
         )
         .size(thumbWidthDp, 24.dp),

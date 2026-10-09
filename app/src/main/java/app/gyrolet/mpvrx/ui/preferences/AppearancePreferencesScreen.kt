@@ -49,6 +49,7 @@ import app.gyrolet.mpvrx.preferences.BrowserPreferences
 import app.gyrolet.mpvrx.preferences.GesturePreferences
 import app.gyrolet.mpvrx.preferences.MultiChoiceSegmentedButton
 import app.gyrolet.mpvrx.preferences.PlayerPreferences
+import app.gyrolet.mpvrx.preferences.NavigationBarStyle
 import app.gyrolet.mpvrx.preferences.ThumbnailMode
 import app.gyrolet.mpvrx.preferences.ThumbnailQuality
 import app.gyrolet.mpvrx.preferences.TreeFlattenDepth
@@ -380,17 +381,6 @@ object AppearancePreferencesScreen : Screen {
                       )
                     },
                     enabled = darkMode != DarkMode.Light,
-                  )
-
-                  PreferenceDivider()
-
-                  val navigationBarGlow by preferences.navigationBarGlow.collectAsState()
-                  SwitchPreference(
-                    modifier = Modifier.settingsSearchTarget(R.string.navbar_glow_title),
-                    value = navigationBarGlow,
-                    onValueChange = preferences.navigationBarGlow::set,
-                    title = { Text(stringResource(R.string.navbar_glow_title)) },
-                    summary = { Text(stringResource(R.string.navbar_glow_summary), color = MaterialTheme.colorScheme.outline) },
                   )
 
                   PreferenceDivider()
@@ -805,6 +795,35 @@ object AppearancePreferencesScreen : Screen {
             PreferenceSectionHeader(
               title = stringResource(id = R.string.pref_appearance_category_navigation),
             )
+          }
+
+          // Navbar appearance is an app-wide preference, not a Liquid Glass optics control.
+          item {
+            val navigationStyle by preferences.navigationBarStyle.collectAsState()
+            val styleLabels = mapOf(
+              NavigationBarStyle.LiquidGlass to stringResource(R.string.pref_appearance_category_liquid_glass),
+              NavigationBarStyle.Normal to stringResource(R.string.pref_navigation_style_normal),
+            )
+            val navigationBarGlow by preferences.navigationBarGlow.collectAsState()
+            PreferenceCard {
+              ListPreference(
+                modifier = Modifier.settingsSearchTarget(R.string.pref_navigation_style),
+                value = navigationStyle,
+                onValueChange = preferences.navigationBarStyle::set,
+                values = NavigationBarStyle.entries,
+                valueToText = { AnnotatedString(styleLabels.getValue(it)) },
+                title = { Text(stringResource(R.string.pref_navigation_style)) },
+                summary = { Text(styleLabels.getValue(navigationStyle)) },
+              )
+              PreferenceDivider()
+              SwitchPreference(
+                modifier = Modifier.settingsSearchTarget(R.string.navbar_glow_title),
+                value = navigationBarGlow,
+                onValueChange = preferences.navigationBarGlow::set,
+                title = { Text(stringResource(R.string.navbar_glow_title)) },
+                summary = { Text(stringResource(R.string.navbar_glow_summary), color = MaterialTheme.colorScheme.outline) },
+              )
+            }
           }
 
           item {

@@ -48,7 +48,6 @@ import kotlinx.collections.immutable.ImmutableList
 
 enum class LiquidGlassHighlightStyle { Component, Default, Ambient, Plain }
 enum class LiquidGlassMaterialStyle { Liquid, Frosted, Transparent }
-enum class LiquidGlassProfile { Performance, Balanced, Quality }
 enum class NavigationBarStyle { LiquidGlass, Normal }
 
 class AppearancePreferences(
@@ -128,36 +127,6 @@ class AppearancePreferences(
       liquidGlassHighlightStyle, liquidGlassHighlightStrength, liquidGlassHighlightWidth, liquidGlassHighlightBlur,
       liquidGlassShadowStrength, liquidGlassShadowRadius, liquidGlassInnerShadowStrength, liquidGlassInnerShadowRadius,
     ).forEach { it.delete() }
-  }
-
-  fun applyLiquidGlassProfile(profile: LiquidGlassProfile) {
-    resetLiquidGlassOptions()
-    liquidGlassHighlightStyle.set(LiquidGlassHighlightStyle.Ambient)
-    liquidGlassDepthEffect.set(false)
-    when (profile) {
-      LiquidGlassProfile.Performance -> {
-        liquidGlassMaterialStyle.set(LiquidGlassMaterialStyle.Transparent)
-        liquidGlassSurfaceOpacity.set(0.55f)
-      }
-      LiquidGlassProfile.Balanced -> {
-        liquidGlassMaterialStyle.set(LiquidGlassMaterialStyle.Liquid)
-        liquidGlassBlur.set(1f)
-        liquidGlassRefractionHeight.set(1.6f)
-        liquidGlassRefractionAmount.set(1.2f)
-        liquidGlassChromaticAberration.set(false)
-        liquidGlassSaturation.set(1.2f)
-        liquidGlassSurfaceOpacity.set(0.5f)
-      }
-      LiquidGlassProfile.Quality -> {
-        liquidGlassMaterialStyle.set(LiquidGlassMaterialStyle.Liquid)
-        liquidGlassBlur.set(2f)
-        liquidGlassRefractionHeight.set(2f)
-        liquidGlassRefractionAmount.set(1.6f)
-        liquidGlassChromaticAberration.set(true)
-        liquidGlassSaturation.set(1.4f)
-        liquidGlassSurfaceOpacity.set(0.5f)
-      }
-    }
   }
 
   val topLeftControls =

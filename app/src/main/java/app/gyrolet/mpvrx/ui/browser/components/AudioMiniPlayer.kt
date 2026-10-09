@@ -99,7 +99,7 @@ fun AudioMiniPlayer(modifier: Modifier = Modifier) {
       shape = miniPlayerShape,
       style = LiquidGlassStyle.MiniPlayer,
       glassColor = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.30f),
-      fallbackColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+      fallbackColor = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.95f),
   ) {
     val primaryContainerColor = MaterialTheme.colorScheme.primaryContainer
 
@@ -130,7 +130,7 @@ fun AudioMiniPlayer(modifier: Modifier = Modifier) {
           Modifier
             .size(42.dp)
             .clip(CircleShape)
-            .background(MaterialTheme.colorScheme.surfaceContainerHighest),
+            .background(MaterialTheme.colorScheme.surfaceVariant),
         contentAlignment = Alignment.Center,
       ) {
         MiniAudioVisualizer(

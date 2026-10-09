@@ -4,10 +4,6 @@
   <string name="pref_liquid_glass_style_liquid">Liquid</string>
   <string name="pref_liquid_glass_style_frosted">Frosted</string>
   <string name="pref_liquid_glass_style_transparent">Transparent</string>
-  <string name="pref_liquid_glass_profile">Glass profile</string>
-  <string name="pref_liquid_glass_profile_performance">Performance</string>
-  <string name="pref_liquid_glass_profile_balanced">Balanced</string>
-  <string name="pref_liquid_glass_profile_quality">Quality</string>
   <string name="pref_liquid_glass_surface_opacity">Surface opacity</string>
   <string name="pref_navigation_style">Navigation style</string>
   <string name="pref_navigation_style_normal">Normal</string>
@@ -793,7 +789,7 @@
   <string name="playlist_xtream_password">Password</string>
   <string name="playlist_xtream_show_password">Show password</string>
   <string name="playlist_xtream_hide_password">Hide password</string>
-  <string name="playlist_xtream_url_error">Enter a complete http:// or https:// server URL without credentials, query parameters, or a fragment.</string>
+  <string name="playlist_xtream_url_error">Enter a server address (host:port), HTTP(S) URL, or Xtream get.php / player_api.php link.</string>
   <string name="playlist_xtream_connect">Connect and Import</string>
   <string name="playlist_xtream_import_success">Xtream playlist saved in Playlists</string>
   <string name="playlist_xtream_import_error">Couldn’t add Xtream playlist: %1$s</string>
@@ -2146,6 +2142,14 @@
   <string name="syncplay_password_optional">Password (optional)</string>
   <string name="syncplay_error">Error: %1$s</string>
   <string name="syncplay_connection_failed">Connection failed</string>
+  <string name="syncplay_failure_dns">Could not find the server address. Check the host name and your network’s DNS settings.</string>
+  <string name="syncplay_failure_refused">The server refused the connection. Check the port and that the Syncplay server is running.</string>
+  <string name="syncplay_failure_timeout">The server did not respond in time. Check your connection and whether this port is blocked.</string>
+  <string name="syncplay_failure_unreachable">The server is unreachable on this network. Try another Wi-Fi or mobile connection.</string>
+  <string name="syncplay_failure_handshake">The connection opened, but the server did not complete Syncplay login. Check that this is a Syncplay server and port.</string>
+  <string name="syncplay_failure_closed">The server closed the connection. Check the server settings and try connecting again.</string>
+  <string name="syncplay_failure_protocol">The server sent an invalid Syncplay response. Check the server address and port.</string>
+  <string name="syncplay_failure_network">Could not connect to the Syncplay server. Check your network, server address and port.</string>
   <string name="syncplay_connect">Connect</string>
   <string name="syncplay_connecting">Connecting…</string>
   <string name="syncplay_player_status">Syncplay: %1$s (%2$d users)</string>
@@ -2842,4 +2846,18 @@
   <string name="debug_logs_config_save_failed">Could not save logs. Check access to your configuration folder or select it again.</string>
   <string name="pref_gesture_show_seekbar_horizontal_title">Show seekbar when controls are hidden</string>
   <string name="pref_gesture_show_seekbar_horizontal_summary">During horizontal seeking, show the seekbar even when player controls are hidden. The time indicator is unaffected.</string>
+  <string name="network_server_no_matches">No matching addresses. You can still type one.</string>
+  <string name="network_server_none_found">No advertised servers found. Check that both devices are on the same network, try again, or enter the address manually.</string>
+  <string name="network_server_saved">Saved address</string>
+  <string name="network_server_nearby">Nearby server</string>
+  <string name="network_server_this_device">This device on the local network</string>
+  <string name="network_server_loopback">This device (loopback)</string>
+  <string name="network_server_address_only">Address only</string>
+  <string name="network_server_scan">Find nearby servers</string>
+  <string name="network_server_scanning">Looking for nearby servers…</string>
+  <string name="network_server_scan_unavailable">Discovery is unavailable or incomplete. Choose a saved address or type one.</string>
+  <string name="network_server_discovery_hint">Finds servers that advertise on your local network. Device addresses are shortcuts, not detected servers. Credentials are entered below.</string>
+  <string name="network_smb_share_folder">Share / folder</string>
+  <string name="network_smb_share_hint">An SMB share is required, for example /Media or /Media/Movies.</string>
+  <string name="network_smb_username_hint">Use your username or DOMAIN\\username for a domain account.</string>
 </resources>

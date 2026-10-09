@@ -77,11 +77,11 @@ import androidx.compose.ui.window.DialogProperties
 import androidx.core.content.FileProvider
 import androidx.lifecycle.coroutineScope
 import app.gyrolet.mpvrx.BuildConfig
+import app.gyrolet.mpvrx.MainActivity
 import app.gyrolet.mpvrx.R
 import app.gyrolet.mpvrx.ui.icons.Icon
 import app.gyrolet.mpvrx.ui.icons.Icons
 import app.gyrolet.mpvrx.ui.theme.MpvrxTheme
-import com.developer.crashx.CrashActivity as CrashX
 import `is`.xyz.mpv.Utils
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
@@ -93,12 +93,11 @@ class CrashActivity : AppCompatActivity() {
   private var reportFile by mutableStateOf<File?>(null)
   private var preparingReport by mutableStateOf(false)
   private var reportFailed by mutableStateOf(false)
-  private val crashConfig by lazy { CrashX.getConfigFromIntent(intent) }
 
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
     onBackPressedDispatcher.addCallback(this) {
-      CrashX.closeApplication(this@CrashActivity, crashConfig)
+      closeApplication()
     }
     prepareReport()
     setContent {
@@ -111,6 +110,19 @@ class CrashActivity : AppCompatActivity() {
         CrashScreen()
       }
     }
+  }
+
+  private fun closeApplication() {
+    finishAffinity()
+  }
+
+  private fun restartApplication() {
+    startActivity(
+      Intent(this, MainActivity::class.java).apply {
+        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
+      },
+    )
+    finishAffinity()
   }
 
   private fun prepareReport() {
@@ -249,16 +261,25 @@ class CrashActivity : AppCompatActivity() {
     var resetting by remember { mutableStateOf(false) }
     var confirmReset by remember { mutableStateOf(false) }
     var showDetails by remember { mutableStateOf(false) }
-    val exceptionString = remember { CrashX.getStackTraceFromIntent(intent).orEmpty() }
+    val exceptionString = remember { intent.getStringExtra("exception").orEmpty() }
     val isDatabaseRelated =
       remember(exceptionString) {
-        listOf("android.database.sqlite", "androidx.room", "mpvrx.db").any { it in exceptionString }
+        val details = exceptionString.lowercase(java.util.Locale.ROOT)
+        listOf("android.database.sqlite", "androidx.room", "mpvrx.db").any { it in details }
       }
 
     Scaffold(
       modifier = Modifier.fillMaxSize(),
       topBar = {
-        TopAppBar(title = { Text(stringResource(R.string.app_name)) })
+        TopAppBar(
+          title = {
+            Text(
+              stringResource(R.string.app_name),
+              style = MaterialTheme.typography.titleLargeEmphasized,
+              color = MaterialTheme.colorScheme.primary,
+            )
+          },
+        )
       },
     ) { paddingValues ->
       Box(Modifier.fillMaxSize().padding(paddingValues), contentAlignment = Alignment.TopCenter) {
@@ -270,31 +291,43 @@ class CrashActivity : AppCompatActivity() {
           horizontalAlignment = Alignment.CenterHorizontally,
         ) {
           Surface(
-            shape = MaterialTheme.shapes.extraLarge,
-            color = MaterialTheme.colorScheme.tertiaryContainer,
-            modifier = Modifier.size(88.dp),
+            modifier = Modifier.fillMaxWidth(),
+            shape = MaterialTheme.shapes.extraLargeIncreased,
+            color = MaterialTheme.colorScheme.secondaryContainer,
+            contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
           ) {
-            Icon(
-              painter = painterResource(R.drawable.ic_launcher_monochrome),
-              contentDescription = null,
-              tint = MaterialTheme.colorScheme.onTertiaryContainer,
-              modifier = Modifier.padding(20.dp),
-            )
+            Column(
+              modifier = Modifier.padding(horizontal = 24.dp, vertical = 28.dp),
+              horizontalAlignment = Alignment.CenterHorizontally,
+              verticalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+              Surface(
+                shape = MaterialTheme.shapes.extraLarge,
+                color = MaterialTheme.colorScheme.primary,
+                contentColor = MaterialTheme.colorScheme.onPrimary,
+                modifier = Modifier.size(80.dp),
+              ) {
+                Icon(
+                  painter = painterResource(R.drawable.ic_launcher_monochrome),
+                  contentDescription = null,
+                  modifier = Modifier.padding(18.dp),
+                )
+              }
+              Text(
+                stringResource(R.string.crash_screen_title),
+                style = MaterialTheme.typography.headlineMediumEmphasized,
+                textAlign = TextAlign.Center,
+              )
+              Text(
+                stringResource(R.string.crash_screen_subtitle, stringResource(R.string.app_name)),
+                style = MaterialTheme.typography.bodyMedium,
+                textAlign = TextAlign.Center,
+              )
+            }
           }
-          Text(
-            stringResource(R.string.crash_screen_title),
-            style = MaterialTheme.typography.headlineMedium,
-            fontWeight = FontWeight.Bold,
-            textAlign = TextAlign.Center,
-          )
-          Text(
-            stringResource(R.string.crash_screen_subtitle, stringResource(R.string.app_name)),
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            textAlign = TextAlign.Center,
-          )
 
           Button(
-            onClick = { CrashX.restartApplication(this@CrashActivity, crashConfig) },
+            onClick = ::restartApplication,
             modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp),
             enabled = !resetting,
           ) {
@@ -303,7 +336,7 @@ class CrashActivity : AppCompatActivity() {
             Text(stringResource(R.string.crash_screen_restart))
           }
           OutlinedButton(
-            onClick = { CrashX.closeApplication(this@CrashActivity, crashConfig) },
+            onClick = ::closeApplication,
             modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp),
             enabled = !resetting,
           ) {
@@ -314,14 +347,17 @@ class CrashActivity : AppCompatActivity() {
 
           Surface(
             modifier = Modifier.fillMaxWidth(),
-            shape = MaterialTheme.shapes.large,
-            color = MaterialTheme.colorScheme.surfaceContainer,
+            shape = MaterialTheme.shapes.extraLarge,
+            color = MaterialTheme.colorScheme.surfaceContainerHigh,
           ) {
             SelectionContainer {
               Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                Text(CrashX.getThrowableClassFromIntent(intent), style = MaterialTheme.typography.titleSmall)
                 Text(
-                  stringResource(R.string.crash_screen_report_id, CrashX.getCrashIdFromIntent(intent)),
+                  intent.getStringExtra("crash_exception_class").orEmpty().substringAfterLast('.').ifBlank { "Exception" },
+                  style = MaterialTheme.typography.titleMediumEmphasized,
+                )
+                Text(
+                  stringResource(R.string.crash_screen_report_id, intent.getStringExtra("crash_report_id") ?: "—"),
                   style = MaterialTheme.typography.labelMedium,
                   color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -331,7 +367,7 @@ class CrashActivity : AppCompatActivity() {
 
           Surface(
             modifier = Modifier.fillMaxWidth(),
-            shape = MaterialTheme.shapes.large,
+            shape = MaterialTheme.shapes.extraLarge,
             color = MaterialTheme.colorScheme.surfaceContainerLow,
           ) {
             Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -339,7 +375,7 @@ class CrashActivity : AppCompatActivity() {
                 Icon(Icons.RoundedFilled.BugReport, null, tint = MaterialTheme.colorScheme.primary)
                 Text(
                   stringResource(R.string.crash_screen_logs_title),
-                  style = MaterialTheme.typography.titleMedium,
+                  style = MaterialTheme.typography.titleMediumEmphasized,
                   fontWeight = FontWeight.SemiBold,
                 )
               }
@@ -380,7 +416,7 @@ class CrashActivity : AppCompatActivity() {
           if (isDatabaseRelated || databaseDeleted || resetFailed) {
             Surface(
               modifier = Modifier.fillMaxWidth(),
-              shape = MaterialTheme.shapes.large,
+              shape = MaterialTheme.shapes.extraLarge,
               color = if (databaseDeleted) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.errorContainer,
             ) {
               Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {

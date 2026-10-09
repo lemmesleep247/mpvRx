@@ -183,6 +183,9 @@ import kotlinx.coroutines.flow.collect
 import kotlin.math.roundToInt
 import app.gyrolet.mpvrx.R
 import app.gyrolet.mpvrx.domain.thumbnail.EmbeddedArtworkResolver
+import app.gyrolet.mpvrx.ui.player.EmbeddedMotionArtwork
+import app.gyrolet.mpvrx.ui.player.MotionArtworkImage
+import app.gyrolet.mpvrx.ui.player.rememberMotionArtworkDrawable
 import app.gyrolet.mpvrx.presentation.components.RemoteImage
 import app.gyrolet.mpvrx.preferences.AppearancePreferences
 import app.gyrolet.mpvrx.preferences.AudioPreferences
@@ -229,6 +232,7 @@ import java.util.concurrent.atomic.AtomicBoolean
 private data class AudioPresentationMetadata(
   val artwork: Bitmap?,
   val artist: String?,
+  val motionArtwork: ByteArray? = null,
 )
 
 /**
@@ -252,7 +256,7 @@ private object AudioPresentationMetadataCache {
       ): Int =
         maxOf(
           METADATA_ONLY_WEIGHT_KB,
-          (value.artwork?.byteCount ?: 0) / 1024,
+          ((value.artwork?.byteCount ?: 0) + (value.motionArtwork?.size ?: 0)) / 1024,
         )
     }
 
@@ -312,14 +316,16 @@ private object AudioPresentationMetadataCache {
               }
             }
 
+            val pictureBytes = if (explicitArtwork == null) retriever?.embeddedPicture else null
             AudioPresentationMetadata(
-              artwork = explicitArtwork ?: retriever?.let { EmbeddedArtworkResolver.decodeEmbeddedArtwork(cleanPath ?: pathOrUri, it) },
+              artwork = explicitArtwork ?: retriever?.let { EmbeddedArtworkResolver.decodeEmbeddedArtwork(cleanPath ?: pathOrUri, it, pictureBytes) },
               artist = retriever?.let {
                 it.extractMetadata(MediaMetadataRetriever.METADATA_KEY_ARTIST)
                   ?: it.extractMetadata(MediaMetadataRetriever.METADATA_KEY_ALBUMARTIST)
                   ?: it.extractMetadata(MediaMetadataRetriever.METADATA_KEY_AUTHOR)
                   ?: it.extractMetadata(MediaMetadataRetriever.METADATA_KEY_COMPOSER)
               },
+              motionArtwork = EmbeddedMotionArtwork.animatedBytes(pictureBytes),
             )
           } catch (_: Exception) {
             val fallbackArtwork = explicitArtwork ?: if (cleanPath != null && !isNetworkStream) {
@@ -584,6 +590,8 @@ private fun CoverArtCardImage(
   bitmap: Bitmap?,
   artworkUrl: String? = null,
   contentScale: ContentScale = ContentScale.Crop,
+  motionArtwork: ByteArray? = null,
+  isPlaying: Boolean = false,
 ) {
   val context = LocalContext.current
   val client = org.koin.compose.koinInject<okhttp3.OkHttpClient>()
@@ -608,8 +616,16 @@ private fun CoverArtCardImage(
 
   val finalBitmap = bitmap ?: remoteBitmap
   val imageBitmap = remember(finalBitmap) { finalBitmap?.asImageBitmap() }
+  val animatedDrawable = rememberMotionArtworkDrawable(motionArtwork)
 
-  if (imageBitmap != null) {
+  if (animatedDrawable != null) {
+    MotionArtworkImage(
+      drawable = animatedDrawable,
+      isPlaying = isPlaying,
+      fit = contentScale == ContentScale.Fit,
+      modifier = Modifier.fillMaxSize(),
+    )
+  } else if (imageBitmap != null) {
     Image(
       bitmap = imageBitmap,
       contentDescription = null,
@@ -1574,6 +1590,8 @@ fun AudioPlayerControls(
                   bitmap = activeCoverOverride ?: albumArtBitmap,
                   artworkUrl = currentArtworkUri,
                   contentScale = if (isAudiobook) ContentScale.Fit else ContentScale.Crop,
+                  motionArtwork = currentAudioPresentation?.motionArtwork?.takeIf { activeCoverOverride == null },
+                  isPlaying = isPlaying,
                 )
               }
             }

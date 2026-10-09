@@ -24,6 +24,11 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExposedDropdownMenu
+import androidx.compose.material3.ExposedDropdownMenuAnchorType
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.IconButton
@@ -48,10 +53,10 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import app.gyrolet.mpvrx.R
+import app.gyrolet.mpvrx.data.network.XtreamServerAddress
 import app.gyrolet.mpvrx.ui.icons.Icon
 import app.gyrolet.mpvrx.ui.icons.Icons
 import kotlinx.coroutines.launch
-import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 
 @Composable
 fun AddXtreamPlaylistDialog(
@@ -59,6 +64,7 @@ fun AddXtreamPlaylistDialog(
   onDismiss: () -> Unit,
   onImported: () -> Unit,
   onCreateXtreamPlaylist: suspend (String, String, String) -> Result<Long>,
+  savedServerUrls: List<String> = emptyList(),
 ) {
   if (!isOpen) return
 
@@ -71,15 +77,13 @@ fun AddXtreamPlaylistDialog(
   var isLoading by remember { mutableStateOf(false) }
   var submitted by remember { mutableStateOf(false) }
   var errorMessage by remember { mutableStateOf<String?>(null) }
+  var serversExpanded by remember { mutableStateOf(false) }
 
-  val parsedServerUrl = serverUrl.trim().toHttpUrlOrNull()
-  val isServerUrlValid =
-    parsedServerUrl != null &&
-      parsedServerUrl.scheme in setOf("http", "https") &&
-      parsedServerUrl.username.isEmpty() &&
-      parsedServerUrl.password.isEmpty() &&
-      parsedServerUrl.query == null &&
-      parsedServerUrl.fragment == null
+  val parsedServerUrl = remember(serverUrl) { runCatching { XtreamServerAddress.parse(serverUrl) }.getOrNull() }
+  val isServerUrlValid = parsedServerUrl != null
+  val serverSuggestions = remember(savedServerUrls) {
+    savedServerUrls.mapNotNull { runCatching { XtreamServerAddress.parse(it).serverUrl }.getOrNull() }.distinct()
+  }
   val showServerUrlError = !isServerUrlValid && (submitted || serverUrl.isNotBlank())
   val canSubmit = isServerUrlValid && username.isNotBlank() && password.isNotBlank() && !isLoading
 
@@ -89,7 +93,7 @@ fun AddXtreamPlaylistDialog(
     if (canSubmit) {
       isLoading = true
       coroutineScope.launch {
-        onCreateXtreamPlaylist(serverUrl.trim(), username, password)
+        onCreateXtreamPlaylist(requireNotNull(parsedServerUrl).serverUrl, username, password)
           .onSuccess {
             Toast
               .makeText(context, context.getString(R.string.playlist_xtream_import_success), Toast.LENGTH_SHORT)
@@ -104,7 +108,7 @@ fun AddXtreamPlaylistDialog(
     }
   }
 
-  Dialog(onDismissRequest = { if (!isLoading) onDismiss() }) {
+  Dialog(onDismissRequest = onDismiss) {
     Card(
       modifier = Modifier.fillMaxWidth().padding(16.dp),
       shape = MaterialTheme.shapes.extraLarge,
@@ -126,17 +130,46 @@ fun AddXtreamPlaylistDialog(
           color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
 
-        OutlinedTextField(
-          value = serverUrl,
-          onValueChange = { serverUrl = it },
-          label = { Text(stringResource(R.string.playlist_xtream_server_url)) },
-          placeholder = { Text(stringResource(R.string.playlist_xtream_server_placeholder)) },
-          singleLine = true,
-          isError = showServerUrlError,
-          enabled = !isLoading,
-          keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri, imeAction = ImeAction.Next),
-          modifier = Modifier.fillMaxWidth(),
-        )
+        ExposedDropdownMenuBox(
+          expanded = serversExpanded && serverSuggestions.isNotEmpty(),
+          onExpandedChange = { if (!isLoading) serversExpanded = it },
+        ) {
+          OutlinedTextField(
+            value = serverUrl,
+            onValueChange = { input ->
+              val pasted = input.length > serverUrl.length + 1
+              val parsed = runCatching { XtreamServerAddress.parse(input) }.getOrNull()
+              if (pasted && parsed != null) {
+                serverUrl = parsed.serverUrl
+                parsed.username?.let { username = it }
+                parsed.password?.let { password = it }
+              } else serverUrl = input
+              errorMessage = null
+            },
+            label = { Text(stringResource(R.string.playlist_xtream_server_url)) },
+            placeholder = { Text(stringResource(R.string.playlist_xtream_server_placeholder)) },
+            singleLine = true,
+            isError = showServerUrlError,
+            enabled = !isLoading,
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri, imeAction = ImeAction.Next),
+            trailingIcon = if (serverSuggestions.isNotEmpty()) {
+              { ExposedDropdownMenuDefaults.TrailingIcon(serversExpanded, Modifier.menuAnchor(ExposedDropdownMenuAnchorType.SecondaryEditable)) }
+            } else null,
+            modifier = Modifier.fillMaxWidth().menuAnchor(ExposedDropdownMenuAnchorType.PrimaryEditable),
+          )
+          ExposedDropdownMenu(
+            expanded = serversExpanded && serverSuggestions.isNotEmpty(),
+            onDismissRequest = { serversExpanded = false },
+          ) {
+            serverSuggestions.forEach { url ->
+              DropdownMenuItem(
+                text = { Text(url) },
+                trailingIcon = { Text("Xtream", style = MaterialTheme.typography.labelSmall) },
+                onClick = { serverUrl = url; serversExpanded = false; errorMessage = null },
+              )
+            }
+          }
+        }
         OutlinedTextField(
           value = username,
           onValueChange = { username = it },
@@ -203,7 +236,7 @@ fun AddXtreamPlaylistDialog(
           horizontalArrangement = Arrangement.End,
           verticalAlignment = Alignment.CenterVertically,
         ) {
-          TextButton(onClick = onDismiss, enabled = !isLoading) {
+          TextButton(onClick = onDismiss) {
             Text(stringResource(R.string.generic_cancel))
           }
           Spacer(modifier = Modifier.width(8.dp))

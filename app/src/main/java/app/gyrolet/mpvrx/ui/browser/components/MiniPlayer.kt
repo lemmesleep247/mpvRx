@@ -84,6 +84,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import app.gyrolet.mpvrx.R
 import app.gyrolet.mpvrx.domain.thumbnail.EmbeddedArtworkResolver
+import app.gyrolet.mpvrx.ui.player.EmbeddedMotionArtwork
+import app.gyrolet.mpvrx.ui.player.MotionArtworkImage
+import app.gyrolet.mpvrx.ui.player.rememberMotionArtworkDrawable
 import app.gyrolet.mpvrx.presentation.components.LiquidGlassStyle
 import app.gyrolet.mpvrx.presentation.components.LiquidGlassSurface
 import app.gyrolet.mpvrx.preferences.PlayerPreferences
@@ -228,11 +231,12 @@ private fun MiniPlayerContent(
       ?: currentItem?.playableUri?.takeIf { it.isNotBlank() }
   val effectiveArtworkUri = currentItem?.artworkUri
     ?: audiobook?.book?.coverUri?.takeIf { it.isNotBlank() }
-  val coverArt =
-    rememberMiniPlayerCoverArt(
+  val artwork =
+    rememberMiniPlayerArtwork(
       pathOrUri = if (isAudioOnlyItem) coverArtPath else null,
       artworkUri = if (isAudioOnlyItem) effectiveArtworkUri else null,
     )
+  val coverArt = artwork?.bitmap
 
   val coroutineScope = rememberCoroutineScope()
   var offsetX by remember { mutableFloatStateOf(0f) }
@@ -322,7 +326,7 @@ private fun MiniPlayerContent(
     shape = miniPlayerShape,
     style = LiquidGlassStyle.MiniPlayer,
     glassColor = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.30f),
-    fallbackColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+    fallbackColor = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.96f),
   ) {
     val progressColor = MaterialTheme.colorScheme.primary
 
@@ -499,11 +503,18 @@ private fun MiniPlayerContent(
             .size(48.dp)
             .playerArtworkAnchor(PlayerArtworkDestination.MINI, currentItem?.stableId, coverArt, 10.dp)
             .clip(RoundedCornerShape(10.dp))
-            .background(MaterialTheme.colorScheme.surfaceContainerHighest),
+            .background(MaterialTheme.colorScheme.surfaceVariant),
           contentAlignment = Alignment.Center,
         ) {
           val artworkImageBitmap = remember(coverArt) { coverArt?.asImageBitmap() }
-          if (artworkImageBitmap != null) {
+          val animatedDrawable = rememberMotionArtworkDrawable(artwork?.motionArtwork)
+          if (animatedDrawable != null) {
+            MotionArtworkImage(
+              drawable = animatedDrawable,
+              isPlaying = isPlaying,
+              modifier = Modifier.fillMaxSize(),
+            )
+          } else if (artworkImageBitmap != null) {
             Image(
               bitmap = artworkImageBitmap,
               contentDescription = null,
@@ -621,52 +632,56 @@ private fun MiniPlayerContent(
   }
 }
 
-/**
- * Extracts embedded album art for the current track so the mini player can show a
- * square cover instead of a bare icon. Returns null when no artwork is available.
- */
+private data class MiniPlayerArtwork(
+  val bitmap: Bitmap?,
+  val motionArtwork: ByteArray? = null,
+)
+
+/** Only the current audio mini-player decodes motion frames; notifications remain static. */
 @Composable
-private fun rememberMiniPlayerCoverArt(
+private fun rememberMiniPlayerArtwork(
   pathOrUri: String?,
   artworkUri: String?,
-): Bitmap? {
+): MiniPlayerArtwork? {
   val context = LocalContext.current
-  var bitmap by remember { mutableStateOf<Bitmap?>(null) }
+  var artwork by remember(pathOrUri, artworkUri) { mutableStateOf<MiniPlayerArtwork?>(null) }
+
   LaunchedEffect(pathOrUri, artworkUri) {
     if (pathOrUri.isNullOrBlank() && artworkUri.isNullOrBlank()) {
-      bitmap = null
+      artwork = null
       return@LaunchedEffect
     }
-    withContext(Dispatchers.IO) {
+    artwork = withContext(Dispatchers.IO) {
       runCatching {
         if (!artworkUri.isNullOrBlank()) {
-          EmbeddedArtworkResolver.decodeArtworkUri(context, artworkUri)?.let { return@runCatching it }
-        }
-        if (!pathOrUri.isNullOrBlank()) {
-          val cleanPath =
-            when {
-              pathOrUri.startsWith("file://", ignoreCase = true) -> Uri.parse(pathOrUri).path
-              pathOrUri.startsWith("content://", ignoreCase = true) -> null
-              else -> pathOrUri
-            }
-          val retriever = MediaMetadataRetriever()
-          try {
-            if (cleanPath != null) {
-              retriever.setDataSource(cleanPath)
-            } else {
-              retriever.setDataSource(context, Uri.parse(pathOrUri))
-            }
-            EmbeddedArtworkResolver.decodeEmbeddedArtwork(cleanPath, retriever)
-          } finally {
-            runCatching { retriever.release() }
+          EmbeddedArtworkResolver.decodeArtworkUri(context, artworkUri)?.let {
+            return@runCatching MiniPlayerArtwork(bitmap = it)
           }
-        } else null
-      }.onSuccess { loaded ->
-        bitmap = loaded
-      }.onFailure {
-        bitmap = null
-      }
+        }
+        if (pathOrUri.isNullOrBlank()) return@runCatching null
+        val cleanPath =
+          when {
+            pathOrUri.startsWith("file://", ignoreCase = true) -> Uri.parse(pathOrUri).path
+            pathOrUri.startsWith("content://", ignoreCase = true) -> null
+            else -> pathOrUri
+          }
+        val retriever = MediaMetadataRetriever()
+        try {
+          if (cleanPath != null) {
+            retriever.setDataSource(cleanPath)
+          } else {
+            retriever.setDataSource(context, Uri.parse(pathOrUri))
+          }
+          val pictureBytes = retriever.embeddedPicture
+          MiniPlayerArtwork(
+            bitmap = EmbeddedArtworkResolver.decodeEmbeddedArtwork(cleanPath, retriever, pictureBytes),
+            motionArtwork = EmbeddedMotionArtwork.animatedBytes(pictureBytes),
+          )
+        } finally {
+          runCatching { retriever.release() }
+        }
+      }.getOrNull()
     }
   }
-  return bitmap
+  return artwork
 }

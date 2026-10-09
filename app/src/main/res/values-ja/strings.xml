@@ -5,10 +5,6 @@
   <string name="pref_liquid_glass_style_liquid">液体</string>
   <string name="pref_liquid_glass_style_frosted">すりガラス</string>
   <string name="pref_liquid_glass_style_transparent">透明</string>
-  <string name="pref_liquid_glass_profile">ガラスプロファイル</string>
-  <string name="pref_liquid_glass_profile_performance">パフォーマンス</string>
-  <string name="pref_liquid_glass_profile_balanced">バランス</string>
-  <string name="pref_liquid_glass_profile_quality">品質</string>
   <string name="pref_liquid_glass_surface_opacity">表面の不透明度</string>
   <string name="pref_navigation_style">ナビゲーションのスタイル</string>
   <string name="pref_navigation_style_normal">標準</string>
