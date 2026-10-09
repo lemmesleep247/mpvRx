@@ -1,13 +1,7 @@
 <?xml version='1.0' encoding='UTF-8'?>
 <resources>
   <string name="pref_liquid_glass_material">مادة الزجاج</string>
-  <string name="pref_liquid_glass_material_style">نمط الزجاج</string>
-  <string name="pref_liquid_glass_style_liquid">سائل</string>
-  <string name="pref_liquid_glass_style_frosted">مصنفر</string>
-  <string name="pref_liquid_glass_style_transparent">شفاف</string>
-  <string name="pref_liquid_glass_surface_opacity">عتامة السطح</string>
-  <string name="pref_navigation_style">نمط التنقل</string>
-  <string name="pref_navigation_style_normal">عادي</string>
+  <string name="pref_liquid_glass_frost">تأثير الصقيع</string>
   <string name="generic_expand">توسيع</string>
   <string name="generic_collapse">طي</string>
   <string name="generic_clear">مسح</string>
@@ -89,7 +83,6 @@
   <string name="pref_appearance_thumbnail_position_summary">التقاط الإطار عند %1$d%% من الفيديو</string>
   <string name="pref_appearance_show_network_thumbnails_title">إظهار صور الشبكة المصغّرة (تجريبي)</string>
   <string name="pref_appearance_show_network_thumbnails_summary">إنشاء صور مصغّرة لتدفقات الشبكة (قد يزيد استهلاك البيانات على شبكات الهاتف)</string>
-  <string name="pref_appearance_category_navigation">التنقل</string>
   <string name="pref_nav_home_title">إظهار علامة تبويب الرئيسية</string>
   <string name="pref_nav_home_summary">إظهار أو إخفاء الرئيسية في شريط التنقل السفلي</string>
   <string name="pref_nav_network_title">إظهار علامة تبويب الشبكة</string>
@@ -2718,7 +2711,7 @@
   <string name="onboarding_configuration_restored">تمت استعادة الإعدادات من %1$s. ستستخدم التنزيلات Configuration/Downloads.</string>
   <string name="onboarding_configuration_restore_failed">تعذر إكمال إعداد المجلد: %1$s</string>
   <string name="navbar_glow_title">توهج الزجاج</string>
-  <string name="navbar_glow_summary">إظهار إضاءة حافة شريط التنقل وتوهج اللمس في الوضع العادي ووضع الزجاج السائل</string>
+  <string name="navbar_glow_summary">إظهار إضاءة حافة شريط التنقل وتوهج اللمس</string>
   <string name="pref_seekbar_preview_skip_markers">علامات التخطي</string>
   <string name="pref_liquid_glass_optics">البصريات</string>
   <string name="pref_liquid_glass_opacity">عتامة الخلفية</string>

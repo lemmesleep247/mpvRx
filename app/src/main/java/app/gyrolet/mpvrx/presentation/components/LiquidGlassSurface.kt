@@ -63,7 +63,6 @@ fun ProvideLiquidGlassBackdrop(
 enum class LiquidGlassStyle {
   MiniPlayer,
   Navigation,
-  Editing,
 }
 
 /** Kyant-backed liquid glass surface shared by mini players and floating action bars. */
@@ -88,22 +87,19 @@ fun LiquidGlassSurface(
   val blurRadius = when (style) {
     LiquidGlassStyle.MiniPlayer -> 12.dp
     LiquidGlassStyle.Navigation -> 8.dp
-    LiquidGlassStyle.Editing -> 2.dp
   }
   val refractionHeight = when (style) {
     LiquidGlassStyle.MiniPlayer -> 18.dp
     LiquidGlassStyle.Navigation -> 14.dp
-    LiquidGlassStyle.Editing -> 12.dp
   }
   val refractionAmount = when (style) {
     LiquidGlassStyle.MiniPlayer -> 26.dp
     LiquidGlassStyle.Navigation -> 22.dp
-    LiquidGlassStyle.Editing -> 24.dp
   }
   val shadowElevation: Dp = if (style == LiquidGlassStyle.MiniPlayer) 10.dp else 8.dp
 
   val surfaceModifier =
-    if (renderGlass && !glassSettings.transparent) {
+    if (renderGlass) {
       modifier
         .drawBackdrop(
           backdrop = checkNotNull(backdrop),
@@ -122,11 +118,7 @@ fun LiquidGlassSurface(
             )
           },
           highlight = {
-            if (style == LiquidGlassStyle.Editing) {
-              glassSettings.highlight(Highlight.Default)
-            } else {
-              glassSettings.highlight(Highlight.Ambient.copy(alpha = (if (reducedMotion) 0.28f else 0.52f) * glowStrength))
-            }
+            glassSettings.highlight(Highlight.Ambient.copy(alpha = (if (reducedMotion) 0.28f else 0.52f) * glowStrength))
           },
           shadow = {
             glassSettings.shadow(Shadow(
@@ -146,7 +138,7 @@ fun LiquidGlassSurface(
         )
     } else {
       modifier
-        .shadow(if (glassSettings.transparent && renderGlass) 0.dp else shadowElevation, shape)
+        .shadow(shadowElevation, shape)
         .clip(shape)
         .background(if (renderGlass) glassSettings.surfaceColor(glassColor) else fallbackColor)
     }

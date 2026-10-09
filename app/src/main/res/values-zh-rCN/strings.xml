@@ -1,13 +1,7 @@
 <?xml version='1.0' encoding='UTF-8'?>
 <resources>
   <string name="pref_liquid_glass_material">玻璃材质</string>
-  <string name="pref_liquid_glass_material_style">玻璃样式</string>
-  <string name="pref_liquid_glass_style_liquid">液态</string>
-  <string name="pref_liquid_glass_style_frosted">磨砂</string>
-  <string name="pref_liquid_glass_style_transparent">透明</string>
-  <string name="pref_liquid_glass_surface_opacity">表面不透明度</string>
-  <string name="pref_navigation_style">导航样式</string>
-  <string name="pref_navigation_style_normal">普通</string>
+  <string name="pref_liquid_glass_frost">磨砂效果</string>
   <string name="generic_expand">展开</string>
   <string name="generic_collapse">收起</string>
   <string name="generic_clear">清除</string>
@@ -89,7 +83,6 @@
   <string name="pref_appearance_thumbnail_position_summary">截取视频 %1$d%% 位置的画面</string>
   <string name="pref_appearance_show_network_thumbnails_title">显示网络缩略图（实验性）</string>
   <string name="pref_appearance_show_network_thumbnails_summary">为网络流生成缩略图（可能会增加移动网络的数据用量）</string>
-  <string name="pref_appearance_category_navigation">导航</string>
   <string name="pref_nav_home_title">显示“首页”标签页</string>
   <string name="pref_nav_home_summary">在底部导航栏中显示或隐藏“首页”</string>
   <string name="pref_nav_network_title">显示“网络”标签页</string>
@@ -2691,7 +2684,7 @@
   <string name="onboarding_configuration_restored">已从 %1$s 恢复设置。下载将使用 Configuration/Downloads。</string>
   <string name="onboarding_configuration_restore_failed">无法完成文件夹设置：%1$s</string>
   <string name="navbar_glow_title">玻璃辉光</string>
-  <string name="navbar_glow_summary">在普通和液态玻璃模式中显示导航栏边缘光照和触摸辉光</string>
+  <string name="navbar_glow_summary">显示导航栏边缘光照和触摸辉光</string>
   <string name="pref_seekbar_preview_skip_markers">跳过标记</string>
   <string name="pref_liquid_glass_optics">光学效果</string>
   <string name="pref_liquid_glass_opacity">背景不透明度</string>

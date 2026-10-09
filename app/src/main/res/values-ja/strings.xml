@@ -1,13 +1,7 @@
 <?xml version='1.0' encoding='UTF-8'?>
 <resources>
   <string name="pref_liquid_glass_material">ガラス素材</string>
-  <string name="pref_liquid_glass_material_style">ガラスのスタイル</string>
-  <string name="pref_liquid_glass_style_liquid">液体</string>
-  <string name="pref_liquid_glass_style_frosted">すりガラス</string>
-  <string name="pref_liquid_glass_style_transparent">透明</string>
-  <string name="pref_liquid_glass_surface_opacity">表面の不透明度</string>
-  <string name="pref_navigation_style">ナビゲーションのスタイル</string>
-  <string name="pref_navigation_style_normal">標準</string>
+  <string name="pref_liquid_glass_frost">フロスト</string>
   <string name="generic_expand">展開</string>
   <string name="generic_collapse">折りたたむ</string>
   <string name="generic_clear">クリア</string>
@@ -89,7 +83,6 @@
   <string name="pref_appearance_thumbnail_position_summary">動画の%1$d%%の位置のフレームを取得します</string>
   <string name="pref_appearance_show_network_thumbnails_title">ネットワークのサムネイルを表示（試験的）</string>
   <string name="pref_appearance_show_network_thumbnails_summary">ネットワークストリームのサムネイルを生成します（モバイルネットワークでのデータ使用量が増える場合があります）</string>
-  <string name="pref_appearance_category_navigation">ナビゲーション</string>
   <string name="pref_nav_home_title">ホームタブを表示</string>
   <string name="pref_nav_home_summary">下部ナビゲーションバーのホームを表示または非表示にします</string>
   <string name="pref_nav_network_title">ネットワークタブを表示</string>
@@ -2685,7 +2678,7 @@
   <string name="onboarding_configuration_restored">%1$s から設定を復元しました。ダウンロードは Configuration/Downloads を使用します。</string>
   <string name="onboarding_configuration_restore_failed">フォルダーの設定を完了できませんでした: %1$s</string>
   <string name="navbar_glow_title">ガラスの輝き</string>
-  <string name="navbar_glow_summary">通常とLiquid Glassの両モードでナビゲーションの縁とタッチ時の光を表示</string>
+  <string name="navbar_glow_summary">ナビゲーションバーの縁の光とタッチ時の輝きを表示</string>
   <string name="pref_seekbar_preview_skip_markers">スキップマーカー</string>
   <string name="pref_liquid_glass_optics">光学</string>
   <string name="pref_liquid_glass_opacity">背景の不透明度</string>

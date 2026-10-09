@@ -100,7 +100,7 @@ object SearchablePreferences {
       )
       listOf(
         R.string.pref_liquid_glass_opacity to listOf("opacity", "transparency", "backdrop"),
-        R.string.pref_liquid_glass_blur to listOf("blur", "frosted"),
+        R.string.pref_liquid_glass_frost to listOf("frost", "blur", "frosted"),
         R.string.pref_liquid_glass_refraction_height to listOf("refraction", "lens", "edge", "width"),
         R.string.pref_liquid_glass_refraction_amount to listOf("refraction", "lens", "strength"),
         R.string.pref_liquid_glass_depth to listOf("depth", "lens"),

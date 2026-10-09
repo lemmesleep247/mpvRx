@@ -2,13 +2,7 @@
 <!-- Translated to Ukrainian (Українська) by @WATCHER-00 (https://github.com/WATCHER-00) -->
 <resources>
   <string name="pref_liquid_glass_material">Матеріал скла</string>
-  <string name="pref_liquid_glass_material_style">Стиль скла</string>
-  <string name="pref_liquid_glass_style_liquid">Рідке</string>
-  <string name="pref_liquid_glass_style_frosted">Матове</string>
-  <string name="pref_liquid_glass_style_transparent">Прозоре</string>
-  <string name="pref_liquid_glass_surface_opacity">Непрозорість поверхні</string>
-  <string name="pref_navigation_style">Стиль навігації</string>
-  <string name="pref_navigation_style_normal">Звичайний</string>
+  <string name="pref_liquid_glass_frost">Ефект матового скла</string>
   <string name="generic_increase">Збільшити</string>
   <string name="generic_decrease">Зменшити</string>
   <string name="generic_remove_from_favorites">Вилучити з обраного</string>
@@ -93,7 +87,6 @@
   <string name="pref_appearance_thumbnail_position_summary">Захоплювати кадр на позначці %1$d%% тривалості відео</string>
   <string name="pref_appearance_show_network_thumbnails_title">Мініатюри для мережевих потоків (експериментально)</string>
   <string name="pref_appearance_show_network_thumbnails_summary">Створювати мініатюри для мережевих потоків (може збільшити витрати мобільного трафіку)</string>
-  <string name="pref_appearance_category_navigation">Навігація</string>
   <string name="pref_nav_home_title">Вкладка «Головна»</string>
   <string name="pref_nav_home_summary">Показувати або приховати вкладку «Головна» на нижній панелі навігації</string>
   <string name="pref_nav_music_title">Вкладка «Музика»</string>
@@ -2719,7 +2712,7 @@
   <string name="onboarding_configuration_restored">Відновлено налаштування з %1$s. Завантаження використовуватимуть Configuration/Downloads.</string>
   <string name="onboarding_configuration_restore_failed">Не вдалося завершити налаштування папки: %1$s</string>
   <string name="navbar_glow_title">Світіння скла</string>
-  <string name="navbar_glow_summary">Підсвічування краю та дотиків навігації у звичайному режимі й режимі Liquid Glass</string>
+  <string name="navbar_glow_summary">Підсвічування краю та дотиків панелі навігації</string>
   <string name="pref_seekbar_preview_skip_markers">Позначки пропуску</string>
   <string name="pref_liquid_glass_optics">Оптика</string>
   <string name="pref_liquid_glass_opacity">Непрозорість тла</string>

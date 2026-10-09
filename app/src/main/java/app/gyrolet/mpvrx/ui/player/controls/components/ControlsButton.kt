@@ -9,42 +9,23 @@
 
 package app.gyrolet.mpvrx.ui.player.controls.components
 
-import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.combinedClickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
-import androidx.compose.material3.minimumInteractiveComponentSize
-import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import app.gyrolet.mpvrx.preferences.AppearancePreferences
-import app.gyrolet.mpvrx.preferences.preference.collectAsState
 import app.gyrolet.mpvrx.ui.icons.AppIcon
-import app.gyrolet.mpvrx.ui.icons.Icon
 import app.gyrolet.mpvrx.ui.icons.Icons
 import app.gyrolet.mpvrx.ui.liquidglass.AdaptiveControlsButton
-import app.gyrolet.mpvrx.ui.player.controls.LocalPlayerButtonsClickEvent
 import app.gyrolet.mpvrx.ui.player.controls.PlayerButtonAlpha
 import app.gyrolet.mpvrx.ui.theme.LocalDarkAppColorScheme
 import app.gyrolet.mpvrx.ui.theme.spacing
-import org.koin.compose.koinInject
 
 @Suppress("CompositionLocalAllowlist")
 internal val LocalForceDarkPlayerButtonsBackground = staticCompositionLocalOf { false }
@@ -70,8 +51,6 @@ internal fun playerButtonContentColor(): Color = playerButtonColorScheme().onSur
 internal fun playerButtonBorderColor(): Color =
   playerButtonColorScheme().outlineVariant.copy(alpha = PlayerButtonAlpha.BORDER)
 
-@Suppress("ModifierClickableOrder")
-@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun ControlsButton(
   icon: AppIcon,
@@ -83,73 +62,19 @@ fun ControlsButton(
   enabled: Boolean = true,
   onLongClickLabel: String? = null,
 ) {
-  val appearancePreferences = koinInject<AppearancePreferences>()
-  val enableLiquidGlass by appearancePreferences.liquidGlassEnabled.collectAsState()
-  val resolvedColor = color ?: playerButtonContentColor()
-
-  if (enableLiquidGlass) {
-    AdaptiveControlsButton(
-      icon = icon,
-      onClick = onClick,
-      modifier = modifier.tvFocusHighlight(CircleShape, enabled),
-      onLongClick = onLongClick,
-      title = title,
-      color = if (enabled) resolvedColor else resolvedColor.copy(alpha = PlayerButtonAlpha.DISABLED_CONTENT),
-      useGlass = true,
-      buttonSize = 40.dp,
-    )
-    return
-  }
-
-  val interactionSource = remember { MutableInteractionSource() }
-  val hideBackground = LocalHidePlayerButtonsBackground.current
-  val clickEvent = LocalPlayerButtonsClickEvent.current
-  Surface(
-    modifier =
-      modifier
-        .minimumInteractiveComponentSize()
-        .tvFocusHighlight(CircleShape, enabled)
-        .clip(CircleShape)
-        .combinedClickable(
-          enabled = enabled,
-          role = Role.Button,
-          onClick = {
-            clickEvent()
-            onClick()
-          },
-          onLongClick = {
-            clickEvent()
-            onLongClick()
-          },
-          onLongClickLabel = onLongClickLabel,
-          interactionSource = interactionSource,
-          indication = ripple(),
-        ),
-    shape = CircleShape,
-    color = if (hideBackground) Color.Transparent else playerButtonContainerColor(),
-    contentColor = resolvedColor,
-    tonalElevation = 0.dp,
-    shadowElevation = 0.dp,
-    border =
-      if (hideBackground) {
-        null
-      } else {
-        BorderStroke(
-          1.dp,
-          playerButtonBorderColor(),
-        )
-      },
-  ) {
-    Icon(
-      imageVector = icon,
-      contentDescription = title,
-      tint = if (enabled) resolvedColor else resolvedColor.copy(alpha = PlayerButtonAlpha.DISABLED_CONTENT),
-      modifier =
-        Modifier
-          .padding(MaterialTheme.spacing.small)
-          .size(20.dp),
-    )
-  }
+  AdaptiveControlsButton(
+    onClick = onClick,
+    modifier = modifier,
+    icon = icon,
+    onLongClick = onLongClick,
+    title = title,
+    color = color ?: playerButtonContentColor(),
+    enabled = enabled,
+    onLongClickLabel = onLongClickLabel,
+    hideBackground = LocalHidePlayerButtonsBackground.current,
+    useGlass = true,
+    buttonSize = 40.dp,
+  )
 }
 
 @Composable

@@ -47,8 +47,7 @@ import app.gyrolet.mpvrx.R
 import app.gyrolet.mpvrx.preferences.AppearancePreferences
 import app.gyrolet.mpvrx.preferences.preference.collectAsState
 import app.gyrolet.mpvrx.presentation.components.LiquidGlassBackdrop
-import app.gyrolet.mpvrx.presentation.components.LiquidGlassStyle
-import app.gyrolet.mpvrx.presentation.components.LiquidGlassSurface
+import app.gyrolet.mpvrx.presentation.components.LiquidGlassEditingBarSurface
 import app.gyrolet.mpvrx.presentation.components.rememberLiquidGlassBackdrop
 import app.gyrolet.mpvrx.ui.icons.AppIcon
 import app.gyrolet.mpvrx.ui.icons.Icon
@@ -287,11 +286,7 @@ fun BrowserBottomBar(
               vertical = layoutParams.surfacePaddingVertical,
             ),
       ) {
-        LiquidGlassSurface(
-          shape = CircleShape,
-          style = LiquidGlassStyle.Editing,
-          glassColor = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.30f),
-          fallbackColor = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.96f),
+        LiquidGlassEditingBarSurface(
           backdrop = backdrop,
         ) {
           Row(

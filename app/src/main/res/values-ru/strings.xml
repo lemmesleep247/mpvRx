@@ -1,13 +1,7 @@
 <?xml version='1.0' encoding='UTF-8'?>
 <resources>
   <string name="pref_liquid_glass_material">Материал стекла</string>
-  <string name="pref_liquid_glass_material_style">Стиль стекла</string>
-  <string name="pref_liquid_glass_style_liquid">Жидкое</string>
-  <string name="pref_liquid_glass_style_frosted">Матовое</string>
-  <string name="pref_liquid_glass_style_transparent">Прозрачное</string>
-  <string name="pref_liquid_glass_surface_opacity">Непрозрачность поверхности</string>
-  <string name="pref_navigation_style">Стиль навигации</string>
-  <string name="pref_navigation_style_normal">Обычный</string>
+  <string name="pref_liquid_glass_frost">Эффект матового стекла</string>
   <string name="generic_expand">Развернуть</string>
   <string name="generic_collapse">Свернуть</string>
   <string name="generic_clear">Очистить</string>
@@ -89,7 +83,6 @@
   <string name="pref_appearance_thumbnail_position_summary">Захватывать кадр на отметке %1$d%% видео</string>
   <string name="pref_appearance_show_network_thumbnails_title">Показывать сетевые миниатюры (экспериментально)</string>
   <string name="pref_appearance_show_network_thumbnails_summary">Создавать миниатюры для сетевых потоков (может увеличить расход мобильного трафика)</string>
-  <string name="pref_appearance_category_navigation">Навигация</string>
   <string name="pref_nav_home_title">Показывать вкладку «Главная»</string>
   <string name="pref_nav_home_summary">Показывать или скрывать «Главную» на нижней панели навигации</string>
   <string name="pref_nav_network_title">Показывать вкладку «Сеть»</string>
@@ -2706,7 +2699,7 @@
   <string name="onboarding_configuration_restored">Настройки восстановлены из %1$s. Загрузки будут сохраняться в Configuration/Downloads.</string>
   <string name="onboarding_configuration_restore_failed">Не удалось завершить настройку папки: %1$s</string>
   <string name="navbar_glow_title">Свечение стекла</string>
-  <string name="navbar_glow_summary">Подсветка края и касаний навигации в обычном режиме и режиме Liquid Glass</string>
+  <string name="navbar_glow_summary">Подсветка края и касаний панели навигации</string>
   <string name="pref_seekbar_preview_skip_markers">Метки пропуска</string>
   <string name="pref_liquid_glass_optics">Оптика</string>
   <string name="pref_liquid_glass_opacity">Непрозрачность фона</string>

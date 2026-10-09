@@ -193,11 +193,7 @@ fun LiquidSlider(
       film,
       animation.pressProgress.coerceIn(0f, 1f),
     )
-    val thumbModifier =
-      if (settings.transparent) {
-        Modifier.clip(Capsule()).background(settings.surfaceColor(thumbFilm))
-      } else {
-        Modifier.drawBackdrop(
+    val thumbModifier = Modifier.drawBackdrop(
           backdrop = combinedBackdrop,
           shape = { Capsule() },
           effects = {
@@ -232,7 +228,6 @@ fun LiquidSlider(
           },
           onDrawSurface = { drawRect(settings.surfaceColor(thumbFilm)) },
         )
-      }
     Box(
       Modifier.graphicsLayer {
         translationX = (-size.width / 2f + trackWidth * animation.progress)

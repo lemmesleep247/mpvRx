@@ -1,12 +1,6 @@
 <resources>
   <string name="pref_liquid_glass_material">Glass material</string>
-  <string name="pref_liquid_glass_material_style">Glass style</string>
-  <string name="pref_liquid_glass_style_liquid">Liquid</string>
-  <string name="pref_liquid_glass_style_frosted">Frosted</string>
-  <string name="pref_liquid_glass_style_transparent">Transparent</string>
-  <string name="pref_liquid_glass_surface_opacity">Surface opacity</string>
-  <string name="pref_navigation_style">Navigation style</string>
-  <string name="pref_navigation_style_normal">Normal</string>
+  <string name="pref_liquid_glass_frost">Frost</string>
   <string name="generic_increase">Increase</string>
   <string name="generic_decrease">Decrease</string>
   <string name="generic_remove_from_favorites">Remove from favorites</string>
@@ -115,7 +109,6 @@
   <string name="pref_appearance_thumbnail_position_summary">Capture the frame at %1$d%% of the video</string>
   <string name="pref_appearance_show_network_thumbnails_title">Show network thumbnails (Experimental)</string>
   <string name="pref_appearance_show_network_thumbnails_summary">Generate thumbnails for network streams (May increase data usage on mobile networks)</string>
-  <string name="pref_appearance_category_navigation">Navigation</string>
   <string name="pref_nav_home_title">Show Home tab</string>
   <string name="pref_nav_home_summary">Show or hide Home in the bottom navigation bar</string>
   <string name="pref_nav_music_title">Show Music tab</string>
@@ -2838,7 +2831,7 @@
   <string name="onboarding_configuration_restored">Restored settings from %1$s. Downloads will use Configuration/Downloads.</string>
   <string name="onboarding_configuration_restore_failed">Folder setup could not be completed: %1$s</string>
   <string name="navbar_glow_title">Glass Glow</string>
-  <string name="navbar_glow_summary">Show navbar rim lighting and touch glow in normal and Liquid Glass modes</string>
+  <string name="navbar_glow_summary">Show navbar rim lighting and touch glow</string>
   <string name="pref_seekbar_preview_skip_markers">Skip markers</string>
   <string name="debug_logs_save_to_config">Save logs to config folder</string>
   <string name="debug_logs_config_required">Select a configuration folder in Advanced Settings first.</string>

@@ -1,12 +1,6 @@
 <resources>
   <string name="pref_liquid_glass_material">कांच की सामग्री</string>
-  <string name="pref_liquid_glass_material_style">कांच की शैली</string>
-  <string name="pref_liquid_glass_style_liquid">तरल</string>
-  <string name="pref_liquid_glass_style_frosted">धुंधला</string>
-  <string name="pref_liquid_glass_style_transparent">पारदर्शी</string>
-  <string name="pref_liquid_glass_surface_opacity">सतह की अपारदर्शिता</string>
-  <string name="pref_navigation_style">नेविगेशन शैली</string>
-  <string name="pref_navigation_style_normal">सामान्य</string>
+  <string name="pref_liquid_glass_frost">फ्रॉस्ट प्रभाव</string>
   <string name="generic_expand">विस्तृत करें</string>
   <string name="generic_collapse">संकुचित करें</string>
   <string name="generic_clear">साफ़ करें</string>
@@ -89,7 +83,6 @@
   <string name="pref_appearance_thumbnail_position_summary">वीडियो के %1$d%% पर फ्रेम कैप्चर करें</string>
   <string name="pref_appearance_show_network_thumbnails_title">नेटवर्क थंबनेल दिखाएं (प्रायोगिक)</string>
   <string name="pref_appearance_show_network_thumbnails_summary">नेटवर्क स्ट्रीम्स के लिए थंबनेल जनरेट करें (मोबाइल नेटवर्क पर डेटा उपयोग बढ़ सकता है)</string>
-  <string name="pref_appearance_category_navigation">नेविगेशन</string>
   <string name="pref_nav_home_title">होम टैब दिखाएं</string>
   <string name="pref_nav_home_summary">नीचे की नेविगेशन बार में होम दिखाएं या छुपाएं</string>
   <string name="pref_nav_network_title">नेटवर्क टैब दिखाएं</string>
@@ -2596,7 +2589,7 @@
   <string name="onboarding_configuration_restored">%1$s से सेटिंग्स बहाल हुईं। डाउनलोड Configuration/Downloads का उपयोग करेंगे।</string>
   <string name="onboarding_configuration_restore_failed">फ़ोल्डर सेटअप पूरा नहीं हुआ: %1$s</string>
   <string name="navbar_glow_title">ग्लास की चमक</string>
-  <string name="navbar_glow_summary">सामान्य और लिक्विड ग्लास मोड में नेविगेशन बार के किनारे और स्पर्श की चमक दिखाएं</string>
+  <string name="navbar_glow_summary">नेविगेशन बार की किनारे की रोशनी और स्पर्श चमक दिखाएं</string>
   <string name="pref_seekbar_preview_skip_markers">स्किप चिह्न</string>
   <string name="pref_liquid_glass_optics">प्रकाशिकी</string>
   <string name="pref_liquid_glass_opacity">पृष्ठभूमि की अपारदर्शिता</string>

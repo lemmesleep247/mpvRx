@@ -1,13 +1,7 @@
 <?xml version='1.0' encoding='UTF-8'?>
 <resources>
   <string name="pref_liquid_glass_material">Material do vidro</string>
-  <string name="pref_liquid_glass_material_style">Estilo do vidro</string>
-  <string name="pref_liquid_glass_style_liquid">Líquido</string>
-  <string name="pref_liquid_glass_style_frosted">Fosco</string>
-  <string name="pref_liquid_glass_style_transparent">Transparente</string>
-  <string name="pref_liquid_glass_surface_opacity">Opacidade da superfície</string>
-  <string name="pref_navigation_style">Estilo de navegação</string>
-  <string name="pref_navigation_style_normal">Normal</string>
+  <string name="pref_liquid_glass_frost">Efeito fosco</string>
   <string name="generic_expand">Expandir</string>
   <string name="generic_collapse">Recolher</string>
   <string name="generic_clear">Limpar</string>
@@ -89,7 +83,6 @@
   <string name="pref_appearance_thumbnail_position_summary">Capturar o quadro em %1$d%% do vídeo</string>
   <string name="pref_appearance_show_network_thumbnails_title">Mostrar miniaturas de rede (experimental)</string>
   <string name="pref_appearance_show_network_thumbnails_summary">Gerar miniaturas para transmissões de rede (pode aumentar o uso de dados em redes móveis)</string>
-  <string name="pref_appearance_category_navigation">Navegação</string>
   <string name="pref_nav_home_title">Mostrar aba Início</string>
   <string name="pref_nav_home_summary">Mostrar ou ocultar Início na barra de navegação inferior</string>
   <string name="pref_nav_network_title">Mostrar aba Rede</string>
@@ -2692,7 +2685,7 @@ Reinicie o aplicativo para que todas as alterações entrem em vigor.</string>
   <string name="onboarding_configuration_restored">Ajustes restaurados de %1$s. Os downloads usarão Configuration/Downloads.</string>
   <string name="onboarding_configuration_restore_failed">Não foi possível concluir a configuração da pasta: %1$s</string>
   <string name="navbar_glow_title">Brilho do vidro</string>
-  <string name="navbar_glow_summary">Mostrar iluminação da borda e brilho ao tocar nos modos normal e Liquid Glass</string>
+  <string name="navbar_glow_summary">Mostrar iluminação da borda e brilho ao tocar na barra de navegação</string>
   <string name="pref_seekbar_preview_skip_markers">Marcadores de salto</string>
   <string name="pref_liquid_glass_optics">Óptica</string>
   <string name="pref_liquid_glass_opacity">Opacidade do fundo</string>

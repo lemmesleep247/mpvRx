@@ -55,8 +55,6 @@ import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -112,7 +110,6 @@ import kotlin.math.abs
 import kotlin.math.roundToInt
 import app.gyrolet.mpvrx.R
 import app.gyrolet.mpvrx.preferences.AppearancePreferences
-import app.gyrolet.mpvrx.preferences.NavigationBarStyle
 import app.gyrolet.mpvrx.preferences.MediaServerPreferences
 import app.gyrolet.mpvrx.preferences.MusicSourceProvider
 import app.gyrolet.mpvrx.preferences.PlayerPreferences
@@ -219,7 +216,6 @@ object MainScreen : Screen {
     val showNetworkTab by appearancePreferences.showNetworkTab.collectAsState()
     val showJellyfinTab by appearancePreferences.showJellyfinTab.collectAsState()
     val liquidGlassEnabled by appearancePreferences.liquidGlassEnabled.collectAsState()
-    val navigationBarStyle by appearancePreferences.navigationBarStyle.collectAsState()
     val liquidLayerBackdrop = rememberLayerBackdrop()
     val hideNavigationBar = NavigationBarState.shouldHideNavigationBar
     val isPermissionDenied = NavigationBarState.isPermissionDenied
@@ -390,41 +386,16 @@ object MainScreen : Screen {
     val navigationBackdrop = rememberHazeState()
 
     val mainNavBar = @Composable { modifier: Modifier ->
-      if (navigationBarStyle == NavigationBarStyle.Normal || android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.S) {
-        NavigationBar(
-          modifier = modifier.widthIn(max = 480.dp).clip(MaterialTheme.shapes.extraLarge),
-          containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-          windowInsets = WindowInsets(0, 0, 0, 0),
-        ) {
-          navigationTabs.forEach { tab ->
-            val selected = tab == selectedTab
-            NavigationBarItem(
-              selected = selected,
-              onClick = { onTabSelected(tab) },
-              icon = {
-                MainTabIcon(
-                  tab,
-                  if (selected) MaterialTheme.colorScheme.onSecondaryContainer else MaterialTheme.colorScheme.onSurfaceVariant,
-                  null,
-                  24.dp,
-                )
-              },
-              label = { Text(mainNavigationLabel(tab)) },
-            )
-          }
-        }
-      } else {
-        ExpressivePillNavigationBar(
-          visibleTabs = navigationTabs,
-          selectedTab = selectedTab,
-          onTabSelected = onTabSelected,
-          pagerState = pagerState,
-          hazeBackdrop = navigationBackdrop,
-          kyantBackdrop = liquidLayerBackdrop,
-          liquidGlassEnabled = true,
-          modifier = modifier,
-        )
-      }
+      ExpressivePillNavigationBar(
+        visibleTabs = navigationTabs,
+        selectedTab = selectedTab,
+        onTabSelected = onTabSelected,
+        pagerState = pagerState,
+        hazeBackdrop = navigationBackdrop,
+        kyantBackdrop = liquidLayerBackdrop,
+        liquidGlassEnabled = liquidGlassEnabled,
+        modifier = modifier,
+      )
     }
 
     val configuration = androidx.compose.ui.platform.LocalConfiguration.current
@@ -693,7 +664,7 @@ object MainScreen : Screen {
         // Animated bottom navigation bar with slide animations
         ProvideLiquidGlassBackdrop(
           backdrop = liquidLayerBackdrop,
-          enabled = liquidGlassEnabled || navigationBarStyle == NavigationBarStyle.LiquidGlass,
+          enabled = liquidGlassEnabled,
         ) {
           AnimatedVisibility(
             visible = !hideNavigationBar && navigationTabs.isNotEmpty() && !isPermissionDenied,
@@ -960,12 +931,7 @@ internal fun ExpressivePillNavigationBar(
         translationX = motion.frame.panelOffset * density.density
       },
     ) {
-      if (liquidGlassEnabled && glassSettings.transparent) {
-        Box(
-          Modifier.matchParentSize()
-            .background(glassSettings.surfaceColor(surfaceColor.copy(alpha = 0.34f)), CircleShape),
-        )
-      } else if (liquidGlassEnabled && kyantBackdrop != null) {
+      if (liquidGlassEnabled && kyantBackdrop != null) {
         Box(
           modifier =
             Modifier
@@ -988,7 +954,7 @@ internal fun ExpressivePillNavigationBar(
                 onDrawSurface = {
                   drawRect(glassSettings.surfaceColor(surfaceColor.copy(alpha = 0.34f)))
                 },
-              ).navigationGlassRim(if (glassSettings.refractive) glowStrength * glassSettings.highlightStrength.coerceAtMost(1f) else 0f)
+              ).navigationGlassRim(glowStrength * glassSettings.highlightStrength.coerceAtMost(1f))
               .drawWithContent {
                 drawContent()
                 drawNavigationJellyGlow(motion.frame, accentColor.copy(alpha = glowStrength))

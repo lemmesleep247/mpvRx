@@ -3,9 +3,7 @@ package app.gyrolet.mpvrx.ui.components
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsDraggedAsState
 import androidx.compose.foundation.interaction.collectIsPressedAsState
-import androidx.compose.foundation.background
 import androidx.compose.foundation.progressSemantics
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
@@ -23,7 +21,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.disabled
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.setProgress
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
 import app.gyrolet.mpvrx.preferences.AppearancePreferences
 import app.gyrolet.mpvrx.preferences.preference.collectAsState
@@ -141,11 +138,7 @@ private fun GlassSliderThumb(
   } else {
     androidx.compose.ui.graphics.Color.White
   }
-  val materialModifier =
-    if (settings.transparent) {
-      Modifier.clip(CircleShape).background(settings.surfaceColor(tint))
-    } else {
-      Modifier.drawBackdrop(
+  val materialModifier = Modifier.drawBackdrop(
         backdrop = backdrop,
         shape = { Capsule() },
         effects = {
@@ -162,7 +155,6 @@ private fun GlassSliderThumb(
         innerShadow = { settings.innerShadow(InnerShadow(radius = 4.dp)) },
         onDrawSurface = { drawRect(settings.surfaceColor(tint)) },
       )
-    }
   Box(Modifier.size(40.dp, 24.dp).then(materialModifier))
 }
 

@@ -1,13 +1,7 @@
 <?xml version='1.0' encoding='UTF-8'?>
 <resources>
   <string name="pref_liquid_glass_material">Glasmaterial</string>
-  <string name="pref_liquid_glass_material_style">Glasstil</string>
-  <string name="pref_liquid_glass_style_liquid">Flüssig</string>
-  <string name="pref_liquid_glass_style_frosted">Mattiert</string>
-  <string name="pref_liquid_glass_style_transparent">Transparent</string>
-  <string name="pref_liquid_glass_surface_opacity">Deckkraft der Oberfläche</string>
-  <string name="pref_navigation_style">Navigationsstil</string>
-  <string name="pref_navigation_style_normal">Normal</string>
+  <string name="pref_liquid_glass_frost">Frost</string>
   <string name="generic_expand">Erweitern</string>
   <string name="generic_collapse">Einklappen</string>
   <string name="generic_clear">Leeren</string>
@@ -89,7 +83,6 @@
   <string name="pref_appearance_thumbnail_position_summary">Bild bei %1$d%% des Videos erfassen</string>
   <string name="pref_appearance_show_network_thumbnails_title">Netzwerk-Vorschaubilder anzeigen (experimentell)</string>
   <string name="pref_appearance_show_network_thumbnails_summary">Vorschaubilder für Netzwerkstreams erstellen (kann den Datenverbrauch in Mobilfunknetzen erhöhen)</string>
-  <string name="pref_appearance_category_navigation">Navigation</string>
   <string name="pref_nav_home_title">Start-Tab anzeigen</string>
   <string name="pref_nav_home_summary">Start in der unteren Navigationsleiste ein- oder ausblenden</string>
   <string name="pref_nav_network_title">Netzwerk-Tab anzeigen</string>
@@ -2692,7 +2685,7 @@ Bitte starten Sie die App neu, damit alle Änderungen wirksam werden.</string>
   <string name="onboarding_configuration_restored">Einstellungen aus %1$s wiederhergestellt. Downloads verwenden Configuration/Downloads.</string>
   <string name="onboarding_configuration_restore_failed">Ordnereinrichtung konnte nicht abgeschlossen werden: %1$s</string>
   <string name="navbar_glow_title">Glasleuchten</string>
-  <string name="navbar_glow_summary">Randlicht und Berührungsleuchten der Navigation im normalen und Liquid-Glass-Modus anzeigen</string>
+  <string name="navbar_glow_summary">Randlicht und Berührungsleuchten der Navigationsleiste anzeigen</string>
   <string name="pref_seekbar_preview_skip_markers">Sprungmarkierungen</string>
   <string name="pref_liquid_glass_optics">Optik</string>
   <string name="pref_liquid_glass_opacity">Deckkraft des Hintergrunds</string>

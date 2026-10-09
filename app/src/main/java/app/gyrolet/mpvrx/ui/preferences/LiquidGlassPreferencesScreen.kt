@@ -191,7 +191,7 @@ private fun LiquidGlassPreview(enabled: Boolean, height: Dp = 200.dp, compact: B
           .padding(if (compact) 8.dp else 20.dp)
           .fillMaxWidth()
           .then(
-            if (enabled && !settings.transparent) {
+            if (enabled) {
               Modifier.drawBackdrop(
                 backdrop = backdrop,
                 shape = { shape },
