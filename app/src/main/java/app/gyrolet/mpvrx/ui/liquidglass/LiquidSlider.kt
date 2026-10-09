@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
@@ -31,6 +32,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.pointer.positionChanged
 import androidx.compose.ui.layout.layout
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
@@ -73,12 +75,20 @@ fun LiquidSlider(
   val currentOnFinished = rememberUpdatedState(onValueChangeFinished)
   val isLtr = LocalLayoutDirection.current == LayoutDirection.Ltr
   val animationScope = rememberCoroutineScope()
+  // Reserve room for the expanded (pressed) glass thumb and its shadow at both ends.
+  val thumbWidth = 40.dp
+  val thumbEdgePadding = 16.dp
+  val trackEndInset = thumbWidth / 2 + thumbEdgePadding
+  val density = LocalDensity.current
 
   BoxWithConstraints(
     modifier.fillMaxWidth().height(48.dp),
     contentAlignment = Alignment.CenterStart,
   ) {
-    val trackWidth = constraints.maxWidth
+    val sliderWidthPx = constraints.maxWidth.toFloat()
+    val trackInsetPx = with(density) { trackEndInset.toPx() }
+    val thumbEdgePaddingPx = with(density) { thumbEdgePadding.toPx() }
+    val usableTrackWidthPx = (sliderWidthPx - 2f * trackInsetPx).coerceAtLeast(0f)
     val animation = remember(animationScope, valueRange, visibilityThreshold, reduceMotion) {
       DampedDragAnimation(
         animationScope = animationScope,
@@ -103,10 +113,11 @@ fun LiquidSlider(
     if (enabled) {
       Box(
         Modifier.matchParentSize()
-          .pointerInput(animation, trackWidth, isLtr, enabled) {
+          .pointerInput(animation, usableTrackWidthPx, trackInsetPx, isLtr, enabled) {
             fun seekTo(horizontalPosition: Float) {
-              if (trackWidth <= 0) return
-              val delta = (valueRange.endInclusive - valueRange.start) * horizontalPosition / trackWidth
+              if (usableTrackWidthPx <= 0f) return
+              val fraction = ((horizontalPosition - trackInsetPx) / usableTrackWidthPx).coerceIn(0f, 1f)
+              val delta = (valueRange.endInclusive - valueRange.start) * fraction
               val target = (if (isLtr) valueRange.start + delta else valueRange.endInclusive - delta)
                 .coerceIn(valueRange)
               currentOnValueChange.value(target)
@@ -138,7 +149,7 @@ fun LiquidSlider(
       )
     }
 
-    Box(Modifier.layerBackdrop(trackBackdrop)) {
+    Box(Modifier.fillMaxWidth().padding(horizontal = trackEndInset).layerBackdrop(trackBackdrop)) {
       Box(
         Modifier.clip(Capsule())
           .background(trackColor)
@@ -151,7 +162,7 @@ fun LiquidSlider(
           .height(6.dp)
           .layout { measurable, trackConstraints ->
             val placeable = measurable.measure(trackConstraints)
-            val width = (trackConstraints.maxWidth * animation.progress).fastRoundToInt()
+            val width = (trackConstraints.maxWidth * animation.progress.coerceIn(0f, 1f)).fastRoundToInt()
             layout(width, placeable.height) { placeable.placeRelative(0, 0) }
           },
       )
@@ -230,8 +241,9 @@ fun LiquidSlider(
         )
     Box(
       Modifier.graphicsLayer {
-        translationX = (-size.width / 2f + trackWidth * animation.progress)
-          .fastCoerceIn(-size.width / 4f, trackWidth - size.width * 3f / 4f) * if (isLtr) 1f else -1f
+        // The thumb center coincides with the track endpoints without ever leaving its viewport.
+        translationX = (thumbEdgePaddingPx + usableTrackWidthPx * animation.progress.coerceIn(0f, 1f)) *
+          if (isLtr) 1f else -1f
       }.then(thumbModifier).size(40.dp, 24.dp),
     )
   }

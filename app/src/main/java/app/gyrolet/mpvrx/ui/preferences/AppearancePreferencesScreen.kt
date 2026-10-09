@@ -239,19 +239,6 @@ object AppearancePreferencesScreen : Screen {
               .then(settingsHighlight),
         ) {
           item {
-            val navigationBarGlow by preferences.navigationBarGlow.collectAsState()
-            PreferenceCard {
-              SwitchPreference(
-                modifier = Modifier.settingsSearchTarget(R.string.navbar_glow_title),
-                value = navigationBarGlow,
-                onValueChange = preferences.navigationBarGlow::set,
-                title = { Text(stringResource(R.string.navbar_glow_title)) },
-                summary = { Text(stringResource(R.string.navbar_glow_summary), color = MaterialTheme.colorScheme.outline) },
-              )
-            }
-          }
-
-          item {
             PreferenceSectionHeader(
               title = stringResource(id = R.string.pref_appearance_category_theme),
               modifier = Modifier.settingsSearchTarget(R.string.pref_appearance_title),
@@ -440,6 +427,19 @@ object AppearancePreferencesScreen : Screen {
                     },
                     onSliderValueChange = { pendingAppUiScale = it },
                     sliderValue = pendingAppUiScale ?: appUiScale,
+                  )
+
+                  PreferenceDivider()
+
+                  val navigationBarGlow by preferences.navigationBarGlow.collectAsState()
+                  SwitchPreference(
+                    modifier = Modifier.settingsSearchTarget(R.string.navbar_glow_title),
+                    value = navigationBarGlow,
+                    onValueChange = preferences.navigationBarGlow::set,
+                    title = { Text(stringResource(R.string.navbar_glow_title)) },
+                    summary = {
+                      Text(stringResource(R.string.navbar_glow_summary), color = MaterialTheme.colorScheme.outline)
+                    },
                   )
                 }
               }
@@ -801,6 +801,12 @@ object AppearancePreferencesScreen : Screen {
                 enabled = showVideoThumbnails,
               )
             }
+          }
+
+          item {
+            PreferenceSectionHeader(
+              title = stringResource(id = R.string.pref_appearance_category_navigation),
+            )
           }
 
           item {

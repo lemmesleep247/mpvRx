@@ -1795,9 +1795,13 @@ private fun LiquidSeekbar(
         .align(Alignment.CenterStart)
         .graphicsLayer {
           val thumbWidthPx = with(density) { thumbWidthDp.toPx() }
-          translationX =
-            (-thumbWidthPx / 2f + trackWidthPx * playedFraction)
-              .fastCoerceIn(-thumbWidthPx / 4f, trackWidthPx - thumbWidthPx * 3f / 4f) * if (isLtr) 1f else -1f
+          // Keep the full-width chapter/seek mapping, but never let the expanding glass
+          // thumb or its shadow cross either end of the visible player controls.
+          val edgeInsetPx = with(density) { 16.dp.toPx() }
+          val minCenterPx = (thumbWidthPx / 2f + edgeInsetPx).coerceAtMost(trackWidthPx / 2f)
+          val safeCenterPx = (trackWidthPx * playedFraction)
+            .coerceIn(minCenterPx, trackWidthPx - minCenterPx)
+          translationX = (safeCenterPx - thumbWidthPx / 2f) * if (isLtr) 1f else -1f
         }
         .drawBackdrop(
           backdrop = rememberCombinedBackdrop(

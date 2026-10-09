@@ -33,7 +33,6 @@ import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -88,6 +87,7 @@ import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.input.nestedscroll.nestedScroll
@@ -407,7 +407,7 @@ object MainScreen : Screen {
     // On portrait phones the edge-to-edge mini player sits above the pill nav bar,
     // so screens/FABs must clear it.
     val miniPlayerNavClearance = if (isMiniPlayerVisible && isPortrait && !isTablet) 96.dp else 0.dp
-    val contentBottomPadding = (if (navigationTabs.isEmpty()) 0.dp else 88.dp) + miniPlayerNavClearance
+    val contentBottomPadding = (if (navigationTabs.isEmpty()) 0.dp else NavigationBarState.navigationBarClearance) + miniPlayerNavClearance
     val context = androidx.compose.ui.platform.LocalContext.current
     val jellyfinViewModel: app.gyrolet.mpvrx.ui.browser.jellyfin.JellyfinViewModel =
       androidx.lifecycle.viewmodel.compose.viewModel(
@@ -683,15 +683,13 @@ object MainScreen : Screen {
                 .fillMaxWidth()
                 .align(Alignment.BottomStart),
           ) {
-            BoxWithConstraints(
+            Box(
               modifier =
                 Modifier
                   .fillMaxWidth()
                   .navigationBarsPadding()
                   .padding(bottom = 8.dp),
             ) {
-              val containerWidth = maxWidth
-              val density = LocalDensity.current
               val horizontalMargin by animateDpAsState(
                 targetValue = 58.dp - 30.dp * NavigationBarState.navLabelVisibility,
                 animationSpec = if (navStyle == NavigationAnimStyle.None) snap() else tween(300, easing = NavigationBarEasing),
@@ -730,12 +728,6 @@ object MainScreen : Screen {
                     val start = desired.coerceIn(margin, maxStart)
                     placeable.placeRelative(start, 0)
                   }
-                }
-                .onGloballyPositioned { coords ->
-                  val width = with(density) { coords.size.width.toDp() }
-                  NavigationBarState.navbarWidth = width
-                  NavigationBarState.navbarLeftOffset =
-                    (containerWidth * centerFraction.value - width / 2).coerceAtLeast(horizontalMargin)
                 }
 
               ExpressivePillNavigationBar(
@@ -879,6 +871,12 @@ internal fun ExpressivePillNavigationBar(
       .fillMaxWidth()
       .height(48.dp + labelHeight * labelFraction)
       .onSizeChanged { motion.resize(it.width / density.density, it.height / density.density) }
+      .onGloballyPositioned { coordinates ->
+        // The outer layout fills the screen; measure the real pill for mini-player clearance.
+        NavigationBarState.navbarWidth = with(density) { coordinates.size.width.toDp() }
+        NavigationBarState.navigationPillHeight = with(density) { coordinates.size.height.toDp() }
+        NavigationBarState.navbarLeftOffset = with(density) { coordinates.positionInRoot().x.toDp() }
+      }
       .then(
         if (reducedMotion) Modifier else Modifier.pointerInput(motion, density, isRtl) {
           awaitEachGesture {

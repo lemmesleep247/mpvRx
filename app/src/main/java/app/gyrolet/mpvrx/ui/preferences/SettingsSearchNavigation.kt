@@ -57,19 +57,19 @@ private val settingsSearchListAnchors: Map<Screen, List<SettingsSearchListAnchor
   mapOf(
     AppearancePreferencesScreen to
       listOf(
-        SettingsSearchListAnchor(titleRes = R.string.navbar_glow_title, itemIndex = 0),
-        SettingsSearchListAnchor(titleRes = R.string.pref_appearance_title, itemIndex = 1),
-        SettingsSearchListAnchor(titleRes = R.string.pref_appearance_amoled_mode_title, itemIndex = 2),
-        SettingsSearchListAnchor(titleRes = R.string.pref_appearance_system_font_title, itemIndex = 2),
-        SettingsSearchListAnchor(titleRes = R.string.pref_appearance_unlimited_name_lines_title, itemIndex = 4),
-        SettingsSearchListAnchor(titleRes = R.string.pref_appearance_show_unplayed_old_video_label_title, itemIndex = 4),
-        SettingsSearchListAnchor(titleRes = R.string.pref_appearance_unplayed_old_video_days_title, itemIndex = 4),
-        SettingsSearchListAnchor(titleRes = R.string.pref_appearance_auto_scroll_title, itemIndex = 4),
-        SettingsSearchListAnchor(titleRes = R.string.pref_appearance_show_video_thumbnails_title, itemIndex = 6),
-        SettingsSearchListAnchor(titleRes = R.string.pref_appearance_thumbnail_generation_title, itemIndex = 6),
-        SettingsSearchListAnchor(titleRes = R.string.pref_appearance_thumbnail_quality_title, itemIndex = 6),
-        SettingsSearchListAnchor(titleRes = R.string.pref_gesture_tap_thumbnail_to_select_title, itemIndex = 6),
-        SettingsSearchListAnchor(titleRes = R.string.pref_appearance_show_network_thumbnails_title, itemIndex = 6),
+        SettingsSearchListAnchor(titleRes = R.string.pref_appearance_title, itemIndex = 0),
+        SettingsSearchListAnchor(titleRes = R.string.pref_appearance_amoled_mode_title, itemIndex = 1),
+        SettingsSearchListAnchor(titleRes = R.string.pref_appearance_system_font_title, itemIndex = 1),
+        SettingsSearchListAnchor(titleRes = R.string.navbar_glow_title, itemIndex = 1),
+        SettingsSearchListAnchor(titleRes = R.string.pref_appearance_unlimited_name_lines_title, itemIndex = 3),
+        SettingsSearchListAnchor(titleRes = R.string.pref_appearance_show_unplayed_old_video_label_title, itemIndex = 3),
+        SettingsSearchListAnchor(titleRes = R.string.pref_appearance_unplayed_old_video_days_title, itemIndex = 3),
+        SettingsSearchListAnchor(titleRes = R.string.pref_appearance_auto_scroll_title, itemIndex = 3),
+        SettingsSearchListAnchor(titleRes = R.string.pref_appearance_show_video_thumbnails_title, itemIndex = 5),
+        SettingsSearchListAnchor(titleRes = R.string.pref_appearance_thumbnail_generation_title, itemIndex = 5),
+        SettingsSearchListAnchor(titleRes = R.string.pref_appearance_thumbnail_quality_title, itemIndex = 5),
+        SettingsSearchListAnchor(titleRes = R.string.pref_gesture_tap_thumbnail_to_select_title, itemIndex = 5),
+        SettingsSearchListAnchor(titleRes = R.string.pref_appearance_show_network_thumbnails_title, itemIndex = 5),
       ),
     LiquidGlassPreferencesScreen to
       listOf(

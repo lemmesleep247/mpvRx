@@ -67,6 +67,7 @@
   <string name="pref_appearance_hide_player_buttons_background_summary">隐藏所有播放器控制按钮的背景</string>
   <string name="pref_appearance_category_file_browser">文件浏览器</string>
   <string name="pref_appearance_category_thumbnails">缩略图</string>
+  <string name="pref_appearance_category_navigation">导航</string>
   <string name="pref_appearance_show_unplayed_old_video_label_title">为新的未播放视频显示标签</string>
   <string name="pref_appearance_show_unplayed_old_video_label_summary">对在指定天数内添加且从未播放过的视频显示“新”标签</string>
   <string name="pref_appearance_unplayed_old_video_days_title">新视频标签的天数阈值</string>

@@ -67,6 +67,7 @@
   <string name="pref_appearance_hide_player_buttons_background_summary">Скрыть фон всех кнопок управления проигрывателем</string>
   <string name="pref_appearance_category_file_browser">Файловый браузер</string>
   <string name="pref_appearance_category_thumbnails">Миниатюры</string>
+  <string name="pref_appearance_category_navigation">Навигация</string>
   <string name="pref_appearance_show_unplayed_old_video_label_title">Показывать метку для новых непросмотренных видео</string>
   <string name="pref_appearance_show_unplayed_old_video_label_summary">Показывать метку "Новое" у видео, добавленных за указанное число дней и ни разу не воспроизводившихся</string>
   <string name="pref_appearance_unplayed_old_video_days_title">Порог дней для метки нового видео</string>

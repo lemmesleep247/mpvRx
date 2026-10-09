@@ -25,6 +25,10 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.Lifecycle
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.snap
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.AlertDialog
@@ -50,6 +54,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.unit.dp
@@ -63,6 +68,7 @@ import app.gyrolet.mpvrx.presentation.components.rememberLiquidGlassBackdrop
 import app.gyrolet.mpvrx.ui.browser.MainScreen
 import app.gyrolet.mpvrx.ui.browser.NavigationBarState
 import app.gyrolet.mpvrx.ui.browser.components.MiniPlayer
+import app.gyrolet.mpvrx.ui.theme.AppMotion
 import app.gyrolet.mpvrx.ui.theme.DarkMode
 import app.gyrolet.mpvrx.ui.theme.AppWallpaperHost
 import app.gyrolet.mpvrx.ui.theme.MpvrxTheme
@@ -603,6 +609,41 @@ class MainActivity : AppCompatActivity() {
           val isPortrait = miniPlayerConfig.orientation == Configuration.ORIENTATION_PORTRAIT
           val isTablet = miniPlayerConfig.smallestScreenWidthDp >= 600
           val isDualPane = NavigationBarState.isDualPaneFolderSelected
+          val isNavBarVisible = NavigationBarState.isNavBarVisible
+          val isSelectionMode = NavigationBarState.isInSelectionMode
+          val reducedMotion = AppMotion.shouldReduceMotion()
+          val placementAnimation = if (reducedMotion) snap() else tween<androidx.compose.ui.unit.Dp>(
+            durationMillis = 320,
+            easing = FastOutSlowInEasing,
+          )
+          // The clearance moves with the floating bars instead of snapping at navigation changes.
+          // Keep the insets and base spacing fixed; animate visual translation instead
+          // of remeasuring the mini-player whenever the navigation visibility changes.
+          val portraitLift by animateDpAsState(
+            targetValue = when {
+              isSelectionMode -> NavigationBarState.selectionBarClearance
+              isNavBarVisible -> (NavigationBarState.navigationBarClearance - 12.dp).coerceAtLeast(0.dp)
+              else -> 0.dp
+            },
+            animationSpec = placementAnimation,
+            label = "mini_player_portrait_lift",
+          )
+          val wideBottomPadding by animateDpAsState(
+            targetValue = if (isSelectionMode) NavigationBarState.selectionBarClearance else 12.dp,
+            animationSpec = placementAnimation,
+            label = "mini_player_wide_bottom_clearance",
+          )
+          val wideStartPadding by animateDpAsState(
+            targetValue =
+              if (isNavBarVisible) {
+                NavigationBarState.navbarLeftOffset.coerceAtLeast(16.dp) +
+                  NavigationBarState.navbarWidth.coerceAtLeast(0.dp) + 12.dp
+              } else {
+                12.dp
+              },
+            animationSpec = placementAnimation,
+            label = "mini_player_wide_start_clearance",
+          )
 
           val miniPlayerModifier =
             when {
@@ -621,45 +662,18 @@ class MainActivity : AppCompatActivity() {
                   .align(Alignment.BottomCenter)
                   .fillMaxWidth()
                   .windowInsetsPadding(WindowInsets.navigationBars)
-                  .padding(
-                    start = 12.dp,
-                    end = 12.dp,
-                    bottom =
-                      (if (NavigationBarState.isNavBarVisible) {
-                        NavigationBarState.navigationBarClearance
-                      } else {
-                        12.dp
-                      }) +
-                        (if (NavigationBarState.isInSelectionMode) {
-                          NavigationBarState.selectionBarClearance
-                        } else {
-                          0.dp
-                        }),
-                  )
+                  .padding(start = 12.dp, end = 12.dp, bottom = 12.dp)
+                  .offset(y = -portraitLift)
 
               // Landscape/tablet single-pane: sit on the right side of the nav bar,
               // which slides left when the mini player appears.
-              else -> {
-                val isNavBarOnScreen = NavigationBarState.isNavBarVisible
-                val navBarLeft = if (NavigationBarState.navbarLeftOffset > 0.dp) NavigationBarState.navbarLeftOffset else 16.dp
-                val navBarWidth = if (NavigationBarState.navbarWidth > 0.dp) NavigationBarState.navbarWidth else 320.dp
-                val startPadding = if (isNavBarOnScreen) (navBarLeft + navBarWidth + 12.dp) else 12.dp
-                val bottomPadding = if (NavigationBarState.isInSelectionMode) {
-                  NavigationBarState.selectionBarClearance
-                } else {
-                  12.dp
-                }
-
+              else ->
                 Modifier
                   .align(Alignment.BottomStart)
-                  .padding(
-                    start = startPadding,
-                    end = 12.dp,
-                  )
+                  .padding(start = wideStartPadding, end = 12.dp)
                   .fillMaxWidth()
                   .windowInsetsPadding(WindowInsets.navigationBars)
-                  .padding(bottom = bottomPadding)
-              }
+                  .padding(bottom = wideBottomPadding)
             }
 
           ProvideLiquidGlassBackdrop(

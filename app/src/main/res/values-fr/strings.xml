@@ -67,6 +67,7 @@
   <string name="pref_appearance_hide_player_buttons_background_summary">Masquer l’arrière-plan de tous les boutons de contrôle du lecteur</string>
   <string name="pref_appearance_category_file_browser">Explorateur de fichiers</string>
   <string name="pref_appearance_category_thumbnails">Miniatures</string>
+  <string name="pref_appearance_category_navigation">Navigation</string>
   <string name="pref_appearance_show_unplayed_old_video_label_title">Afficher une étiquette pour les nouvelles vidéos non lues</string>
   <string name="pref_appearance_show_unplayed_old_video_label_summary">Afficher une étiquette "Nouveau" sur les vidéos ajoutées au cours du nombre de jours indiqué et jamais lues</string>
   <string name="pref_appearance_unplayed_old_video_days_title">Seuil de jours pour l’étiquette de nouvelle vidéo</string>

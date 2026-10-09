@@ -20,6 +20,8 @@ import android.view.SurfaceHolder
 import android.view.SurfaceView
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.core.snap
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -161,10 +163,25 @@ fun MiniPlayer(modifier: Modifier = Modifier) {
     NavigationBarState.isMiniPlayerVisible = isMediaActive
   }
 
+  val reduceMotion = AppMotion.shouldReduceMotion()
   AnimatedVisibility(
     visible = isMediaActive,
-    enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
-    exit = slideOutVertically(targetOffsetY = { it }) + fadeOut(),
+    enter = if (reduceMotion) {
+      fadeIn(animationSpec = tween(120))
+    } else {
+      slideInVertically(
+        animationSpec = tween(320, easing = FastOutSlowInEasing),
+        initialOffsetY = { it / 2 },
+      ) + fadeIn(animationSpec = tween(240))
+    },
+    exit = if (reduceMotion) {
+      fadeOut(animationSpec = tween(120))
+    } else {
+      slideOutVertically(
+        animationSpec = tween(260, easing = FastOutSlowInEasing),
+        targetOffsetY = { it / 2 },
+      ) + fadeOut(animationSpec = tween(200))
+    },
     modifier = modifier,
   ) {
     MiniPlayerContent(

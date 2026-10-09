@@ -71,6 +71,7 @@
   <string name="pref_appearance_force_dark_player_buttons_background_summary">Зберігати темний фон кнопок керування плеєром у світлій, темній та автоматичній темах</string>
   <string name="pref_appearance_category_file_browser">Файловий менеджер</string>
   <string name="pref_appearance_category_thumbnails">Мініатюри</string>
+  <string name="pref_appearance_category_navigation">Навігація</string>
   <string name="pref_appearance_show_unplayed_old_video_label_title">Позначка для нових непереглянутих відео</string>
   <string name="pref_appearance_show_unplayed_old_video_label_summary">Показувати позначку «Нове» на відео, доданих за вказану кількість днів, які ще не відтворювалися</string>
   <string name="pref_appearance_unplayed_old_video_days_title">Поріг днів для позначки нових відео</string>

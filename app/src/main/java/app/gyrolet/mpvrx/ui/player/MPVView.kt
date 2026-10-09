@@ -43,6 +43,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
 import `is`.xyz.mpv.BaseMPVView
 import `is`.xyz.mpv.KeyMapping
@@ -89,15 +90,37 @@ class MPVView(
       if (!value) isSurfaceReady = false
     }
 
-  /** Suspend the media loader rather than blocking SurfaceHolder or the native mpv lock. */
-  internal suspend fun awaitSurfaceReady(): Boolean =
-    withTimeoutOrNull(5_000L) {
-      surfaceReadiness.first { ready ->
-        ready && surfaceBindingEnabled && holder.surface.isValid &&
-          PlaybackSession.state.value.surfaceAttached
-      }
-      true
-    } ?: false
+  /**
+   * Suspends the media loader until this view's Surface is attached, like mpv-android's
+   * `playFile()` deferring `loadfile` to `surfaceCreated`. The bind is re-attempted so a failed or
+   * superseded attachment is recovered. Returns false only when binding is disabled or exiting.
+   */
+  internal suspend fun awaitSurfaceReady(): Boolean {
+    while (true) {
+      val attached =
+        withContext(Dispatchers.Main.immediate) {
+          when {
+            ensureSurfaceAttached() -> true
+            // A hidden window (backgrounded/locked) will not create a Surface until it returns.
+            isExiting || !surfaceBindingEnabled || (isAttachedToWindow && windowVisibility != VISIBLE) -> false
+            else -> null
+          }
+        }
+      if (attached != null) return attached
+      withTimeoutOrNull(SURFACE_RETRY_MS) { surfaceReadiness.first { it } }
+    }
+  }
+
+  /**
+   * Binds this view's valid Surface unless it is already the attached one. Covers a failed bind, a
+   * rebuilt core and another owner (mini player/PiP) holding the session. Main thread only.
+   */
+  internal fun ensureSurfaceAttached(): Boolean {
+    if (isExiting || !surfaceBindingEnabled || !holder.surface.isValid) return false
+    if (isSurfaceReady && PlaybackSession.isSurfaceAttachedTo(this)) return true
+    surfaceCreated(holder)
+    return isSurfaceReady
+  }
 
   /**
    * Configures the process-wide player and binds this view as its current rendering surface.
@@ -151,7 +174,7 @@ class MPVView(
   internal fun attachSessionSurface() {
     holder.removeCallback(this)
     holder.addCallback(this)
-    if (holder.surface.isValid && !isSurfaceReady) surfaceCreated(holder)
+    ensureSurfaceAttached()
   }
 
   /**
@@ -481,6 +504,7 @@ class MPVView(
 
   private companion object {
     const val DEFAULT_OSD_SAFE_MARGIN = 16
+    const val SURFACE_RETRY_MS = 250L
   }
 
   @Suppress("ReturnCount", "DEPRECATION")
@@ -526,8 +550,20 @@ class MPVView(
     width: Int,
     height: Int,
   ) {
-    PlaybackSession.resizeSurface(width, height, owner = this)
+    if (!PlaybackSession.resizeSurface(width, height, owner = this)) ensureSurfaceAttached()
     applyFrameRate()
+    redrawPausedFrame()
+  }
+
+  /**
+   * A paused mpv does not render onto a new or resized Surface by itself, leaving a black or
+   * stretched buffer. A zero-distance exact seek re-renders the current frame (as REX Player does).
+   */
+  private fun redrawPausedFrame() {
+    if (isExiting || !isSurfaceReady) return
+    val state = PlaybackSession.state.value
+    if (!state.paused || state.phase != PlaybackPhase.READY || !PlaybackSession.isSurfaceAttachedTo(this)) return
+    PlaybackSession.command("seek", "0", "relative+exact")
   }
 
   override fun surfaceCreated(holder: android.view.SurfaceHolder) {

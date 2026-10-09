@@ -1247,7 +1247,8 @@ is PlayerUpdates.FrameInfo -> {
               modifier =
                 Modifier
                   .padding(vertical = customButtonsRowVerticalPadding)
-                  .horizontalScroll(rememberScrollState()),
+                  .horizontalScroll(rememberScrollState())
+                  .padding(horizontal = 8.dp, vertical = 6.dp),
             ) {
               leftCustomButtons.forEach { button ->
                 key(button.id) {
@@ -1333,7 +1334,8 @@ is PlayerUpdates.FrameInfo -> {
               modifier =
                 Modifier
                   .padding(vertical = customButtonsRowVerticalPadding)
-                  .horizontalScroll(rememberScrollState(), reverseScrolling = true),
+                  .horizontalScroll(rememberScrollState(), reverseScrolling = true)
+                  .padding(horizontal = 8.dp, vertical = 6.dp),
             ) {
               rightCustomButtons.forEach { button ->
                 key(button.id) {
@@ -1420,7 +1422,8 @@ is PlayerUpdates.FrameInfo -> {
               modifier =
                 Modifier
                   .padding(vertical = customButtonsRowVerticalPadding)
-                  .horizontalScroll(rememberScrollState()),
+                  .horizontalScroll(rememberScrollState())
+                  .padding(horizontal = 8.dp, vertical = 6.dp),
             ) {
               customButtons.forEach { button ->
                 key(button.id) {
