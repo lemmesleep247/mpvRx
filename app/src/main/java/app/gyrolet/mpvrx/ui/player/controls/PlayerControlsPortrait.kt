@@ -271,12 +271,19 @@ fun BottomPlayerControlsPortrait(
   activity: PlayerActivity,
 ) {
   PlayerButtonTheme(hideBackground) {
+    val appearancePreferences = koinInject<AppearancePreferences>()
+    val enableLiquidGlass by appearancePreferences.liquidGlassEnabled.collectAsState()
     Row(
       modifier =
         Modifier
           .fillMaxWidth()
           .horizontalScroll(rememberScrollState())
-          .padding(bottom = MaterialTheme.spacing.medium),
+          // Padding after horizontalScroll belongs to scroll content, not its clipping viewport.
+          .padding(
+            horizontal = if (enableLiquidGlass) 8.dp else 0.dp,
+            top = if (enableLiquidGlass) 6.dp else 0.dp,
+            bottom = MaterialTheme.spacing.medium,
+          ),
       horizontalArrangement = Arrangement.spacedBy(MaterialTheme.spacing.medium, Alignment.CenterHorizontally),
       verticalAlignment = Alignment.CenterVertically,
     ) {
