@@ -12,6 +12,7 @@ package app.gyrolet.mpvrx.ui.preferences.components
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.snap
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -92,6 +93,10 @@ fun SwitchPreference(
   val containerColor by animateColorAsState(
     targetValue = when {
       insideConnectedCard -> androidx.compose.ui.graphics.Color.Transparent
+      // Connected rows in draggable panels need visible fills even when switched off.
+      groupIndex != null && groupSize != null ->
+        if (value) MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.90f)
+        else MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.90f)
       value -> MaterialTheme.colorScheme.secondaryContainer
       else -> MaterialTheme.colorScheme.surfaceContainerLow
     },
@@ -138,6 +143,7 @@ fun SwitchPreference(
           Modifier
             .weight(1f)
             .padding(end = 16.dp),
+        verticalArrangement = Arrangement.spacedBy(4.dp),
       ) {
         ProvideTextStyle(value = titleStyle) {
           title()
