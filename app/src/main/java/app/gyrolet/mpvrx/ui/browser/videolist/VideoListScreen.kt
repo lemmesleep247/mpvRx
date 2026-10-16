@@ -50,7 +50,6 @@ import androidx.compose.material3.animateFloatingActionButton
 import androidx.compose.material3.rememberTooltipState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -112,6 +111,7 @@ import app.gyrolet.mpvrx.ui.browser.fab.FabScrollHelper
 import app.gyrolet.mpvrx.ui.browser.selection.SelectionManager
 import app.gyrolet.mpvrx.ui.browser.selection.rememberSelectionManager
 import app.gyrolet.mpvrx.ui.browser.states.EmptyState
+import app.gyrolet.mpvrx.ui.browser.states.LoadingState
 import app.gyrolet.mpvrx.ui.components.InlineSearchBar
 import app.gyrolet.mpvrx.ui.icons.Icon
 import app.gyrolet.mpvrx.ui.icons.Icons
@@ -371,7 +371,7 @@ data class VideoListScreen(
             query = internalSearchQuery,
             onQueryChange = { internalSearchQuery = it },
             onSearch = { },
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
             inputFieldModifier = Modifier.focusRequester(focusRequester),
             placeholder = { Text(stringResource(R.string.ui_search_videos)) },
             leadingIcon = {
@@ -981,19 +981,12 @@ internal fun VideoListContent(
 
   when {
     isLoading && videosWithInfo.isEmpty() -> {
-      Box(
-        modifier =
-          modifier
-            .fillMaxSize()
-            .padding(bottom = 80.dp),
-        // Account for bottom navigation bar
-        contentAlignment = Alignment.Center,
-      ) {
-        CircularProgressIndicator(
-          modifier = Modifier.size(48.dp),
-          color = MaterialTheme.colorScheme.primary,
-        )
-      }
+      LoadingState(
+        icon = Icons.RoundedFilled.VideoLibrary,
+        title = stringResource(R.string.ui_scanning_for_videos),
+        message = "Please wait while we search your device",
+        modifier = modifier.fillMaxSize().padding(bottom = 80.dp),
+      )
     }
 
     videosWithInfo.isEmpty() && !isLoading && videosWereDeletedOrMoved -> {
@@ -1103,13 +1096,6 @@ internal fun VideoListContent(
               )
             }
           }
-
-        val listIsScrolling by remember(listState, gridState, mediaLayoutMode) {
-          derivedStateOf {
-            if (mediaLayoutMode == MediaLayoutMode.LIST) listState.isScrollInProgress
-            else gridState.isScrollInProgress
-          }
-        }
 
         LaunchedEffect(
           folderId, showVideoThumbnails, thumbWidthPx, thumbHeightPx,
@@ -1231,7 +1217,6 @@ internal fun VideoListContent(
                       showSubtitleIndicator = showSubtitleIndicator,
                       allowThumbnailGeneration = !archiveFolder,
                       allowThumbnailLoading = !archiveFolder,
-                      deferThumbnailLoading = listIsScrolling,
                       uiConfig = videoCardUiConfig,
                   )
                 }
@@ -1302,7 +1287,6 @@ internal fun VideoListContent(
                       showSubtitleIndicator = showSubtitleIndicator,
                       allowThumbnailGeneration = !archiveFolder,
                       allowThumbnailLoading = !archiveFolder,
-                      deferThumbnailLoading = listIsScrolling,
                       uiConfig = videoCardUiConfig,
                       thumbnailWidthPx = if (isAudio) with(density) { musicCoverArtSize.dp.roundToPx() } else null,
                       thumbnailHeightPx = if (isAudio) with(density) { musicCoverArtSize.dp.roundToPx() } else null,

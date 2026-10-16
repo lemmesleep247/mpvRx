@@ -19,6 +19,7 @@ import app.gyrolet.mpvrx.domain.media.model.VideoFolder
 import app.gyrolet.mpvrx.domain.playbackstate.repository.PlaybackStateRepository
 import app.gyrolet.mpvrx.preferences.AppearancePreferences
 import app.gyrolet.mpvrx.preferences.FoldersPreferences
+import app.gyrolet.mpvrx.preferences.HiddenScanScope
 import app.gyrolet.mpvrx.repository.MediaFileRepository
 import app.gyrolet.mpvrx.ui.browser.base.BaseBrowserViewModel
 import app.gyrolet.mpvrx.ui.player.PlaybackIdentity
@@ -132,20 +133,18 @@ class FolderListViewModel(
     // Load cached folders instantly for immediate display
     val hasCachedData = loadCachedFolders()
 
-    if (!hasCachedData) {
-      loadVideoFolders(silent = false)
-    } else if (MediaStoreGenerationGuard.isUnchangedSinceLastScan(getApplication())) {
+    // Token checks query MediaStore, so they run off the main thread.
+    viewModelScope.launch(Dispatchers.IO) {
+      if (!hasCachedData) {
+        loadVideoFolders(silent = false)
+        return@launch
+      }
       // MediaStore has not changed since this cache was written, so re-querying it could only
       // rebuild an identical list. Hidden .nomedia folders are still walked: MediaStore cannot see
       // those files, so its generation says nothing about them.
-      Log.d(TAG, "MediaStore unchanged, reusing cached folder list")
-      viewModelScope.launch(Dispatchers.IO) {
-        loadVideoFolders(silent = true, skipMediaStoreScan = true)
-      }
-    } else {
-      viewModelScope.launch(Dispatchers.IO) {
-        loadVideoFolders(silent = true)
-      }
+      val unchanged = MediaStoreGenerationGuard.isUnchangedSinceLastScan(getApplication())
+      if (unchanged) Log.d(TAG, "MediaStore unchanged, reusing cached folder list")
+      loadVideoFolders(silent = true, skipMediaStoreScan = unchanged)
     }
 
     // Refresh on media events and every preference that changes scan/index semantics. Settings UI
@@ -154,20 +153,28 @@ class FolderListViewModel(
       val scanPreferenceChanges =
         combine(
           foldersPreferences.includeNoMediaFolders.changes(),
+          foldersPreferences.foldersHiddenScanEnabled.changes(),
           foldersPreferences.hiddenFolderMarkerNames.changes(),
+          foldersPreferences.sharedScanMarkedFolders.changes(),
+          foldersPreferences.sharedScanDotFolders.changes(),
+          foldersPreferences.sharedIgnoredMarkers.changes(),
           browserPreferences.includeAudioBrowser.changes(),
           browserPreferences.minimumAudioDurationSeconds.changes(),
-        ) { _, _, _, _ -> Unit }
+        ) { _ -> Unit }
           .drop(1)
 
-      merge(MediaLibraryEvents.changes, scanPreferenceChanges).collectLatest {
+      merge(MediaLibraryEvents.changes.map { true }, scanPreferenceChanges.map { false }).collectLatest { mediaChanged ->
         delay(MEDIA_LIBRARY_REFRESH_DEBOUNCE_MS)
         // A media event affects the MediaStore snapshot, not the tree cache or persisted
         // .nomedia fingerprints. Known hidden roots will be checked incrementally below.
         MediaFileRepository.invalidateFolderCache()
         // Whatever prompted this, the library has to be re-read; make sure the cold-boot
         // fast path cannot reuse the cache afterwards.
-        MediaStoreGenerationGuard.invalidate(getApplication())
+        if (mediaChanged) {
+          MediaStoreGenerationGuard.invalidate(getApplication())
+        } else {
+          MediaStoreGenerationGuard.forgetLastScan(getApplication())
+        }
         loadVideoFolders()
       }
     }
@@ -243,7 +250,9 @@ class FolderListViewModel(
     if (cachedJson != null) {
       try {
         // Parse JSON and restore folders
-        val folders = parseFoldersFromJson(cachedJson)
+        val folders = parseFoldersFromJson(cachedJson).filterNot {
+          ScopedHiddenFolderScanner.isScopedFolder(it.bucketId) && it.videoCount == 0
+        }
         if (folders.isNotEmpty()) {
           Log.d(TAG, "Loaded ${folders.size} folders from cache instantly")
           hasCachedData = true
@@ -283,6 +292,10 @@ class FolderListViewModel(
   private fun currentFolderCacheKey(): String =
     "folders_v3_${if (audioOnly) "audioOnly" else "video"}" +
       "_${if (foldersPreferences.includeNoMediaFolders.get()) "with_nomedia" else "exclude_nomedia"}" +
+      "_enabled${foldersPreferences.foldersHiddenScanEnabled.get()}" +
+      "_m${foldersPreferences.sharedScanMarkedFolders.get()}_d${foldersPreferences.sharedScanDotFolders.get()}" +
+      "_markers${foldersPreferences.hiddenFolderMarkerNames.get().sorted().joinToString(",")}" +
+      "_ignore${foldersPreferences.sharedIgnoredMarkers.get().sorted().joinToString(",")}" +
       "_audio_${browserPreferences.includeAudioBrowser.get()}_${browserPreferences.minimumAudioDurationSeconds.get()}"
 
   private fun serializeFoldersToJson(folders: List<VideoFolder>): String {
@@ -424,21 +437,13 @@ class FolderListViewModel(
   override fun refresh() {
     Log.d(TAG, "Refreshing folder list and MediaStore snapshot")
 
-    // Set loading state
-    _isLoading.value = true
-
-    // Invalidate folder results without destroying TreeView/.nomedia fingerprints. The previous
-    // path cleared every scanner cache and then cleared FolderViewScanner a second time.
+    // Keep the last published folders visible while MediaStore is refreshed. A full recursive
+    // filesystem walk and MediaScanner.scanFile(storageRoot) do not belong on the interactive
+    // refresh path: both can take tens of seconds and overlap the folder query.
+    if (_allVideoFolders.value.isEmpty()) _isLoading.value = true
     MediaFileRepository.invalidateFolderCache()
-    // A user-driven refresh must never be satisfied by the cold-boot fast path.
     MediaStoreGenerationGuard.invalidate(getApplication())
-
-    // Force the direct hidden index first; MediaScanner cannot see .nomedia trees.
-    loadVideoFolders(forceFileSystemCheck = true)
-
-    // Preserve full Refresh semantics for ordinary files copied by other apps. Completion emits a
-    // debounced MediaLibraryEvents update, while this asynchronous pass never blocks hidden results.
-    triggerMediaScan()
+    viewModelScope.launch(Dispatchers.IO) { loadVideoFolders() }
   }
 
   /**
@@ -448,17 +453,20 @@ class FolderListViewModel(
    * an old device is revisited after a while (Android 10 has no MediaStore generation token).
    */
   suspend fun checkExternalFolderChanges(onResume: Boolean) {
-    if (audioOnly || currentScanJob?.isActive == true) return
+    if (audioOnly || currentScanJob?.isActive == true ||
+      !foldersPreferences.hiddenScanEnabled(HiddenScanScope.FOLDERS)) return
 
-    val markerNames = foldersPreferences.hiddenFolderMarkerNames.get()
-      .map { it.trim() }
-      .filter { it.isNotEmpty() && '/' !in it && '\\' !in it }
-      .map { if (it.startsWith(".")) it else ".$it" }
+    val markerNames =
+      (foldersPreferences.hiddenFolderMarkerNames.get() - foldersPreferences.sharedIgnoredMarkers.get())
+        .map { it.trim() }
+        .filter { it.isNotEmpty() && '/' !in it && '\\' !in it }
+        .map { if (it.startsWith(".")) it else ".$it" }
     val roots = MediaFileRepository.getIndexedNoMediaRootPaths()
     val directories = (roots + _allVideoFolders.value.map { it.path }).distinct()
     val markerSnapshot = directories.associateWith { path ->
       val directory = File(path)
-      directory.name.startsWith(".") || markerNames.any { File(directory, it).isFile }
+      (foldersPreferences.scanDotFolders(HiddenScanScope.FOLDERS) && directory.name.startsWith(".")) ||
+        (foldersPreferences.scanMarkedFolders(HiddenScanScope.FOLDERS) && markerNames.any { File(directory, it).isFile })
     }
     val previous = lastHiddenMarkerSnapshot
     lastHiddenMarkerSnapshot = markerSnapshot
@@ -480,24 +488,19 @@ class FolderListViewModel(
     if (!staleHiddenRoot && !markersChanged && !needsForegroundCheck) return
 
     lastExternalFolderRecheckAt = now
-    Log.d(TAG, "Folder mode detected external folder/marker change; refreshing independently of Library")
+    Log.d(TAG, "Folder mode checking external folder markers; refreshing independently of Library")
     MediaFileRepository.invalidateFolderCache()
-    MediaStoreGenerationGuard.invalidate(getApplication())
-    loadVideoFolders(forceFileSystemCheck = true, silent = true)
-  }
-
-  private fun triggerMediaScan() {
-    try {
-      val externalStorage = android.os.Environment.getExternalStorageDirectory()
-      android.media.MediaScannerConnection.scanFile(
-        getApplication(),
-        arrayOf(externalStorage.absolutePath),
-        null,
-      ) { path, uri ->
-        Log.d(TAG, "Media scan completed for: $path -> $uri")
-      }
-    } catch (error: Exception) {
-      Log.e(TAG, "Failed to trigger media scan", error)
+    if (staleHiddenRoot || markersChanged) {
+      // A confirmed hidden-root change also invalidates Tree's snapshot.
+      MediaStoreGenerationGuard.invalidate(getApplication())
+    } else {
+      // Periodic health checks must not delete an otherwise valid Tree snapshot.
+      MediaStoreGenerationGuard.forgetLastScan(getApplication())
+    }
+    // A periodic foreground verification is incremental; only changed hidden markers need
+    // the forced filesystem/discovery fallback.
+    viewModelScope.launch(Dispatchers.IO) {
+      loadVideoFolders(forceFileSystemCheck = staleHiddenRoot || markersChanged, silent = true)
     }
   }
 
@@ -548,6 +551,9 @@ class FolderListViewModel(
             }
             _isLoading.value = false
             _hasCompletedInitialLoad.value = true
+            if (MetadataRetrieval.isFolderMetadataNeeded(browserPreferences)) {
+              enrichScopedFolderDurations(folders)
+            }
           } catch (error: kotlinx.coroutines.CancellationException) {
             throw error
           } catch (e: Exception) {
@@ -610,7 +616,10 @@ class FolderListViewModel(
           }
 
           val scopedFolders = if (skipMediaStoreScan) {
-            MediaFileRepository.getScopedHiddenVideoFolders(getApplication(), includeAudioOverride = if (audioOnly) true else null)
+            ScopedHiddenFolderScanner.withoutLocalDuplicates(
+              mediaStoreFolders + indexedFolders,
+              MediaFileRepository.getScopedHiddenVideoFolders(getApplication(), includeAudioOverride = if (audioOnly) true else null),
+            )
           } else {
             emptyList()
           }
@@ -620,7 +629,7 @@ class FolderListViewModel(
           }
           Log.d(TAG, "Scanned ${mediaStoreFolders.size} MediaStore and ${indexedFolders.size} indexed folders")
 
-          if (foldersPreferences.includeNoMediaFolders.get()) {
+          if (foldersPreferences.hiddenScanEnabled(HiddenScanScope.FOLDERS)) {
             if (!hasExistingData && !silent) {
               _scanStatus.value =
                 if (forceFileSystemCheck || indexedFolders.isEmpty()) {
@@ -662,6 +671,7 @@ class FolderListViewModel(
               val cachedIsComplete = cached != null && (cached.videoCount == 0 || cached.totalDuration > 0)
               if (cached != null &&
                 cached.videoCount == folder.videoCount &&
+                cached.totalSize == folder.totalSize &&
                 cached.lastModified == folder.lastModified &&
                 cachedIsComplete
               ) {
@@ -671,6 +681,15 @@ class FolderListViewModel(
                 folder
               }
             }
+
+          // Render the fresh folder list before potentially slow file-by-file metadata retrieval.
+          // A running enrichment job can be cancelled by the next refresh; it must never hold
+          // back visible Library updates. Cache and file metadata are reused above when unchanged.
+          if (_allVideoFolders.value != foldersForEnrichment) {
+            _allVideoFolders.value = foldersForEnrichment
+          }
+          _isLoading.value = false
+          _hasCompletedInitialLoad.value = true
 
           val needsDurationEnrichment = needsEnrichment && foldersForEnrichment.isNotEmpty() &&
             MetadataRetrieval.isFolderMetadataNeeded(browserPreferences)
@@ -701,6 +720,12 @@ class FolderListViewModel(
           if (_allVideoFolders.value != finalFolders) {
             publishFinalFolders(finalFolders)
           }
+
+          if (MetadataRetrieval.isFolderMetadataNeeded(browserPreferences)) {
+            _isEnriching.value = false
+            _scanStatus.value = null
+            enrichScopedFolderDurations(finalFolders)
+          }
         } catch (e: kotlinx.coroutines.CancellationException) {
           Log.d(TAG, "Scan cancelled (new scan started)")
           throw e
@@ -716,6 +741,28 @@ class FolderListViewModel(
           }
         }
       }
+  }
+
+  /**
+   * Recompute SAF totals from the current membership using the shared per-document cache.
+   * A positive total can still be partial, so it must not prevent missing durations being filled.
+   * Only uncached/changed documents are opened, after the regular list is visible.
+   */
+  private suspend fun enrichScopedFolderDurations(folders: List<VideoFolder>) {
+    val pending = folders.filter {
+      ScopedHiddenFolderScanner.isScopedFolder(it.bucketId) && it.videoCount > 0
+    }
+    for (folder in pending) {
+      currentCoroutineContext().ensureActive()
+      val totalDuration =
+        MetadataRetrieval
+          .enrichFolderIfNeeded(getApplication(), folder, browserPreferences, metadataCache, audioOnly = audioOnly)
+          .totalDuration
+      val key = folderKey(folder)
+      _allVideoFolders.update { current ->
+        current.map { if (folderKey(it) == key) it.copy(totalDuration = totalDuration) else it }
+      }
+    }
   }
 
   private fun folderKey(folder: VideoFolder): String =

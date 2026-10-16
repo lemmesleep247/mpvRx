@@ -31,6 +31,8 @@ import app.gyrolet.mpvrx.preferences.MpvConfigOverridePolicy
 import com.kyant.backdrop.backdrops.LayerBackdrop
 import com.kyant.backdrop.backdrops.layerBackdrop
 import com.kyant.backdrop.backdrops.rememberLayerBackdrop
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 
 /**
  * HDR stays on a native SurfaceView: Android tone-maps TextureView content into the app window's
@@ -56,8 +58,22 @@ abstract class MpvSurfaceHost(context: Context, attributes: AttributeSet) : Fram
   private var rendererEpoch = 0
   private var textureRendering: Boolean? = null
 
+  // The new TextureView can be attached to mpv before it receives a drawable video frame.
+  // Expose its first real buffer update so the controls never sample a blank HDR/SDR layer.
+  private val textureFrameReady = MutableStateFlow(false)
+  internal val textureFrameReadyState: StateFlow<Boolean> = textureFrameReady
+
   internal val isTextureSurface: Boolean
     get() = textureRendering == true
+
+  /**
+   * HDR color-space/shader changes can replace the pixels behind an existing TextureView
+   * without replacing its Android Surface. Hide the old glass sample until that view posts
+   * another frame; changing the renderer itself resets this flag in setTextureRendering().
+   */
+  internal fun invalidateTextureFrameReadiness() {
+    if (textureRendering == true) textureFrameReady.value = false
+  }
 
   protected abstract fun onRenderSurfaceAvailable(surface: Surface, width: Int, height: Int)
   protected abstract fun onRenderSurfaceSizeChanged(width: Int, height: Int)
@@ -66,9 +82,14 @@ abstract class MpvSurfaceHost(context: Context, attributes: AttributeSet) : Fram
   /** Only changes for an appearance/HDR preference, never when controls appear or disappear. */
   internal fun setTextureRendering(enabled: Boolean) {
     if (textureRendering == enabled) return
+    val wasConfigured = textureRendering != null
     textureRendering = enabled
+    textureFrameReady.value = false
     val epoch = ++rendererEpoch
-    if (renderSurface != null) onRenderSurfaceDestroyed()
+    // A TextureView may clear its Surface before the preference collector switches renderers.
+    // Explicitly detach the old native VO on every real mode change, even when renderSurface
+    // is already null, so the replacement SurfaceView can bind without inheriting a stale wid.
+    if (wasConfigured) onRenderSurfaceDestroyed()
     if (ownsSurface) renderSurface?.release()
     renderSurface = null
     ownsSurface = false
@@ -89,6 +110,7 @@ abstract class MpvSurfaceHost(context: Context, attributes: AttributeSet) : Fram
 
     fun destroyed() {
       if (epoch != rendererEpoch) return
+      textureFrameReady.value = false
       onRenderSurfaceDestroyed()
       if (ownsSurface) renderSurface?.release()
       renderSurface = null
@@ -132,7 +154,11 @@ abstract class MpvSurfaceHost(context: Context, attributes: AttributeSet) : Fram
                       return true // TextureView owns and releases the SurfaceTexture after MPV detaches.
                     }
 
-                    override fun onSurfaceTextureUpdated(texture: SurfaceTexture) = Unit
+                    override fun onSurfaceTextureUpdated(texture: SurfaceTexture) {
+                      if (epoch == rendererEpoch && !textureFrameReady.value) {
+                        textureFrameReady.value = true
+                      }
+                    }
                   }
                 }
               },

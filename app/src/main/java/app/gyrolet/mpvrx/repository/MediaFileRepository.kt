@@ -24,6 +24,7 @@ import app.gyrolet.mpvrx.domain.playbackstate.repository.PlaybackStateRepository
 import app.gyrolet.mpvrx.preferences.AppearancePreferences
 import app.gyrolet.mpvrx.preferences.BrowserPreferences
 import app.gyrolet.mpvrx.preferences.FoldersPreferences
+import app.gyrolet.mpvrx.preferences.HiddenScanScope
 import app.gyrolet.mpvrx.utils.media.MediaInfoOps
 import app.gyrolet.mpvrx.utils.media.ScopedHiddenFolderScanner
 import app.gyrolet.mpvrx.utils.storage.FileTypeUtils
@@ -35,6 +36,7 @@ import app.gyrolet.mpvrx.utils.storage.TreeViewScanner
 import app.gyrolet.mpvrx.utils.storage.leafStorageName
 import app.gyrolet.mpvrx.utils.storage.VideoScanUtils
 import app.gyrolet.mpvrx.utils.storage.mediaPathKey
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.withContext
@@ -63,12 +65,20 @@ object MediaFileRepository : KoinComponent {
   private val playbackStateRepository: PlaybackStateRepository by inject()
   private val database: MpvRxDatabase by inject()
 
-  private fun currentScanOptions(includeAudioOverride: Boolean? = null): MediaScanOptions =
+  private fun currentScanOptions(
+    includeAudioOverride: Boolean? = null,
+    scope: HiddenScanScope = HiddenScanScope.FOLDERS,
+  ): MediaScanOptions =
     MediaScanOptions(
-      // Scoped Play Store builds cannot recursively discover .nomedia directories.
-      // Their explicit SAF grants are handled independently below.
-      includeNoMediaFolders = !BuildConfig.SCOPED_STORAGE_ONLY && foldersPreferences.includeNoMediaFolders.get(),
+      // Scoped builds discover unindexed folders only through explicit user-granted SAF trees.
+      includeNoMediaFolders = !BuildConfig.SCOPED_STORAGE_ONLY &&
+        foldersPreferences.includeNoMediaFolders.get() && foldersPreferences.isModeScanEnabled(scope) &&
+        foldersPreferences.scanMarkedFolders(scope),
+      includeDotFolders = !BuildConfig.SCOPED_STORAGE_ONLY &&
+        foldersPreferences.includeNoMediaFolders.get() && foldersPreferences.isModeScanEnabled(scope) &&
+        foldersPreferences.scanDotFolders(scope),
       hiddenFolderMarkerNames = foldersPreferences.hiddenFolderMarkerNames.get(),
+      ignoredHiddenMarkerNames = foldersPreferences.ignoredMarkers(scope),
       includeAudio = includeAudioOverride ?: browserPreferences.includeAudioBrowser.get(),
       minimumAudioDurationSeconds = browserPreferences.minimumAudioDurationSeconds.get(),
     )
@@ -113,13 +123,20 @@ object MediaFileRepository : KoinComponent {
   // FOLDER OPERATIONS (Album View)
   // =============================================================================
 
-  suspend fun getScopedHiddenVideoFolders(context: Context, includeAudioOverride: Boolean? = null): List<VideoFolder> =
-    if (BuildConfig.SCOPED_STORAGE_ONLY && foldersPreferences.includeNoMediaFolders.get()) {
+  suspend fun getScopedHiddenVideoFolders(
+    context: Context,
+    includeAudioOverride: Boolean? = null,
+    scope: HiddenScanScope = HiddenScanScope.FOLDERS,
+  ): List<VideoFolder> =
+    if (BuildConfig.SCOPED_STORAGE_ONLY && foldersPreferences.hiddenScanEnabled(scope)) {
       ScopedHiddenFolderScanner.getFolders(
         context,
         foldersPreferences.scopedHiddenFolderUris.get(),
         includeAudioOverride ?: browserPreferences.includeAudioBrowser.get(),
-        minimumAudioDurationSeconds = browserPreferences.minimumAudioDurationSeconds.get(),
+        includeMarkedFolders = foldersPreferences.scanMarkedFolders(scope),
+        includeDotFolders = foldersPreferences.scanDotFolders(scope),
+        markerNames = foldersPreferences.hiddenFolderMarkerNames.get(),
+        ignoredMarkerNames = foldersPreferences.ignoredMarkers(scope),
       )
     } else {
       emptyList()
@@ -132,45 +149,58 @@ object MediaFileRepository : KoinComponent {
     context: Context,
     forceFileSystemCheck: Boolean = false,
     includeAudioOverride: Boolean? = null,
+    scope: HiddenScanScope = HiddenScanScope.FOLDERS,
   ): List<VideoFolder> =
     withContext(Dispatchers.IO) {
       try {
         val mediaStoreFolders =
           FolderViewScanner.getAllVideoFolders(
             context,
-            currentScanOptions(includeAudioOverride),
+            currentScanOptions(includeAudioOverride, scope),
             forceFileSystemCheck,
           )
         val indexedFolders =
           FolderViewScanner.getIndexedNoMediaFolders(
-            currentScanOptions(includeAudioOverride),
+            currentScanOptions(includeAudioOverride, scope),
             database.directoryScanDao(),
           )
-        (mediaStoreFolders + indexedFolders + getScopedHiddenVideoFolders(context, includeAudioOverride))
+        val localFolders = mediaStoreFolders + indexedFolders
+        val scopedFolders = ScopedHiddenFolderScanner.withoutLocalDuplicates(
+          localFolders,
+          getScopedHiddenVideoFolders(context, includeAudioOverride, scope),
+        )
+        (localFolders + scopedFolders)
           .distinctBy { if (ScopedHiddenFolderScanner.isScopedFolder(it.path)) it.path else it.path.lowercase(Locale.ROOT) }
           .sortedBy { it.name.lowercase(Locale.getDefault()) }
+      } catch (cancelled: CancellationException) {
+        throw cancelled
       } catch (e: Exception) {
         Log.e(TAG, "Error scanning for video folders", e)
         emptyList()
       }
     }
 
-  /** Fast MediaStore-only phase. Hidden folders arrive through the incremental flow below. */
+  /** Fast phase: MediaStore folders plus any granted Play Store folders. Other hidden folders arrive through the incremental flow below. */
   suspend fun getAllVideoFoldersFast(
     context: Context,
     onProgress: ((Int) -> Unit)? = null,
     forceFileSystemCheck: Boolean = false,
     includeAudioOverride: Boolean? = null,
+    scope: HiddenScanScope = HiddenScanScope.FOLDERS,
   ): List<VideoFolder> =
     withContext(Dispatchers.IO) {
-      val options = currentScanOptions(includeAudioOverride)
+      val options = currentScanOptions(includeAudioOverride, scope)
       val folders = FolderViewScanner
         .getAllVideoFolders(
           context = context,
           options = options,
           forceFileSystemCheck = forceFileSystemCheck,
         )
-      (folders + getScopedHiddenVideoFolders(context, includeAudioOverride))
+      val scopedFolders = ScopedHiddenFolderScanner.withoutLocalDuplicates(
+        folders,
+        getScopedHiddenVideoFolders(context, includeAudioOverride, scope),
+      )
+      (folders + scopedFolders)
         .distinctBy { if (ScopedHiddenFolderScanner.isScopedFolder(it.path)) it.path else it.path.lowercase(Locale.ROOT) }
         .sortedBy { it.name.lowercase(Locale.getDefault()) }
         .also { onProgress?.invoke(it.size) }
@@ -251,13 +281,13 @@ object MediaFileRepository : KoinComponent {
           context,
           foldersPreferences.scopedHiddenFolderUris.get(),
           includeAudio = true,
-          minimumAudioDurationSeconds = minimumAudioDurationSeconds,
           audioOnly = true,
         )
       } else {
         emptyList()
       }
-      (indexedFolders + selectedFolders).sortedBy { it.name.lowercase(Locale.getDefault()) }
+      (indexedFolders + ScopedHiddenFolderScanner.withoutLocalDuplicates(indexedFolders, selectedFolders))
+        .sortedBy { it.name.lowercase(Locale.getDefault()) }
     }
 
   /**
@@ -387,11 +417,12 @@ object MediaFileRepository : KoinComponent {
     bucketId: String,
     forceFileSystemCheck: Boolean = false,
     includeAudioOverride: Boolean? = null,
+    scope: HiddenScanScope = HiddenScanScope.FOLDERS,
   ): List<Video> =
     withContext(Dispatchers.IO) {
       try {
         if (BuildConfig.SCOPED_STORAGE_ONLY &&
-          foldersPreferences.includeNoMediaFolders.get() &&
+          foldersPreferences.hiddenScanEnabled(scope) &&
           ScopedHiddenFolderScanner.isGrantedFolder(bucketId, foldersPreferences.scopedHiddenFolderUris.get())
         ) {
           ScopedHiddenFolderScanner.getVideos(
@@ -399,19 +430,23 @@ object MediaFileRepository : KoinComponent {
             bucketId,
             includeAudioOverride ?: browserPreferences.includeAudioBrowser.get(),
             foldersPreferences.scopedHiddenFolderUris.get(),
-            minimumAudioDurationSeconds = browserPreferences.minimumAudioDurationSeconds.get(),
-            excludeMediaStoreItems = true,
-          )
+          ).filter { video ->
+            // SAF exposes files invisible to MediaStore, including dot-prefixed media.
+            // Apply the same per-view filename policy after reading the selected grant.
+            foldersPreferences.scanDotFolders(scope) || !video.displayName.startsWith(".")
+          }
         } else if (ScopedHiddenFolderScanner.isScopedFolder(bucketId)) {
           emptyList()
         } else {
           VideoScanUtils.getVideosInFolder(
             context,
             bucketId,
-            currentScanOptions(includeAudioOverride),
+            currentScanOptions(includeAudioOverride, scope),
             forceFileSystemCheck,
           )
         }
+      } catch (cancelled: CancellationException) {
+        throw cancelled
       } catch (e: Exception) {
         Log.e(TAG, "Error getting videos for bucket $bucketId", e)
         emptyList()
@@ -426,24 +461,32 @@ object MediaFileRepository : KoinComponent {
     context: Context,
     bucketIds: Set<String>,
     includeAudioOverride: Boolean? = null,
+    scope: HiddenScanScope = HiddenScanScope.FOLDERS,
   ): List<Video> =
     withContext(Dispatchers.IO) {
       val result = linkedMapOf<String, Video>()
       for (id in bucketIds) {
-        runCatching {
+        try {
           getVideosInFolder(
             context,
             id,
             includeAudioOverride = includeAudioOverride,
+            scope = scope,
           ).forEach { media ->
+            // A granted document and its MediaStore row are the same file; key both by real path.
             val key = if (BuildConfig.SCOPED_STORAGE_ONLY && ScopedHiddenFolderScanner.isScopedFolder(media.path)) {
-              ScopedHiddenFolderScanner.documentKey(media.uri)
+              ScopedHiddenFolderScanner.localPathOf(media.uri)?.let(::mediaPathKey)
+                ?: ScopedHiddenFolderScanner.documentKey(media.uri)
             } else mediaPathKey(media.path) ?: media.path
             val existing = result[key]
             if (existing == null || shouldReplaceMedia(existing, media)) {
               result[key] = media
             }
           }
+        } catch (cancelled: CancellationException) {
+          throw cancelled
+        } catch (error: Exception) {
+          Log.w(TAG, "Skipping failed media bucket", error)
         }
       }
       result.values.toList()
@@ -551,9 +594,11 @@ object MediaFileRepository : KoinComponent {
     includeAudioOverride: Boolean? = null,
   ): List<Video> =
     withContext(Dispatchers.IO) {
-      val folders = getAllVideoFolders(context, includeAudioOverride = includeAudioOverride)
+      val folders = getAllVideoFolders(
+        context, includeAudioOverride = includeAudioOverride, scope = HiddenScanScope.LIBRARY,
+      )
       val bucketIds = folders.map { it.bucketId }.toSet()
-      getVideosForBuckets(context, bucketIds, includeAudioOverride)
+      getVideosForBuckets(context, bucketIds, includeAudioOverride, scope = HiddenScanScope.LIBRARY)
     }
 
   // =============================================================================
@@ -596,7 +641,7 @@ object MediaFileRepository : KoinComponent {
   ): Result<List<FileSystemItem>> =
     withContext(Dispatchers.IO) {
       try {
-        val scanOptions = currentScanOptions()
+        val scanOptions = currentScanOptions(scope = HiddenScanScope.TREE)
         val directory = File(path)
         val indexedDirectory = if (BuildConfig.SCOPED_STORAGE_ONLY) {
           TreeViewScanner.getFolderDataRecursive(context, path, scanOptions, forceFileSystemCheck)
@@ -697,7 +742,7 @@ object MediaFileRepository : KoinComponent {
             TreeViewScanner.getFolderDataRecursive(
               context,
               primaryPath,
-              currentScanOptions(),
+              currentScanOptions(scope = HiddenScanScope.TREE),
               forceFileSystemCheck,
               playedMediaTitles,
               showNewLabels,
@@ -733,7 +778,7 @@ object MediaFileRepository : KoinComponent {
                 TreeViewScanner.getFolderDataRecursive(
                   context,
                   volumePath,
-                  currentScanOptions(),
+                  currentScanOptions(scope = HiddenScanScope.TREE),
                   forceFileSystemCheck,
                   playedMediaTitles,
                   showNewLabels,
