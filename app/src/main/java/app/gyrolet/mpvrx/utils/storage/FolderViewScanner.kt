@@ -376,12 +376,17 @@ object FolderViewScanner {
         var size = 0L
         var duration = 0L
         var modified = 0L
+        // Durations are read only when a minimum audio length has to be checked. Otherwise they are
+        // filled in afterwards, in the background, the same way Play Store folders get them.
+        val readDurations = options.minimumAudioDurationSeconds > 0
         for (file in files) {
-          if (!file.isFile || (file.name.startsWith(".") && !options.includeDotFolders)) continue
+          if (file.name.startsWith(".") && !options.includeDotFolders) continue
+          // The type comes from the name, so only media that is counted costs a stat.
           val isAudio = options.includeAudio && FileTypeUtils.isAudioFile(file)
           if (!isAudio && !FileTypeUtils.isVideoFile(file)) continue
-          val mediaDuration = if (isAudio) FileTypeUtils.getDurationMs(file) else 0L
-          if (isAudio && !options.includesAudioDuration(mediaDuration)) continue
+          if (!file.isFile) continue
+          val mediaDuration = if (isAudio && readDurations) FileTypeUtils.getDurationMs(file) else 0L
+          if (isAudio && readDurations && !options.includesAudioDuration(mediaDuration)) continue
           count++
           size += file.length()
           duration += mediaDuration
@@ -618,7 +623,7 @@ object FolderViewScanner {
   private fun shouldVisitDuringNoMediaScan(directory: File, options: MediaScanOptions): Boolean {
     val name = directory.name.lowercase(Locale.ROOT)
     return name !in NO_MEDIA_SCAN_SKIP_FOLDERS && directory.canRead() &&
-      !NoMediaPathFilter(options).shouldExcludeDirectory(directory)
+      !options.pathFilter.shouldExcludeDirectory(directory)
   }
 
   private fun isHiddenMediaRoot(
@@ -627,7 +632,7 @@ object FolderViewScanner {
     files: List<File>? = null,
   ): Boolean {
     // A disabled marker wins even when the same directory is dot-prefixed.
-    if (NoMediaPathFilter(options).shouldExcludeDirectory(directory)) return false
+    if (options.pathFilter.shouldExcludeDirectory(directory)) return false
     return (options.includeDotFolders && directory.name.startsWith(".")) ||
       (options.activeHiddenMarkerNames.isNotEmpty() &&
         if (files == null) {
@@ -637,6 +642,9 @@ object FolderViewScanner {
         })
   }
 
+  // Names and the directory's own mtime change when a child is added, removed or renamed. Media files
+  // also contribute size and mtime, so an in-place edit to a video or track is still noticed. Other
+  // entries are not statted, which keeps large folders of photos and documents cheap to check.
   private fun directoryFingerprint(
     directory: File,
     files: List<File>,
@@ -646,9 +654,10 @@ object FolderViewScanner {
     files.forEach { file ->
       var entryHash = 17L
       entryHash = 31 * entryHash + file.name.hashCode()
-      entryHash = 31 * entryHash + if (file.isDirectory) 1 else 0
-      entryHash = 31 * entryHash + file.length()
-      entryHash = 31 * entryHash + file.lastModified()
+      if (FileTypeUtils.isVideoFile(file) || FileTypeUtils.isAudioFile(file)) {
+        entryHash = 31 * entryHash + file.length()
+        entryHash = 31 * entryHash + file.lastModified()
+      }
       val mixed = mixFingerprint(entryHash)
       xor = xor xor mixed
       sum += mixed
