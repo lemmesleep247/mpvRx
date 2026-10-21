@@ -21,7 +21,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxHeight
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -93,6 +92,7 @@ data class VideoCardUiConfig(
   val thumbnailQuality: ThumbnailQuality = ThumbnailQuality.High,
   val swipeLeft: VideoSwipeAction = VideoSwipeAction.AddToPlaylist,
   val swipeRight: VideoSwipeAction = VideoSwipeAction.ToggleWatched,
+  val thumbnailGenerator: app.gyrolet.mpvrx.preferences.ThumbnailGenerator = app.gyrolet.mpvrx.preferences.ThumbnailGenerator.MediaStore,
 )
 
 /** Hoist this once per screen and pass the result to every card rather than collecting per item. */
@@ -115,6 +115,7 @@ fun rememberVideoCardUiConfig(): VideoCardUiConfig {
   val showDurationFieldConfig by browserPreferences.showDurationField.collectAsState()
   val centerGridTitles by browserPreferences.centerGridTitles.collectAsState()
   val thumbnailQuality by browserPreferences.thumbnailQuality.collectAsState()
+  val thumbnailGenerator by browserPreferences.thumbnailGenerator.collectAsState()
   val swipeLeft by browserPreferences.videoSwipeLeft.collectAsState()
   val swipeRight by browserPreferences.videoSwipeRight.collectAsState()
 
@@ -133,6 +134,7 @@ fun rememberVideoCardUiConfig(): VideoCardUiConfig {
     showDurationFieldConfig,
     centerGridTitles,
     thumbnailQuality,
+    thumbnailGenerator,
     swipeLeft,
     swipeRight,
   ) {
@@ -151,6 +153,7 @@ fun rememberVideoCardUiConfig(): VideoCardUiConfig {
       showDurationField = showDurationFieldConfig,
       centerGridTitles = centerGridTitles,
       thumbnailQuality = thumbnailQuality,
+      thumbnailGenerator = thumbnailGenerator,
       swipeLeft = swipeLeft,
       swipeRight = swipeRight,
     )
@@ -241,6 +244,7 @@ fun VideoCard(
 
   val showThumbnails = resolvedUiConfig.showThumbnails
   val thumbnailQuality = resolvedUiConfig.thumbnailQuality
+  val thumbnailGenerator = resolvedUiConfig.thumbnailGenerator
   val showFramerateInResolution = resolvedUiConfig.showFramerateInResolution
   val showCodecSupportIndicator = resolvedUiConfig.showCodecSupportIndicator
   val showProgressBar = resolvedUiConfig.showProgressBar
@@ -285,13 +289,9 @@ fun VideoCard(
 
   // Hold the last displayed thumbnail for this file across grid/list size changes.
   // Repository memory remains the source of truth for new requests.
-  var retainedThumbnail by remember(video.path, video.dateModified, video.size) { mutableStateOf<Bitmap?>(null) }
+  var retainedThumbnail by remember(video.path, video.dateModified, video.size, thumbnailGenerator) { mutableStateOf<Bitmap?>(null) }
 
   val cardShape = rememberMediaSelectionShape(isSelected, isGridMode, selectionNeighbors)
-  val gridFooterHeight = with(LocalDensity.current) {
-    MaterialTheme.typography.titleMedium.lineHeight.toDp() * 2 +
-      MaterialTheme.typography.labelSmall.lineHeight.toDp() * 3 + 64.dp
-  }
 
   VideoSwipeSurface(
     identity = video.path,
@@ -309,7 +309,6 @@ fun VideoCard(
     modifier =
       modifier
         .fillMaxWidth()
-        .then(if (isGridMode) Modifier.mediaGridTileHeight(if (video.isAudio) 1f else 16f / 10f, gridFooterHeight) else Modifier)
         .tvFocusHighlight(cardShape, focusedScale = 1.03f)
         .clip(cardShape)
                 .semantics { selected = isSelected }
@@ -321,7 +320,8 @@ fun VideoCard(
     shape = cardShape,
     colors = CardDefaults.cardColors(containerColor = Color.Transparent),
   ) {
-    Box(modifier = if (isGridMode) Modifier.fillMaxSize() else Modifier.fillMaxWidth()) {
+    // Measure visible content so short titles and fewer chips leave no reserved footer.
+    Box(modifier = Modifier.fillMaxWidth()) {
       Box(
         modifier =
           Modifier
@@ -363,6 +363,7 @@ fun VideoCard(
               resolvedThumbWidthPx,
               resolvedThumbHeightPx,
               thumbnailQuality,
+              thumbnailGenerator,
             ) {
               Any()
             }
@@ -710,6 +711,7 @@ fun VideoCard(
               thumbWidthPx,
               thumbHeightPx,
               thumbnailQuality,
+              thumbnailGenerator,
             ) {
               Any()
             }

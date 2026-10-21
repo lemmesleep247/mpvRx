@@ -48,6 +48,7 @@ import app.gyrolet.mpvrx.preferences.BrowserPreferences
 import app.gyrolet.mpvrx.preferences.GesturePreferences
 import app.gyrolet.mpvrx.preferences.MultiChoiceSegmentedButton
 import app.gyrolet.mpvrx.preferences.PlayerPreferences
+import app.gyrolet.mpvrx.preferences.ThumbnailGenerator
 import app.gyrolet.mpvrx.preferences.ThumbnailMode
 import app.gyrolet.mpvrx.preferences.ThumbnailQuality
 import app.gyrolet.mpvrx.preferences.TreeFlattenDepth
@@ -55,7 +56,6 @@ import app.gyrolet.mpvrx.preferences.preference.collectAsState
 import app.gyrolet.mpvrx.presentation.Screen
 import app.gyrolet.mpvrx.presentation.components.ConfirmDialog
 import app.gyrolet.mpvrx.ui.icons.Icon
-import app.gyrolet.mpvrx.ui.background.BackgroundPickerDialog
 import app.gyrolet.mpvrx.ui.icons.Icons
 import app.gyrolet.mpvrx.ui.player.ControlsAnimationStyle
 import app.gyrolet.mpvrx.ui.player.NavigationAnimStyle
@@ -111,9 +111,9 @@ object AppearancePreferencesScreen : Screen {
     var pendingAppUiScale by remember { mutableStateOf<Float?>(null) }
     var isThemeSectionExpanded by rememberSaveable { mutableStateOf(true) }
     var isAppFontSheetOpen by rememberSaveable { mutableStateOf(false) }
-    var isBackgroundPickerOpen by rememberSaveable { mutableStateOf(false) }
     val backgroundType by preferences.backgroundType.collectAsState()
     val storedThumbnailMode by browserPreferences.thumbnailMode.collectAsState()
+    val thumbnailGenerator by browserPreferences.thumbnailGenerator.collectAsState()
     val thumbnailQuality by browserPreferences.thumbnailQuality.collectAsState()
     val thumbnailFramePosition by browserPreferences.thumbnailFramePosition.collectAsState()
     val thumbnailParallelism by browserPreferences.thumbnailParallelism.collectAsState()
@@ -380,11 +380,9 @@ object AppearancePreferencesScreen : Screen {
                           color = MaterialTheme.colorScheme.outline,
                         )
                       },
-                      onClick = { isBackgroundPickerOpen = true },
+                      modifier = Modifier.settingsSearchTarget(R.string.bg_pref_title),
+                      onClick = { backstack.navigateTo(BackgroundAnimationPreferencesScreen) },
                     )
-                  }
-                  if (isBackgroundPickerOpen) {
-                    BackgroundPickerDialog(onDismiss = { isBackgroundPickerOpen = false })
                   }
 
                   PreferenceDivider()
@@ -668,7 +666,8 @@ object AppearancePreferencesScreen : Screen {
 
           item {
             ExpressivePreferenceGroup {
-              val itemCount = if (thumbnailMode == ThumbnailMode.FrameAtPosition) 7 else 6
+              val showFramePosition = thumbnailGenerator == ThumbnailGenerator.Native && thumbnailMode == ThumbnailMode.FrameAtPosition
+              val itemCount = if (showFramePosition) 8 else 7
               val showVideoThumbnails by browserPreferences.showVideoThumbnails.collectAsState()
               SwitchPreference(
                 modifier = Modifier.settingsSearchTarget(R.string.pref_appearance_show_video_thumbnails_title),
@@ -693,6 +692,34 @@ object AppearancePreferencesScreen : Screen {
               )
 
               ExpressivePreferenceTile(index = 1, itemCount = itemCount) {
+                ListPreference(
+                  modifier = Modifier.settingsSearchTarget(R.string.pref_appearance_thumbnail_generator_title),
+                  value = thumbnailGenerator,
+                  onValueChange = { browserPreferences.thumbnailGenerator.set(it) },
+                  values = ThumbnailGenerator.entries,
+                  valueToText = {
+                    AnnotatedString(
+                      context.getString(
+                        if (it == ThumbnailGenerator.Native) R.string.pref_thumbnail_generator_native
+                        else R.string.pref_thumbnail_generator_mediastore,
+                      ),
+                    )
+                  },
+                  title = { Text(stringResource(R.string.pref_appearance_thumbnail_generator_title)) },
+                  summary = {
+                    Text(
+                      text = stringResource(
+                        if (thumbnailGenerator == ThumbnailGenerator.Native) R.string.pref_thumbnail_generator_native_summary
+                        else R.string.pref_thumbnail_generator_mediastore_summary,
+                      ),
+                      color = MaterialTheme.colorScheme.outline,
+                    )
+                  },
+                  enabled = showVideoThumbnails,
+                )
+              }
+
+              ExpressivePreferenceTile(index = 2, itemCount = itemCount) {
                 ListPreference(
                   modifier = Modifier.settingsSearchTarget(R.string.pref_appearance_thumbnail_generation_title),
                   value = thumbnailMode,
@@ -719,11 +746,11 @@ object AppearancePreferencesScreen : Screen {
                       color = MaterialTheme.colorScheme.outline,
                     )
                   },
-                  enabled = showVideoThumbnails,
+                  enabled = showVideoThumbnails && thumbnailGenerator == ThumbnailGenerator.Native,
                 )
               }
 
-              ExpressivePreferenceTile(index = 2, itemCount = itemCount) {
+              ExpressivePreferenceTile(index = 3, itemCount = itemCount) {
                 ListPreference(
                   modifier = Modifier.settingsSearchTarget(R.string.pref_appearance_thumbnail_quality_title),
                   value = thumbnailQuality,
@@ -758,7 +785,7 @@ object AppearancePreferencesScreen : Screen {
                 )
               }
 
-              ExpressivePreferenceTile(index = 3, itemCount = itemCount) {
+              ExpressivePreferenceTile(index = 4, itemCount = itemCount) {
                 Preference(
                   modifier = Modifier.settingsSearchTarget(R.string.pref_appearance_thumbnail_parallelism_title),
                   title = {
@@ -780,8 +807,8 @@ object AppearancePreferencesScreen : Screen {
                 )
               }
 
-              if (thumbnailMode == ThumbnailMode.FrameAtPosition) {
-                ExpressivePreferenceTile(index = 4, itemCount = itemCount) {
+              if (showFramePosition) {
+                ExpressivePreferenceTile(index = 5, itemCount = itemCount) {
                   SliderPreference(
                     value = thumbnailFramePosition,
                     onValueChange = { browserPreferences.thumbnailFramePosition.set(it) },
@@ -829,7 +856,7 @@ object AppearancePreferencesScreen : Screen {
                   )
                 },
                 enabled = showVideoThumbnails,
-                groupIndex = if (thumbnailMode == ThumbnailMode.FrameAtPosition) 5 else 4,
+                groupIndex = if (showFramePosition) 6 else 5,
                 groupSize = itemCount,
               )
 
@@ -876,7 +903,11 @@ object AppearancePreferencesScreen : Screen {
             val showJellyfinTab by preferences.showJellyfinTab.collectAsState()
             val savedOrder by preferences.bottomNavigationOrder.collectAsState()
             val names = listOf("HOME", "MUSIC", "NETWORK", "JELLYFIN", "PROFILE")
-            val ordered = (savedOrder.filter { it in names } + names).distinct()
+            val ordered =
+              listOf("HOME") +
+                (savedOrder.filter { it in names } + names)
+                  .distinct()
+                  .filterNot { it == "HOME" }
             val tabItems = ordered.map { id ->
               when (id) {
                 "HOME" -> ReorderableTabItem(id, stringResource(R.string.pref_nav_home_title), stringResource(R.string.pref_nav_home_summary), true, required = true)
