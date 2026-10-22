@@ -59,6 +59,16 @@ internal class AppleMusicArtworkRepository(client: OkHttpClient) {
   private var nextTokenAttempt = 0L
   private val rejectedTokens = mutableSetOf<String>()
 
+  /** Resolve the master once so the platform player cannot adapt artwork up to a 4K rendition. */
+  suspend fun resolvePlaybackUrl(url: String): String = withContext(Dispatchers.IO) {
+    if (url.toHttpUrl().encodedPath.endsWith(".mp4", ignoreCase = true)) return@withContext url
+    val request = Request.Builder().url(url).apply {
+      playbackHeaders.forEach { (name, value) -> header(name, value) }
+    }.build()
+    val playlist = get(request, 256 * 1024)
+    selectPlaybackUrl(url, playlist) ?: throw IOException("No playable artwork rendition")
+  }
+
   suspend fun find(query: MotionArtworkQuery): RemoteMotionArtwork? = withContext(Dispatchers.IO) {
     mutex.withLock {
       val now = System.currentTimeMillis()
@@ -239,6 +249,54 @@ internal class AppleMusicArtworkRepository(client: OkHttpClient) {
     private const val WEB_RESPONSE_LIMIT = 8 * 1024 * 1024
     private const val CATALOG = "https://amp-api.music.apple.com/v1/catalog"
     private const val USER_AGENT = "Mozilla/5.0 (Linux; Android 13) AppleWebKit/537.36 Chrome/130.0.0.0 Mobile Safari/537.36"
+    val playbackHeaders: Map<String, String> = mapOf(
+      "User-Agent" to USER_AGENT,
+      "Referer" to "https://music.apple.com/",
+      "Origin" to "https://music.apple.com",
+    )
+    private val HLS_ATTRIBUTE = Regex("""([A-Z0-9_-]+)=("[^"]*"|[^,]*)""", RegexOption.IGNORE_CASE)
+    private data class Rendition(val url: String, val pixels: Long, val bitrate: Long, val avc: Boolean, val bounded: Boolean)
+
+    internal fun selectPlaybackUrl(url: String, playlist: String): String? {
+      val base = url.toHttpUrlOrNull() ?: return null
+      val lines = playlist.trimStart('\uFEFF').lineSequence().map(String::trim).toList()
+      if (lines.firstOrNull() != "#EXTM3U") return null
+      if (lines.none { it.startsWith("#EXT-X-STREAM-INF:") }) {
+        return url.takeIf { lines.any { it.startsWith("#EXTINF:") } }
+      }
+      val variants = mutableListOf<Rendition>()
+      var pending: Map<String, String>? = null
+      for (line in lines) {
+        if (line.startsWith("#EXT-X-STREAM-INF:")) {
+          pending = HLS_ATTRIBUTE.findAll(line.substringAfter(':')).associate {
+            it.groupValues[1].uppercase(Locale.ROOT) to it.groupValues[2].removeSurrounding("\"")
+          }
+        } else if (line.isNotBlank() && !line.startsWith('#')) {
+          val attributes = pending ?: continue
+          pending = null
+          val stream = base.resolve(line)?.takeIf {
+            it.isHttps && (it.host.endsWith(".apple.com") || it.host.endsWith(".mzstatic.com"))
+          } ?: continue
+          val size = attributes["RESOLUTION"]?.lowercase(Locale.ROOT)?.split('x')
+          val width = size?.getOrNull(0)?.toIntOrNull() ?: 0
+          val height = size?.getOrNull(1)?.toIntOrNull() ?: 0
+          val codecs = attributes["CODECS"].orEmpty().lowercase(Locale.ROOT)
+          val avc = codecs.contains("avc1") || codecs.contains("avc3")
+          if ((width <= 0 || height <= 0) && !avc) continue
+          val bitrate = attributes["BANDWIDTH"]?.toLongOrNull() ?: 0L
+          val frameRate = attributes["FRAME-RATE"]?.toFloatOrNull() ?: 0f
+          variants += Rendition(
+            url = stream.toString(), pixels = width.toLong() * height, bitrate = bitrate, avc = avc,
+            bounded = width in 1..720 && height in 1..720 && frameRate <= 30f && bitrate in 1..1_500_000L,
+          )
+        }
+      }
+      val candidates = variants.filter { it.avc }.ifEmpty { variants }
+      val bounded = candidates.filter { it.bounded }
+      return (bounded.maxWithOrNull(compareBy<Rendition> { it.pixels }.thenBy { it.bitrate })
+        ?: candidates.minWithOrNull(compareBy<Rendition> { it.pixels }.thenBy { it.bitrate }))?.url
+    }
+
     private val JWT = Regex("""ey[A-Za-z0-9_-]+\.ey[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+""")
     private val ARTIST_SEPARATOR = Regex("""\s+(?:feat\.?|ft\.?|featuring|with|&|and|x)\s+|[,;]""", RegexOption.IGNORE_CASE)
     private val FEATURED_CREDIT = Regex("""[\[(](?:feat\.?|ft\.?|featuring)\s+([^)\]]+)[\])]""", RegexOption.IGNORE_CASE)
