@@ -618,7 +618,7 @@ Weiter: NEXT</string>
   <string name="pref_section_general">Allgemein</string>
   <string name="pref_playlist_mode_title">Navigation zum nächsten/vorherigen Element aktivieren</string>
   <string name="pref_playlist_mode_summary">Schaltflächen „Nächstes/Vorheriges“ für alle Videos im Ordner anzeigen</string>
-  <string name="pref_playlist_mode_summary_disabled">Videos einzeln wiedergeben (mehrere für eine Wiedergabeliste auswählen)</string>
+  <string name="pref_playlist_mode_summary_disabled">Weiter-/Zurück-Tasten ausblenden; automatische Wiedergabe separat steuern</string>
 
   <!-- Player - Seeking Section (additional)                      -->
   <string name="pref_online_skip_markers_title">Online-Sprungmarken verwenden</string>
@@ -2625,4 +2625,133 @@ Bitte starten Sie die App neu, damit alle Änderungen wirksam werden.</string>
   <string name="color_picker_brightness">Helligkeit</string>
     <string name="only_for_video_list">Nur für die Videoliste</string>
     <string name="only_for_folder_list">Nur für die Ordnerliste</string>
+  <string name="selection_info_title">Auswahldetails</string>
+  <string name="selection_info_folders">Ordner</string>
+  <string name="selection_info_total_size">Gesamtgröße</string>
+  <string name="selection_info_total_duration">Gesamtdauer</string>
+  <string name="selection_info_average_duration">Durchschnittliche Dauer</string>
+  <string name="selection_info_average_size">Durchschnittliche Größe</string>
+  <string name="selection_info_resolutions">Auflösungen</string>
+  <string name="selection_info_codecs">Videocodecs</string>
+  <string name="selection_info_formats">Formate</string>
+  <string name="selection_info_frame_rates">Bildraten</string>
+  <string name="selection_info_subtitles">Eingebettete Untertitel</string>
+  <string name="selection_info_subtitles_value">%1$d / %2$d</string>
+  <string name="selection_info_longest">Längste Datei</string>
+  <string name="selection_info_largest">Größte Datei</string>
+  <string name="selection_info_modified">Änderungsdatum</string>
+  <string name="selection_info_items">Ausgewählte Elemente</string>
+  <string name="selection_info_scanning">Ordner werden durchsucht (%1$d/%2$d)…</string>
+  <string name="selection_info_scan_failed">Die Auswahldetails konnten nicht geladen werden. Prüfe den Ordnerzugriff und versuche es erneut.</string>
+  <string name="selection_info_folder_unreadable">Medien in %1$s konnten nicht gelesen werden</string>
+  <string name="selection_info_fps_value">%1$.2f Bilder/s</string>
+  <string name="selection_info_metadata_note">Die Zusammenfassung verwendet verfügbare Bibliotheksmetadaten. Tippe auf eine Datei, um alle Metadaten anzuzeigen.</string>
+  <string name="selection_info_missing_metadata">Nicht verfügbare Metadaten</string>
+  <string name="selection_info_missing_metadata_value">Dateien mit unbekannter Größe: %1$d; unbekannter Dauer: %2$d. Summen und Durchschnittswerte berücksichtigen nur bekannte Werte.</string>
+  <string name="selection_info_no_media">In den ausgewählten Ordnern wurden keine abspielbaren Medien gefunden</string>
+  <string name="selection_info_copy_summary">Zusammenfassung kopieren</string>
+  <string name="selection_info_open_media_info">Vollständige Medieninformationen öffnen</string>
+  <plurals name="selection_info_video_count">
+    <item quantity="one">%1$d Video</item>
+    <item quantity="other">%1$d Videos</item>
+  </plurals>
+  <plurals name="selection_info_audio_count">
+    <item quantity="one">%1$d Audiodatei</item>
+    <item quantity="other">%1$d Audiodateien</item>
+  </plurals>
+  <plurals name="selection_info_file_count">
+    <item quantity="one">%1$d Datei</item>
+    <item quantity="other">%1$d Dateien</item>
+  </plurals>
+  <plurals name="selection_info_folder_count">
+    <item quantity="one">%1$d Ordner</item>
+    <item quantity="other">%1$d Ordner</item>
+  </plurals>
+
+  <!-- Audio format indicators -->
+  <string name="audio_quality_hi_res">Verlustfrei in hoher Auflösung</string>
+  <string name="audio_quality_lossless">Verlustfrei</string>
+  <string name="audio_quality_lossy">Verlustbehaftet</string>
+  <string name="audio_quality_dsd">Direct Stream Digital</string>
+  <string name="audio_quality_audio">Audio</string>
+
+  <!-- Delete action size -->
+  <string name="delete_size_loading">Wird berechnet…</string>
+  <string name="delete_size_unknown">Größe unbekannt</string>
+  <string name="delete_size_description">Gesamtgröße: %1$s</string>
+
+  <!-- Thumbnail information -->
+  <string name="media_info_tab_thumbnail">Vorschaubild</string>
+  <string name="thumbnail_preview_description">Zwischengespeichertes Vorschaubild für %1$s</string>
+  <string name="thumbnail_status_disk">Auf dem Datenträger zwischengespeichert</string>
+  <string name="thumbnail_status_memory">Im Arbeitsspeicher zwischengespeichert</string>
+  <string name="thumbnail_status_unreadable">Zwischengespeichertes Bild konnte nicht dekodiert werden</string>
+  <string name="thumbnail_status_missing">Kein zwischengespeichertes Vorschaubild</string>
+  <string name="thumbnail_info_status">Cache-Status</string>
+  <string name="thumbnail_info_generator">Generierungsrichtlinie</string>
+  <string name="thumbnail_info_strategy">Auswahl von Einzelbild oder Cover</string>
+  <string name="thumbnail_strategy_artwork">Albumcover</string>
+  <string name="thumbnail_strategy_android">Von Android ausgewähltes Einzelbild</string>
+  <string name="thumbnail_info_quality">Eingestellte Qualität</string>
+  <string name="thumbnail_info_maximum">Eingestellte Größenbegrenzung</string>
+  <string name="thumbnail_maximum_value">Bis zu %1$d Pixel an der längsten Seite</string>
+  <string name="thumbnail_info_dimensions">Tatsächliche Bildabmessungen</string>
+  <string name="thumbnail_dimensions_value">%1$d × %2$d Pixel</string>
+  <string name="thumbnail_info_format">Format des zwischengespeicherten Bildes</string>
+  <string name="thumbnail_info_size">Größe der zwischengespeicherten Datei</string>
+  <string name="thumbnail_info_memory">Im Speichercache des Medienbrowsers vorhanden</string>
+  <string name="thumbnail_info_preview_memory">Speicherbedarf der Vorschau</string>
+  <string name="thumbnail_info_frame">Eingestellte Einzelbildposition</string>
+  <string name="thumbnail_percent_value">%1$.1f%%</string>
+  <string name="thumbnail_info_jpeg_setting">JPEG-Encodereinstellung der App</string>
+  <string name="thumbnail_jpeg_value">%1$d%%</string>
+  <string name="thumbnail_info_modified">Cache-Datei aktualisiert</string>
+  <string name="thumbnail_info_cache_path">Pfad der Cache-Datei</string>
+  <string name="thumbnail_info_source">Quell-URI</string>
+  <string name="thumbnail_yes">Ja</string>
+  <string name="thumbnail_no">Nein</string>
+  <string name="thumbnail_refresh">Informationen aktualisieren</string>
+  <string name="thumbnail_generate">Vorschaubild erzeugen</string>
+  <string name="thumbnail_quality_note">Die Vorschau zeigt das tatsächlich zwischengespeicherte Bild für die aktuellen Einstellungen. Die Kacheln im Medienbrowser können ein kleineres Bild als die eingestellte Größenbegrenzung zwischenspeichern. Das Öffnen dieses Tabs erzeugt kein neues Einzelbild.</string>
+  <string name="thumbnail_inspection_failed">Die Vorschaubildinformationen konnten nicht gelesen werden. Bitte aktualisieren.</string>
+  <string name="thumbnail_generation_unavailable">Die ausgewählte Generierungsmethode hat für diese Datei kein Vorschaubild geliefert.</string>
+
+  <!-- Automatic thumbnail generation -->
+  <string name="pref_appearance_thumbnail_generator_summary">Auto, Native oder MediaStore für lokale Vorschaubilder und Songcover wählen</string>
+  <string name="pref_thumbnail_generator_auto">Automatisch (Standard)</string>
+  <string name="pref_thumbnail_generator_auto_summary">Zuerst MediaStore versuchen; wenn ein Vorschaubild oder Songcover fehlt, Native verwenden, auch in versteckten Ordnern. Ein Moduswechsel leert den Vorschaubild-Cache.</string>
+  <string name="thumbnail_strategy_auto">Zuerst MediaStore, dann Native als Ausweichlösung</string>
+
+  <string name="update_download_failed">Download fehlgeschlagen. Zum Fortsetzen auf Erneut versuchen tippen.</string>
+  <string name="update_install_failed">Installationsprogramm konnte nicht geöffnet werden. Bitte erneut versuchen.</string>
+  <string name="update_install_permission">In den Android-Einstellungen die Installation von Updates durch diese App erlauben und erneut auf Installieren tippen.</string>
+  <string name="update_checking_download">Heruntergeladene APK wird geprüft…</string>
+  <string name="update_check_failed">Updates konnten nicht geprüft werden. Verbindung prüfen oder später erneut versuchen.</string>
+  <string name="update_auto_install">Automatisch herunterladen und installieren</string>
+  <string name="update_auto_install_summary">Über ungetaktete Netzwerke herunterladen und installieren, wenn mpvRx nicht verwendet wird. Android kann eine Bestätigung anfordern.</string>
+  <string name="update_download_and_install">Herunterladen und installieren</string>
+  <string name="update_background_downloading">App-Update wird heruntergeladen…</string>
+  <string name="update_installing">Update wird installiert…</string>
+  <string name="update_approval_required">Android benötigt deine Bestätigung, um die Installation abzuschließen. Tippe auf Installation bestätigen.</string>
+  <string name="update_confirm_install">Installation bestätigen</string>
+  <string name="update_install_complete">Update installiert. Tippe, um mpvRx zu öffnen.</string>
+  <string name="update_download_waiting">Warten auf das Netzwerk oder erneuter Downloadversuch…</string>
+  <string name="pref_appearance_thumbnail_generator_title">Vorschaubilderzeugung</string>
+  <string name="pref_thumbnail_generator_native">Direkte Extraktion</string>
+  <string name="pref_thumbnail_generator_mediastore">MediaStore</string>
+  <string name="pref_thumbnail_generator_native_summary">Vorschaubilder lokaler Videos und Songcover direkt aus der Mediendatei extrahieren. Beim Wechsel werden zwischengespeicherte Vorschaubilder gelöscht.</string>
+  <string name="pref_thumbnail_generator_mediastore_summary">Android-Vorschaubilder und Albumcover für lokale Videos und Songs verwenden. Beim Wechsel werden zwischengespeicherte Vorschaubilder gelöscht; fehlende Bilder werden durch Platzhalter ersetzt. Netzwerkvorschauen verwenden die direkte Extraktion.</string>
+  <string name="ui_update_channels_summary">Stabile Versionen, nächtliche Vorschauversionen oder experimentelle CI-Builds.</string>
+  <string name="update_experimental_build_format">Experimentell r%1$d</string>
+  <string name="tv_nav_settings">Einstellungen</string>
+  <string name="tv_player_play_pause">Wiedergabe oder Pause</string>
+  <string name="tv_player_subtitles">Untertitel</string>
+  <string name="tv_player_audio">Audiospuren</string>
+  <string name="tv_player_chapters">Kapitel</string>
+  <string name="tv_player_speed">Wiedergabegeschwindigkeit</string>
+  <string name="tv_player_aspect_ratio">Seitenverhältnis</string>
+  <string name="tv_player_quality">Videoqualität</string>
+  <string name="tv_player_seek_bar">Suchleiste</string>
+  <string name="pref_audio_animated_artwork_title">Animierte Albumcover</string>
+  <string name="pref_audio_animated_artwork_summary">Passende animierte Cover von Apple Music im Vollbild-Musikplayer abrufen. Sendet Songtitel, Künstler und Album an Apple und nutzt mobile Daten. Standardmäßig deaktiviert; wenn kein animiertes Cover verfügbar ist, bleibt das bisherige Cover erhalten. Wechsle vom Visualisierer zum Cover, um es zu sehen.</string>
 </resources>

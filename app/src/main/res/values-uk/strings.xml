@@ -698,7 +698,7 @@
   <string name="pref_section_general">Загальні</string>
   <string name="pref_playlist_mode_title">Увімкнути навігацію наступний/попередній</string>
   <string name="pref_playlist_mode_summary">Показувати кнопки «Наступний»/«Попередній» для всіх відео в папці</string>
-  <string name="pref_playlist_mode_summary_disabled">Відтворювати відео окремо (виберіть кілька для списку відтворення)</string>
+  <string name="pref_playlist_mode_summary_disabled">Приховувати кнопки наступного/попереднього файлу; автовідтворення налаштовується окремо</string>
   <string name="pref_online_skip_markers_title">Використовувати онлайн-маркери пропуску</string>
   <string name="pref_online_skip_markers_summary">Отримувати маркери вступу, переказу, завершення, титрів і анонсу від вибраного провайдера</string>
   <string name="pref_marker_provider_title">Онлайн-провайдер маркерів</string>
@@ -2587,4 +2587,141 @@
   <string name="color_picker_brightness">Яскравість</string>
     <string name="only_for_video_list">Лише для списку відео</string>
     <string name="only_for_folder_list">Лише для списку тек</string>
+  <string name="selection_info_title">Відомості про вибране</string>
+  <string name="selection_info_folders">Папки</string>
+  <string name="selection_info_total_size">Загальний розмір</string>
+  <string name="selection_info_total_duration">Загальна тривалість</string>
+  <string name="selection_info_average_duration">Середня тривалість</string>
+  <string name="selection_info_average_size">Середній розмір</string>
+  <string name="selection_info_resolutions">Роздільні здатності</string>
+  <string name="selection_info_codecs">Відеокодеки</string>
+  <string name="selection_info_formats">Формати</string>
+  <string name="selection_info_frame_rates">Частоти кадрів</string>
+  <string name="selection_info_subtitles">Вбудовані субтитри</string>
+  <string name="selection_info_subtitles_value">%1$d / %2$d</string>
+  <string name="selection_info_longest">Найдовший файл</string>
+  <string name="selection_info_largest">Найбільший файл</string>
+  <string name="selection_info_modified">Дата зміни</string>
+  <string name="selection_info_items">Вибрані елементи</string>
+  <string name="selection_info_scanning">Сканування папок (%1$d/%2$d)…</string>
+  <string name="selection_info_scan_failed">Не вдалося завантажити відомості про вибране. Перевірте доступ до папок і спробуйте ще раз.</string>
+  <string name="selection_info_folder_unreadable">Не вдалося прочитати медіафайли в %1$s</string>
+  <string name="selection_info_fps_value">%1$.2f кадр/с</string>
+  <string name="selection_info_metadata_note">Зведення використовує доступні метадані бібліотеки. Натисніть на файл, щоб переглянути всі метадані.</string>
+  <string name="selection_info_missing_metadata">Недоступні метадані</string>
+  <string name="selection_info_missing_metadata_value">Файлів із невідомим розміром: %1$d; із невідомою тривалістю: %2$d. Підсумки й середні значення враховують лише відомі дані.</string>
+  <string name="selection_info_no_media">У вибраних папках не знайдено відтворюваних медіафайлів</string>
+  <string name="selection_info_copy_summary">Копіювати зведення</string>
+  <string name="selection_info_open_media_info">Відкрити повні відомості про медіафайл</string>
+  <plurals name="selection_info_video_count">
+    <item quantity="one">%1$d відео</item>
+    <item quantity="few">%1$d відео</item>
+    <item quantity="many">%1$d відео</item>
+    <item quantity="other">%1$d відео</item>
+  </plurals>
+  <plurals name="selection_info_audio_count">
+    <item quantity="one">%1$d аудіофайл</item>
+    <item quantity="few">%1$d аудіофайли</item>
+    <item quantity="many">%1$d аудіофайлів</item>
+    <item quantity="other">%1$d аудіофайла</item>
+  </plurals>
+  <plurals name="selection_info_file_count">
+    <item quantity="one">%1$d файл</item>
+    <item quantity="few">%1$d файли</item>
+    <item quantity="many">%1$d файлів</item>
+    <item quantity="other">%1$d файла</item>
+  </plurals>
+  <plurals name="selection_info_folder_count">
+    <item quantity="one">%1$d папка</item>
+    <item quantity="few">%1$d папки</item>
+    <item quantity="many">%1$d папок</item>
+    <item quantity="other">%1$d папки</item>
+  </plurals>
+
+  <!-- Audio format indicators -->
+  <string name="audio_quality_hi_res">Без втрат у високій роздільній здатності</string>
+  <string name="audio_quality_lossless">Без втрат</string>
+  <string name="audio_quality_lossy">Із втратами</string>
+  <string name="audio_quality_dsd">Direct Stream Digital</string>
+  <string name="audio_quality_audio">Аудіо</string>
+
+  <!-- Delete action size -->
+  <string name="delete_size_loading">Обчислення…</string>
+  <string name="delete_size_unknown">Розмір невідомий</string>
+  <string name="delete_size_description">Загальний розмір: %1$s</string>
+
+  <!-- Thumbnail information -->
+  <string name="media_info_tab_thumbnail">Мініатюра</string>
+  <string name="thumbnail_preview_description">Кешована мініатюра для %1$s</string>
+  <string name="thumbnail_status_disk">Кешована на диску</string>
+  <string name="thumbnail_status_memory">Кешована в пам’яті</string>
+  <string name="thumbnail_status_unreadable">Не вдалося декодувати кешоване зображення</string>
+  <string name="thumbnail_status_missing">Немає кешованої мініатюри</string>
+  <string name="thumbnail_info_status">Стан кешу</string>
+  <string name="thumbnail_info_generator">Політика створення</string>
+  <string name="thumbnail_info_strategy">Вибір кадру або обкладинки</string>
+  <string name="thumbnail_strategy_artwork">Обкладинка альбому</string>
+  <string name="thumbnail_strategy_android">Кадр, вибраний Android</string>
+  <string name="thumbnail_info_quality">Задана якість</string>
+  <string name="thumbnail_info_maximum">Задане обмеження розміру</string>
+  <string name="thumbnail_maximum_value">До %1$d пікс. на довшій стороні</string>
+  <string name="thumbnail_info_dimensions">Фактичні розміри зображення</string>
+  <string name="thumbnail_dimensions_value">%1$d × %2$d пікс.</string>
+  <string name="thumbnail_info_format">Формат кешованого зображення</string>
+  <string name="thumbnail_info_size">Розмір файлу кешу</string>
+  <string name="thumbnail_info_memory">Є в кеші пам’яті оглядача</string>
+  <string name="thumbnail_info_preview_memory">Пам’ять для попереднього перегляду</string>
+  <string name="thumbnail_info_frame">Задана позиція кадру</string>
+  <string name="thumbnail_percent_value">%1$.1f%%</string>
+  <string name="thumbnail_info_jpeg_setting">Налаштування JPEG-кодувальника застосунку</string>
+  <string name="thumbnail_jpeg_value">%1$d%%</string>
+  <string name="thumbnail_info_modified">Час оновлення файлу кешу</string>
+  <string name="thumbnail_info_cache_path">Шлях до файлу кешу</string>
+  <string name="thumbnail_info_source">URI джерела</string>
+  <string name="thumbnail_yes">Так</string>
+  <string name="thumbnail_no">Ні</string>
+  <string name="thumbnail_refresh">Оновити відомості</string>
+  <string name="thumbnail_generate">Створити мініатюру</string>
+  <string name="thumbnail_quality_note">Попередній перегляд показує фактичне кешоване зображення для поточних налаштувань. Плитки оглядача можуть кешувати зображення, менше за задане обмеження розміру. Відкриття цієї вкладки не створює нового кадру.</string>
+  <string name="thumbnail_inspection_failed">Не вдалося прочитати відомості про мініатюру. Спробуйте оновити.</string>
+  <string name="thumbnail_generation_unavailable">Вибраний генератор не повернув мініатюру для цього файлу.</string>
+
+  <!-- Automatic thumbnail generation -->
+  <string name="pref_appearance_thumbnail_generator_summary">Виберіть Авто, Native або MediaStore для локальних мініатюр та обкладинок пісень</string>
+  <string name="pref_thumbnail_generator_auto">Авто (за замовчуванням)</string>
+  <string name="pref_thumbnail_generator_auto_summary">Спочатку використовується MediaStore; якщо мініатюра або обкладинка пісні недоступна, використовується Native, зокрема у прихованих папках. Зміна режиму очищає кеш мініатюр.</string>
+  <string name="thumbnail_strategy_auto">Спочатку MediaStore, потім Native у разі невдачі</string>
+
+  <string name="update_download_failed">Помилка завантаження. Натисніть «Повторити», щоб продовжити.</string>
+  <string name="update_install_failed">Не вдалося відкрити програму встановлення. Повторіть спробу.</string>
+  <string name="update_install_permission">Дозвольте цій програмі встановлювати оновлення в налаштуваннях Android, а потім знову натисніть «Установити».</string>
+  <string name="update_checking_download">Перевірка завантаженого APK…</string>
+  <string name="update_check_failed">Не вдалося перевірити оновлення. Перевірте з’єднання або повторіть спробу пізніше.</string>
+  <string name="update_auto_install">Автоматично завантажувати й установлювати</string>
+  <string name="update_auto_install_summary">Завантажувати через мережі без тарифікації та встановлювати, коли mpvRx не використовується. Android може запитати підтвердження.</string>
+  <string name="update_download_and_install">Завантажити й установити</string>
+  <string name="update_background_downloading">Завантаження оновлення застосунку…</string>
+  <string name="update_installing">Установлення оновлення…</string>
+  <string name="update_approval_required">Android потрібен ваш дозвіл для завершення встановлення. Натисніть «Підтвердити встановлення».</string>
+  <string name="update_confirm_install">Підтвердити встановлення</string>
+  <string name="update_install_complete">Оновлення встановлено. Натисніть, щоб відкрити mpvRx.</string>
+  <string name="update_download_waiting">Очікування мережі або повторна спроба завантаження…</string>
+  <string name="pref_appearance_thumbnail_generator_title">Спосіб створення мініатюр</string>
+  <string name="pref_thumbnail_generator_native">Пряме видобування</string>
+  <string name="pref_thumbnail_generator_mediastore">MediaStore</string>
+  <string name="pref_thumbnail_generator_native_summary">Видобувати мініатюри локальних відео й обкладинки пісень із медіафайлу. Перемикання очищує кеш мініатюр.</string>
+  <string name="pref_thumbnail_generator_mediastore_summary">Використовувати мініатюри й обкладинки альбомів Android для локальних відео та пісень. Перемикання очищує кеш мініатюр; якщо зображення недоступне, відображається заповнювач. Для мережевих переглядів використовується пряме видобування.</string>
+  <string name="ui_update_channels_summary">Стабільні версії, нічні попередні версії або експериментальні збірки CI.</string>
+  <string name="update_experimental_build_format">Експ. r%1$d</string>
+  <string name="tv_nav_settings">Налаштування</string>
+  <string name="tv_player_play_pause">Відтворити або призупинити</string>
+  <string name="tv_player_subtitles">Субтитри</string>
+  <string name="tv_player_audio">Аудіодоріжки</string>
+  <string name="tv_player_chapters">Розділи</string>
+  <string name="tv_player_speed">Швидкість відтворення</string>
+  <string name="tv_player_aspect_ratio">Співвідношення сторін</string>
+  <string name="tv_player_quality">Якість відео</string>
+  <string name="tv_player_seek_bar">Смуга перемотування</string>
+  <string name="pref_audio_animated_artwork_title">Анімовані обкладинки альбомів</string>
+  <string name="pref_audio_animated_artwork_summary">Завантажувати відповідні анімовані обкладинки з Apple Music у повноекранному музичному програвачі. Назва пісні, виконавець і альбом надсилаються до Apple; використовуються мобільні дані. Типово вимкнено. Якщо анімація недоступна, залишається поточна обкладинка. Щоб побачити її, перемкніться з візуалізатора на обкладинку.</string>
 </resources>

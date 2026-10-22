@@ -587,7 +587,7 @@
   <string name="pref_section_general">सामान्य</string>
   <string name="pref_playlist_mode_title">अगली/पिछली नेविगेशन सक्षम करें</string>
   <string name="pref_playlist_mode_summary">फोल्डर की सभी वीडियो के लिए अगला/पिछला बटन दिखाएं</string>
-  <string name="pref_playlist_mode_summary_disabled">वीडियो अलग-अलग चलाएं (प्लेलिस्ट के लिए कई चुनें)</string>
+  <string name="pref_playlist_mode_summary_disabled">अगला/पिछला बटन छिपाएं; अपने आप चलाने का विकल्प अलग से नियंत्रित होता है</string>
   <string name="pref_online_skip_markers_title">ऑनलाइन स्किप मार्कर इस्तेमाल करें</string>
   <string name="pref_online_skip_markers_summary">चुने गए प्रोवाइडर से इंट्रो, रीकैप, आउट्रो, क्रेडिट्स और प्रीव्यू मार्कर लाएं</string>
   <string name="pref_marker_provider_title">ऑनलाइन मार्कर प्रोवाइडर</string>
@@ -952,7 +952,7 @@
   <string name="compressor_volume">वॉल्यूम</string>
   <string name="compressor_volume_hint" formatted="false">100% मूल ऑडियो स्तर है। 100% से ज्यादा पर ऑडियो बढ़ जाता है।</string>
   <string name="compressor_zero_keeps_original">0 मूल वैल्यू बनाए रखता है।</string>
-  <string name="generic_minutes_short">%1$dm</string>
+  <string name="generic_minutes_short">%1$d मि.</string>
   <string name="player_horizontal_flip_on">हॉरिजॉन्टल फ्लिप ऑन</string>
   <string name="player_horizontal_flip_off">हॉरिजॉन्टल फ्लिप ऑफ</string>
   <string name="player_vertical_flip_on">वर्टिकल फ्लिप ऑन</string>
@@ -2529,4 +2529,133 @@
   <string name="color_picker_brightness">चमक</string>
     <string name="only_for_video_list">केवल वीडियो सूची के लिए</string>
     <string name="only_for_folder_list">केवल फ़ोल्डर सूची के लिए</string>
+  <string name="selection_info_title">चयन का विवरण</string>
+  <string name="selection_info_folders">फ़ोल्डर</string>
+  <string name="selection_info_total_size">कुल आकार</string>
+  <string name="selection_info_total_duration">कुल अवधि</string>
+  <string name="selection_info_average_duration">औसत अवधि</string>
+  <string name="selection_info_average_size">औसत आकार</string>
+  <string name="selection_info_resolutions">रिज़ॉल्यूशन</string>
+  <string name="selection_info_codecs">वीडियो कोडेक</string>
+  <string name="selection_info_formats">फ़ॉर्मैट</string>
+  <string name="selection_info_frame_rates">फ़्रेम दर</string>
+  <string name="selection_info_subtitles">एम्बेड किए गए उपशीर्षक</string>
+  <string name="selection_info_subtitles_value">%1$d / %2$d</string>
+  <string name="selection_info_longest">सबसे लंबी फ़ाइल</string>
+  <string name="selection_info_largest">सबसे बड़ी फ़ाइल</string>
+  <string name="selection_info_modified">बदलाव की तारीख</string>
+  <string name="selection_info_items">चुने गए आइटम</string>
+  <string name="selection_info_scanning">फ़ोल्डर स्कैन हो रहे हैं (%1$d/%2$d)…</string>
+  <string name="selection_info_scan_failed">चयन का विवरण लोड नहीं हो सका। फ़ोल्डर की अनुमति जाँचें और फिर कोशिश करें।</string>
+  <string name="selection_info_folder_unreadable">%1$s में मीडिया पढ़ा नहीं जा सका</string>
+  <string name="selection_info_fps_value">%1$.2f फ़्रेम/सेकंड</string>
+  <string name="selection_info_metadata_note">सारांश में लाइब्रेरी में उपलब्ध मेटाडेटा का उपयोग किया जाता है। पूरा मेटाडेटा देखने के लिए किसी फ़ाइल पर टैप करें।</string>
+  <string name="selection_info_missing_metadata">अनुपलब्ध मेटाडेटा</string>
+  <string name="selection_info_missing_metadata_value">अज्ञात आकार वाली फ़ाइलें: %1$d; अज्ञात अवधि वाली फ़ाइलें: %2$d। कुल और औसत में केवल ज्ञात मान शामिल हैं।</string>
+  <string name="selection_info_no_media">चुने गए फ़ोल्डर में चलाने योग्य मीडिया नहीं मिला</string>
+  <string name="selection_info_copy_summary">सारांश कॉपी करें</string>
+  <string name="selection_info_open_media_info">मीडिया की पूरी जानकारी खोलें</string>
+  <plurals name="selection_info_video_count">
+    <item quantity="one">%1$d वीडियो</item>
+    <item quantity="other">%1$d वीडियो</item>
+  </plurals>
+  <plurals name="selection_info_audio_count">
+    <item quantity="one">%1$d ऑडियो फ़ाइल</item>
+    <item quantity="other">%1$d ऑडियो फ़ाइलें</item>
+  </plurals>
+  <plurals name="selection_info_file_count">
+    <item quantity="one">%1$d फ़ाइल</item>
+    <item quantity="other">%1$d फ़ाइलें</item>
+  </plurals>
+  <plurals name="selection_info_folder_count">
+    <item quantity="one">%1$d फ़ोल्डर</item>
+    <item quantity="other">%1$d फ़ोल्डर</item>
+  </plurals>
+
+  <!-- Audio format indicators -->
+  <string name="audio_quality_hi_res">हाई-रेज़ लॉसलेस</string>
+  <string name="audio_quality_lossless">लॉसलेस</string>
+  <string name="audio_quality_lossy">लॉसी</string>
+  <string name="audio_quality_dsd">डायरेक्ट स्ट्रीम डिजिटल</string>
+  <string name="audio_quality_audio">ऑडियो</string>
+
+  <!-- Delete action size -->
+  <string name="delete_size_loading">गणना जारी है…</string>
+  <string name="delete_size_unknown">आकार अज्ञात है</string>
+  <string name="delete_size_description">कुल आकार: %1$s</string>
+
+  <!-- Thumbnail information -->
+  <string name="media_info_tab_thumbnail">थंबनेल</string>
+  <string name="thumbnail_preview_description">%1$s के लिए कैश किया गया थंबनेल</string>
+  <string name="thumbnail_status_disk">डिस्क पर कैश किया गया है</string>
+  <string name="thumbnail_status_memory">मेमोरी में कैश किया गया है</string>
+  <string name="thumbnail_status_unreadable">कैश की गई छवि को डिकोड नहीं किया जा सका</string>
+  <string name="thumbnail_status_missing">कोई कैश किया गया थंबनेल नहीं है</string>
+  <string name="thumbnail_info_status">कैश की स्थिति</string>
+  <string name="thumbnail_info_generator">थंबनेल बनाने की नीति</string>
+  <string name="thumbnail_info_strategy">फ़्रेम या कवर का चयन</string>
+  <string name="thumbnail_strategy_artwork">एल्बम कवर</string>
+  <string name="thumbnail_strategy_android">Android द्वारा चुना गया फ़्रेम</string>
+  <string name="thumbnail_info_quality">तय की गई गुणवत्ता</string>
+  <string name="thumbnail_info_maximum">तय की गई आकार सीमा</string>
+  <string name="thumbnail_maximum_value">सबसे लंबी भुजा पर अधिकतम %1$d पिक्सेल</string>
+  <string name="thumbnail_info_dimensions">छवि के वास्तविक आयाम</string>
+  <string name="thumbnail_dimensions_value">%1$d × %2$d पिक्सेल</string>
+  <string name="thumbnail_info_format">कैश की गई छवि का फ़ॉर्मैट</string>
+  <string name="thumbnail_info_size">कैश की गई फ़ाइल का आकार</string>
+  <string name="thumbnail_info_memory">मीडिया ब्राउज़र के मेमोरी कैश में मौजूद</string>
+  <string name="thumbnail_info_preview_memory">पूर्वावलोकन की मेमोरी</string>
+  <string name="thumbnail_info_frame">तय किया गया फ़्रेम स्थान</string>
+  <string name="thumbnail_percent_value">%1$.1f%%</string>
+  <string name="thumbnail_info_jpeg_setting">ऐप के JPEG एन्कोडर की सेटिंग</string>
+  <string name="thumbnail_jpeg_value">%1$d%%</string>
+  <string name="thumbnail_info_modified">कैश फ़ाइल का अंतिम अपडेट</string>
+  <string name="thumbnail_info_cache_path">कैश फ़ाइल का पथ</string>
+  <string name="thumbnail_info_source">स्रोत URI</string>
+  <string name="thumbnail_yes">हाँ</string>
+  <string name="thumbnail_no">नहीं</string>
+  <string name="thumbnail_refresh">जानकारी रीफ़्रेश करें</string>
+  <string name="thumbnail_generate">थंबनेल बनाएं</string>
+  <string name="thumbnail_quality_note">पूर्वावलोकन मौजूदा सेटिंग के अनुसार वास्तव में कैश की गई छवि दिखाता है। मीडिया ब्राउज़र की टाइलें तय की गई आकार सीमा से छोटी छवि कैश कर सकती हैं। यह टैब खोलने से नया फ़्रेम नहीं बनता।</string>
+  <string name="thumbnail_inspection_failed">थंबनेल की जानकारी नहीं पढ़ी जा सकी। रीफ़्रेश करके देखें।</string>
+  <string name="thumbnail_generation_unavailable">चुने गए जनरेटर से इस फ़ाइल के लिए थंबनेल नहीं मिला।</string>
+
+  <!-- Automatic thumbnail generation -->
+  <string name="pref_appearance_thumbnail_generator_summary">स्थानीय थंबनेल और गानों के कवर के लिए ऑटो, Native या MediaStore चुनें</string>
+  <string name="pref_thumbnail_generator_auto">ऑटो (डिफ़ॉल्ट)</string>
+  <string name="pref_thumbnail_generator_auto_summary">पहले MediaStore आज़माएँ; थंबनेल या गाने का कवर उपलब्ध न होने पर Native का उपयोग करें, छिपे फ़ोल्डरों में भी। मोड बदलने से कैश किए गए थंबनेल साफ़ हो जाते हैं।</string>
+  <string name="thumbnail_strategy_auto">पहले MediaStore, फिर विकल्प के रूप में Native</string>
+
+  <string name="update_download_failed">डाउनलोड विफल हुआ। जारी रखने के लिए फिर कोशिश करें पर टैप करें।</string>
+  <string name="update_install_failed">इंस्टॉलर नहीं खुल सका। आप फिर कोशिश कर सकते हैं।</string>
+  <string name="update_install_permission">Android सेटिंग में इस ऐप को अपडेट इंस्टॉल करने की अनुमति दें, फिर इंस्टॉल करें पर दोबारा टैप करें।</string>
+  <string name="update_checking_download">डाउनलोड किए गए APK की जाँच हो रही है…</string>
+  <string name="update_check_failed">अपडेट की जाँच नहीं हो सकी। कनेक्शन जाँचें या बाद में फिर कोशिश करें।</string>
+  <string name="update_auto_install">अपने आप डाउनलोड और इंस्टॉल करें</string>
+  <string name="update_auto_install_summary">बिना डेटा सीमा वाले नेटवर्क पर डाउनलोड करें और mpvRx का उपयोग न होने पर इंस्टॉल करें। Android अनुमति माँग सकता है।</string>
+  <string name="update_download_and_install">डाउनलोड और इंस्टॉल करें</string>
+  <string name="update_background_downloading">ऐप अपडेट डाउनलोड हो रहा है…</string>
+  <string name="update_installing">अपडेट इंस्टॉल हो रहा है…</string>
+  <string name="update_approval_required">इंस्टॉलेशन पूरा करने के लिए Android को आपकी अनुमति चाहिए। इंस्टॉलेशन की पुष्टि करें पर टैप करें।</string>
+  <string name="update_confirm_install">इंस्टॉलेशन की पुष्टि करें</string>
+  <string name="update_install_complete">अपडेट इंस्टॉल हो गया। mpvRx खोलने के लिए टैप करें।</string>
+  <string name="update_download_waiting">नेटवर्क का इंतज़ार है या डाउनलोड फिर से आज़माया जा रहा है…</string>
+  <string name="pref_appearance_thumbnail_generator_title">थंबनेल जनरेटर</string>
+  <string name="pref_thumbnail_generator_native">सीधे फ़ाइल से</string>
+  <string name="pref_thumbnail_generator_mediastore">MediaStore</string>
+  <string name="pref_thumbnail_generator_native_summary">मीडिया फ़ाइल से स्थानीय वीडियो के थंबनेल और गानों के कवर निकालें। विकल्प बदलने पर कैश किए गए थंबनेल मिट जाते हैं।</string>
+  <string name="pref_thumbnail_generator_mediastore_summary">स्थानीय वीडियो और गानों के लिए Android के थंबनेल और एल्बम कवर इस्तेमाल करें। विकल्प बदलने पर कैश किए गए थंबनेल मिट जाते हैं; कवर उपलब्ध न होने पर उसकी जगह एक संकेतक दिखता है। नेटवर्क पूर्वावलोकन सीधे फ़ाइल से बनाए जाते हैं।</string>
+  <string name="ui_update_channels_summary">स्थिर संस्करण, हर रात के पूर्वावलोकन या प्रायोगिक CI बिल्ड।</string>
+  <string name="update_experimental_build_format">प्रायोगिक r%1$d</string>
+  <string name="tv_nav_settings">सेटिंग्स</string>
+  <string name="tv_player_play_pause">चलाएँ या रोकें</string>
+  <string name="tv_player_subtitles">उपशीर्षक</string>
+  <string name="tv_player_audio">ऑडियो ट्रैक</string>
+  <string name="tv_player_chapters">अध्याय</string>
+  <string name="tv_player_speed">प्लेबैक गति</string>
+  <string name="tv_player_aspect_ratio">पक्षानुपात</string>
+  <string name="tv_player_quality">वीडियो गुणवत्ता</string>
+  <string name="tv_player_seek_bar">सीक बार</string>
+  <string name="pref_audio_animated_artwork_title">एनिमेटेड एल्बम कवर</string>
+  <string name="pref_audio_animated_artwork_summary">फ़ुल-स्क्रीन संगीत प्लेयर में Apple Music से मेल खाते एनिमेटेड कवर पाएँ। गाने का शीर्षक, कलाकार और एल्बम Apple को भेजे जाते हैं और मोबाइल डेटा इस्तेमाल होता है। डिफ़ॉल्ट रूप से बंद है; कवर उपलब्ध न होने पर मौजूदा कवर बना रहता है। इसे देखने के लिए विज़ुअलाइज़र से कवर पर जाएँ।</string>
 </resources>

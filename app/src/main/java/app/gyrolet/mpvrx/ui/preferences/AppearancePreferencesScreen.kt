@@ -28,6 +28,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -107,9 +108,14 @@ object AppearancePreferencesScreen : Screen {
     val customTheme by preferences.customTheme.collectAsState()
     val selectedCustomThemeName by preferences.selectedCustomThemeName.collectAsState()
     val customWallpaperUri by preferences.customWallpaperUri.collectAsState()
+    var changingThumbnailGenerator by remember { mutableStateOf(false) }
     var pendingThumbnailMode by remember { mutableStateOf<ThumbnailMode?>(null) }
     var pendingAppUiScale by remember { mutableStateOf<Float?>(null) }
     var isThemeSectionExpanded by rememberSaveable { mutableStateOf(true) }
+    val searchTarget by SettingsSearchNavigation.target.collectAsState()
+    LaunchedEffect(searchTarget) {
+      if (searchTarget?.screen == AppearancePreferencesScreen) isThemeSectionExpanded = true
+    }
     var isAppFontSheetOpen by rememberSaveable { mutableStateOf(false) }
     val backgroundType by preferences.backgroundType.collectAsState()
     val storedThumbnailMode by browserPreferences.thumbnailMode.collectAsState()
@@ -256,6 +262,7 @@ object AppearancePreferencesScreen : Screen {
                 modifier =
                   Modifier
                     .fillMaxWidth()
+                    .settingsSearchTarget(R.string.pref_appearance_category_theme)
                     .clickable { isThemeSectionExpanded = !isThemeSectionExpanded }
                     .padding(horizontal = 20.dp, vertical = 12.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -350,6 +357,7 @@ object AppearancePreferencesScreen : Screen {
                   PreferenceDivider()
 
                   WallpaperPreferenceCard(
+                    modifier = Modifier.settingsSearchTarget(R.string.pref_appearance_custom_wallpaper_title),
                     wallpaperUri = customWallpaperUri,
                     onClick = { backstack.navigateTo(WallpaperEditorScreen()) },
                   )
@@ -666,7 +674,7 @@ object AppearancePreferencesScreen : Screen {
 
           item {
             ExpressivePreferenceGroup {
-              val showFramePosition = thumbnailGenerator == ThumbnailGenerator.Native && thumbnailMode == ThumbnailMode.FrameAtPosition
+              val showFramePosition = thumbnailGenerator != ThumbnailGenerator.MediaStore && thumbnailMode == ThumbnailMode.FrameAtPosition
               val itemCount = if (showFramePosition) 8 else 7
               val showVideoThumbnails by browserPreferences.showVideoThumbnails.collectAsState()
               SwitchPreference(
@@ -695,13 +703,34 @@ object AppearancePreferencesScreen : Screen {
                 ListPreference(
                   modifier = Modifier.settingsSearchTarget(R.string.pref_appearance_thumbnail_generator_title),
                   value = thumbnailGenerator,
-                  onValueChange = { browserPreferences.thumbnailGenerator.set(it) },
+                  onValueChange = { selected ->
+                    if (!changingThumbnailGenerator && selected != thumbnailGenerator) {
+                      changingThumbnailGenerator = true
+                      scope.launch {
+                        try {
+                          thumbnailRepository.setThumbnailGenerator(selected)
+                          app.gyrolet.mpvrx.ui.player.MediaPlayerWidget.clearArtworkCache()
+                          app.gyrolet.mpvrx.ui.player.MediaPlayerWidget.requestUpdate(context)
+                          Toast.makeText(context, thumbnailCacheClearedMessage, Toast.LENGTH_SHORT).show()
+                        } catch (cancelled: kotlinx.coroutines.CancellationException) {
+                          throw cancelled
+                        } catch (error: Exception) {
+                          Toast.makeText(context, context.getString(R.string.pref_thumbnail_cache_clear_failed, error.message ?: "Unknown error"), Toast.LENGTH_LONG).show()
+                        } finally {
+                          changingThumbnailGenerator = false
+                        }
+                      }
+                    }
+                  },
                   values = ThumbnailGenerator.entries,
                   valueToText = {
                     AnnotatedString(
                       context.getString(
-                        if (it == ThumbnailGenerator.Native) R.string.pref_thumbnail_generator_native
-                        else R.string.pref_thumbnail_generator_mediastore,
+                        when (it) {
+                          ThumbnailGenerator.Auto -> R.string.pref_thumbnail_generator_auto
+                          ThumbnailGenerator.Native -> R.string.pref_thumbnail_generator_native
+                          ThumbnailGenerator.MediaStore -> R.string.pref_thumbnail_generator_mediastore
+                        },
                       ),
                     )
                   },
@@ -709,13 +738,16 @@ object AppearancePreferencesScreen : Screen {
                   summary = {
                     Text(
                       text = stringResource(
-                        if (thumbnailGenerator == ThumbnailGenerator.Native) R.string.pref_thumbnail_generator_native_summary
-                        else R.string.pref_thumbnail_generator_mediastore_summary,
+                        when (thumbnailGenerator) {
+                          ThumbnailGenerator.Auto -> R.string.pref_thumbnail_generator_auto_summary
+                          ThumbnailGenerator.Native -> R.string.pref_thumbnail_generator_native_summary
+                          ThumbnailGenerator.MediaStore -> R.string.pref_thumbnail_generator_mediastore_summary
+                        },
                       ),
                       color = MaterialTheme.colorScheme.outline,
                     )
                   },
-                  enabled = showVideoThumbnails,
+                  enabled = !changingThumbnailGenerator,
                 )
               }
 
@@ -746,7 +778,7 @@ object AppearancePreferencesScreen : Screen {
                       color = MaterialTheme.colorScheme.outline,
                     )
                   },
-                  enabled = showVideoThumbnails && thumbnailGenerator == ThumbnailGenerator.Native,
+                  enabled = showVideoThumbnails && thumbnailGenerator != ThumbnailGenerator.MediaStore,
                 )
               }
 
@@ -911,10 +943,10 @@ object AppearancePreferencesScreen : Screen {
             val tabItems = ordered.map { id ->
               when (id) {
                 "HOME" -> ReorderableTabItem(id, stringResource(R.string.pref_nav_home_title), stringResource(R.string.pref_nav_home_summary), true, required = true)
-                "MUSIC" -> ReorderableTabItem(id, stringResource(R.string.pref_nav_music_title), stringResource(R.string.pref_nav_music_summary), showMusicTab)
-                "NETWORK" -> ReorderableTabItem(id, stringResource(R.string.pref_nav_network_title), stringResource(R.string.pref_nav_network_summary), showNetworkTab)
-                "JELLYFIN" -> ReorderableTabItem(id, stringResource(R.string.pref_nav_jellyfin_title), stringResource(R.string.pref_nav_jellyfin_summary), showJellyfinTab)
-                else -> ReorderableTabItem(id, stringResource(R.string.pref_nav_profile_title), stringResource(R.string.pref_nav_profile_summary), showProfileTab)
+                "MUSIC" -> ReorderableTabItem(id, stringResource(R.string.pref_nav_music_title), stringResource(R.string.pref_nav_music_summary), showMusicTab, titleRes = R.string.pref_nav_music_title)
+                "NETWORK" -> ReorderableTabItem(id, stringResource(R.string.pref_nav_network_title), stringResource(R.string.pref_nav_network_summary), showNetworkTab, titleRes = R.string.pref_nav_network_title)
+                "JELLYFIN" -> ReorderableTabItem(id, stringResource(R.string.pref_nav_jellyfin_title), stringResource(R.string.pref_nav_jellyfin_summary), showJellyfinTab, titleRes = R.string.pref_nav_jellyfin_title)
+                else -> ReorderableTabItem(id, stringResource(R.string.pref_nav_profile_title), stringResource(R.string.pref_nav_profile_summary), showProfileTab, titleRes = R.string.pref_nav_profile_title)
               }
             }
             ExpressivePreferenceGroup {

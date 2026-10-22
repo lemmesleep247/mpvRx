@@ -100,11 +100,13 @@
   <string name="pref_appearance_show_video_thumbnails_title">Show video thumbnails</string>
   <string name="pref_appearance_show_video_thumbnails_summary">Display generated thumbnails in video lists and folders</string>
   <string name="pref_appearance_thumbnail_generator_title">Thumbnail generator</string>
-  <string name="pref_appearance_thumbnail_generator_summary">Choose Native or MediaStore for local video thumbnails</string>
+  <string name="pref_appearance_thumbnail_generator_summary">Choose Auto, Native or MediaStore for local thumbnails and song covers</string>
+  <string name="pref_thumbnail_generator_auto">Auto (Default)</string>
+  <string name="pref_thumbnail_generator_auto_summary">Try MediaStore first; use Native if a thumbnail or song cover is unavailable, including in hidden folders. Switching clears cached thumbnails.</string>
   <string name="pref_thumbnail_generator_native">Native</string>
   <string name="pref_thumbnail_generator_mediastore">MediaStore</string>
-  <string name="pref_thumbnail_generator_native_summary">Use Native generation with embedded artwork and frame selection</string>
-  <string name="pref_thumbnail_generator_mediastore_summary">Use Android thumbnails for local videos. Android chooses the frame; Native handles unsupported files and network videos.</string>
+  <string name="pref_thumbnail_generator_native_summary">Extract local video thumbnails and song covers from the media file. Switching clears cached thumbnails.</string>
+  <string name="pref_thumbnail_generator_mediastore_summary">Use Android thumbnails and album art for local videos and songs. Switching clears cached thumbnails; unavailable artwork shows a placeholder. Network previews use Native.</string>
   <string name="pref_appearance_thumbnail_generation_title">Thumbnail generation strategy</string>
   <string name="pref_appearance_thumbnail_generation_summary">Choose how thumbnails are generated, including embedded artwork or a specific frame position</string>
   <string name="pref_appearance_thumbnail_generation_change_title">Change thumbnail strategy?</string>
@@ -625,6 +627,49 @@
   <string name="sort">Sort</string>
   <string name="rename">Rename</string>
   <string name="info">Info</string>
+  <!-- Selection details sheet (Info on multi-selections) -->
+  <string name="selection_info_title">Selection details</string>
+  <string name="selection_info_folders">Folders</string>
+  <string name="selection_info_total_size">Total size</string>
+  <string name="selection_info_total_duration">Total duration</string>
+  <string name="selection_info_average_duration">Average length</string>
+  <string name="selection_info_average_size">Average size</string>
+  <string name="selection_info_resolutions">Resolutions</string>
+  <string name="selection_info_codecs">Video codecs</string>
+  <string name="selection_info_formats">Formats</string>
+  <string name="selection_info_frame_rates">Frame rates</string>
+  <string name="selection_info_subtitles">Embedded subtitles</string>
+  <string name="selection_info_subtitles_value">%1$d / %2$d</string>
+  <string name="selection_info_longest">Longest</string>
+  <string name="selection_info_largest">Largest</string>
+  <string name="selection_info_modified">Date modified</string>
+  <string name="selection_info_items">Selected items</string>
+  <string name="selection_info_scanning">Scanning folders (%1$d/%2$d)…</string>
+  <string name="selection_info_scan_failed">Could not load selection details. Check folder access and try again.</string>
+  <string name="selection_info_folder_unreadable">Could not read media in %1$s</string>
+  <string name="selection_info_fps_value">%1$.2f FPS</string>
+  <string name="selection_info_metadata_note">Summary uses available library metadata. Tap a file for full metadata.</string>
+  <string name="selection_info_missing_metadata">Unavailable metadata</string>
+  <string name="selection_info_missing_metadata_value">Files with unknown size: %1$d; unknown duration: %2$d. Totals and averages use known values only.</string>
+  <string name="selection_info_no_media">No playable media found in the selected folders</string>
+  <string name="selection_info_copy_summary">Copy summary</string>
+  <string name="selection_info_open_media_info">Open full media info</string>
+  <plurals name="selection_info_video_count">
+    <item quantity="one">%1$d video</item>
+    <item quantity="other">%1$d videos</item>
+  </plurals>
+  <plurals name="selection_info_audio_count">
+    <item quantity="one">%1$d audio file</item>
+    <item quantity="other">%1$d audio files</item>
+  </plurals>
+  <plurals name="selection_info_file_count">
+    <item quantity="one">%1$d file</item>
+    <item quantity="other">%1$d files</item>
+  </plurals>
+  <plurals name="selection_info_folder_count">
+    <item quantity="one">%1$d folder</item>
+    <item quantity="other">%1$d folders</item>
+  </plurals>
   <string name="delete">Delete</string>
   <string name="got_it">Got it</string>
   <string name="general">General</string>
@@ -764,7 +809,7 @@
   <string name="pref_section_general">General</string>
   <string name="pref_playlist_mode_title">Enable next/previous navigation</string>
   <string name="pref_playlist_mode_summary">Show next/previous buttons for all videos in folder</string>
-  <string name="pref_playlist_mode_summary_disabled">Play videos individually (select multiple for playlist)</string>
+  <string name="pref_playlist_mode_summary_disabled">Hide next/previous buttons; autoplay is controlled separately</string>
 
   <!-- Player - Seeking Section (additional)                      -->
   <string name="pref_online_skip_markers_title">Use online skip markers</string>
@@ -2692,4 +2737,79 @@
   <string name="color_picker_brightness">Brightness</string>
     <string name="only_for_video_list">Only for video list</string>
     <string name="only_for_folder_list">Only for folder list</string>
+
+  <!-- Audio format indicators -->
+  <string name="audio_quality_hi_res">Hi-Res lossless</string>
+  <string name="audio_quality_lossless">Lossless</string>
+  <string name="audio_quality_lossy">Lossy</string>
+  <string name="audio_quality_dsd">Direct Stream Digital</string>
+  <string name="audio_quality_audio">Audio</string>
+
+  <!-- Delete action size -->
+  <string name="delete_size_loading">Calculating…</string>
+  <string name="delete_size_unknown">Size unknown</string>
+  <string name="delete_size_description">Total size: %1$s</string>
+
+  <!-- Thumbnail information -->
+  <string name="media_info_tab_thumbnail">Thumbnail</string>
+  <string name="thumbnail_preview_description">Cached thumbnail for %1$s</string>
+  <string name="thumbnail_status_disk">Cached on disk</string>
+  <string name="thumbnail_status_memory">Cached in memory</string>
+  <string name="thumbnail_status_unreadable">Cached image could not be decoded</string>
+  <string name="thumbnail_status_missing">No cached thumbnail</string>
+  <string name="thumbnail_info_status">Cache status</string>
+  <string name="thumbnail_info_generator">Generator policy</string>
+  <string name="thumbnail_info_strategy">Frame or artwork selection</string>
+  <string name="thumbnail_strategy_artwork">Album artwork</string>
+  <string name="thumbnail_strategy_auto">MediaStore first, then Native fallback</string>
+  <string name="thumbnail_strategy_android">Android-selected frame</string>
+  <string name="thumbnail_info_quality">Configured quality</string>
+  <string name="thumbnail_info_maximum">Configured size limit</string>
+  <string name="thumbnail_maximum_value">Up to %1$d px on the longest side</string>
+  <string name="thumbnail_info_dimensions">Actual image dimensions</string>
+  <string name="thumbnail_dimensions_value">%1$d × %2$d px</string>
+  <string name="thumbnail_info_format">Cached image format</string>
+  <string name="thumbnail_info_size">Cached file size</string>
+  <string name="thumbnail_info_memory">Present in browser memory cache</string>
+  <string name="thumbnail_info_preview_memory">Preview memory</string>
+  <string name="thumbnail_info_frame">Configured frame position</string>
+  <string name="thumbnail_percent_value">%1$.1f%%</string>
+  <string name="thumbnail_info_jpeg_setting">App JPEG encoder setting</string>
+  <string name="thumbnail_jpeg_value">%1$d%%</string>
+  <string name="thumbnail_info_modified">Cache file updated</string>
+  <string name="thumbnail_info_cache_path">Cache file path</string>
+  <string name="thumbnail_info_source">Source URI</string>
+  <string name="thumbnail_yes">Yes</string>
+  <string name="thumbnail_no">No</string>
+  <string name="thumbnail_refresh">Refresh info</string>
+  <string name="thumbnail_generate">Generate thumbnail</string>
+  <string name="thumbnail_quality_note">The preview is the actual cached image for the current settings. Browser tiles may cache a smaller image than the configured size limit. Opening this tab does not generate a new frame.</string>
+  <string name="thumbnail_inspection_failed">Thumbnail information could not be read. Try refreshing.</string>
+  <string name="thumbnail_generation_unavailable">The selected generator did not return a thumbnail for this file.</string>
+
+  <string name="update_download_failed">Download failed. Tap Retry to resume.</string>
+  <string name="update_install_failed">Could not open the installer. You can try again.</string>
+  <string name="update_install_permission">Allow this app to install updates in Android settings, then tap Install again.</string>
+  <string name="update_checking_download">Checking downloaded APK…</string>
+  <string name="update_check_failed">Could not check for updates. Check your connection or try again later.</string>
+  <string name="update_auto_install">Automatically download and install</string>
+  <string name="update_auto_install_summary">Download over unmetered networks and install when mpvRx is idle. Android may ask for approval.</string>
+  <string name="update_download_and_install">Download and install</string>
+  <string name="update_background_downloading">Downloading app update…</string>
+  <string name="update_installing">Installing update…</string>
+  <string name="update_approval_required">Android needs your approval to finish installing. Tap Confirm installation.</string>
+  <string name="update_confirm_install">Confirm installation</string>
+  <string name="update_install_complete">Update installed. Tap to open mpvRx.</string>
+  <string name="update_download_waiting">Waiting for the network or retrying the download…</string>
+  <string name="tv_nav_settings">Settings</string>
+  <string name="tv_player_play_pause">Play or pause</string>
+  <string name="tv_player_subtitles">Subtitles</string>
+  <string name="tv_player_audio">Audio tracks</string>
+  <string name="tv_player_chapters">Chapters</string>
+  <string name="tv_player_speed">Playback speed</string>
+  <string name="tv_player_aspect_ratio">Aspect ratio</string>
+  <string name="tv_player_quality">Video quality</string>
+  <string name="tv_player_seek_bar">Seek bar</string>
+  <string name="pref_audio_animated_artwork_title">Animated album artwork</string>
+  <string name="pref_audio_animated_artwork_summary">Fetch matching animated covers from Apple Music in the full-screen music player. Sends song title, artist and album to Apple and uses mobile data. Off by default; keeps the existing cover when unavailable. Switch from the visualizer to the cover to see it.</string>
 </resources>

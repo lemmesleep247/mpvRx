@@ -618,7 +618,7 @@ Suivant : NEXT</string>
   <string name="pref_section_general">Général</string>
   <string name="pref_playlist_mode_title">Activer la navigation suivant/précédent</string>
   <string name="pref_playlist_mode_summary">Afficher les boutons suivant/précédent pour toutes les vidéos du dossier</string>
-  <string name="pref_playlist_mode_summary_disabled">Lire les vidéos individuellement (sélectionnez-en plusieurs pour une liste)</string>
+  <string name="pref_playlist_mode_summary_disabled">Masquer les boutons suivant/précédent ; la lecture automatique se règle séparément</string>
 
   <!-- Player - Seeking Section (additional)                      -->
   <string name="pref_online_skip_markers_title">Utiliser les marqueurs de saut en ligne</string>
@@ -924,7 +924,7 @@ Veuillez redémarrer l’application pour appliquer toutes les modifications.</s
   <string name="diagnostics_app_cpu">CPU de l’appli</string>
   <string name="diagnostics_memory_cache_header">MÉMOIRE ET CACHE</string>
   <string name="diagnostics_process_memory">Processus</string>
-  <string name="diagnostics_process_memory_value">PSS %1$s | Java %2$s/%3$s | Native %4$s</string>
+  <string name="diagnostics_process_memory_value">PSS %1$s | Java %2$s/%3$s | Mémoire native %4$s</string>
   <string name="diagnostics_playback_cache">Lecture</string>
   <string name="diagnostics_playback_cache_value">En mémoire tampon %1$.1f s | Paquets %2$s | Fichier %3$s</string>
   <string name="toast_failed_to_read_file">Impossible de lire le fichier : %1$s</string>
@@ -2625,4 +2625,133 @@ Veuillez redémarrer l’application pour appliquer toutes les modifications.</s
   <string name="color_picker_brightness">Luminosité</string>
     <string name="only_for_video_list">Uniquement pour la liste des vidéos</string>
     <string name="only_for_folder_list">Uniquement pour la liste des dossiers</string>
+  <string name="selection_info_title">Détails de la sélection</string>
+  <string name="selection_info_folders">Dossiers</string>
+  <string name="selection_info_total_size">Taille totale</string>
+  <string name="selection_info_total_duration">Durée totale</string>
+  <string name="selection_info_average_duration">Durée moyenne</string>
+  <string name="selection_info_average_size">Taille moyenne</string>
+  <string name="selection_info_resolutions">Résolutions</string>
+  <string name="selection_info_codecs">Codecs vidéo</string>
+  <string name="selection_info_formats">Formats</string>
+  <string name="selection_info_frame_rates">Fréquences d\'images</string>
+  <string name="selection_info_subtitles">Sous-titres intégrés</string>
+  <string name="selection_info_subtitles_value">%1$d / %2$d</string>
+  <string name="selection_info_longest">Fichier le plus long</string>
+  <string name="selection_info_largest">Fichier le plus volumineux</string>
+  <string name="selection_info_modified">Date de modification</string>
+  <string name="selection_info_items">Éléments sélectionnés</string>
+  <string name="selection_info_scanning">Analyse des dossiers (%1$d/%2$d)…</string>
+  <string name="selection_info_scan_failed">Impossible de charger les détails de la sélection. Vérifiez l\'accès aux dossiers et réessayez.</string>
+  <string name="selection_info_folder_unreadable">Impossible de lire les médias dans %1$s</string>
+  <string name="selection_info_fps_value">%1$.2f images/s</string>
+  <string name="selection_info_metadata_note">Le résumé utilise les métadonnées disponibles dans la bibliothèque. Appuyez sur un fichier pour afficher toutes ses métadonnées.</string>
+  <string name="selection_info_missing_metadata">Métadonnées indisponibles</string>
+  <string name="selection_info_missing_metadata_value">Fichiers de taille inconnue : %1$d ; de durée inconnue : %2$d. Les totaux et les moyennes ne prennent en compte que les valeurs connues.</string>
+  <string name="selection_info_no_media">Aucun média lisible trouvé dans les dossiers sélectionnés</string>
+  <string name="selection_info_copy_summary">Copier le résumé</string>
+  <string name="selection_info_open_media_info">Ouvrir les informations complètes du média</string>
+  <plurals name="selection_info_video_count">
+    <item quantity="one">%1$d vidéo</item>
+    <item quantity="other">%1$d vidéos</item>
+  </plurals>
+  <plurals name="selection_info_audio_count">
+    <item quantity="one">%1$d fichier audio</item>
+    <item quantity="other">%1$d fichiers audio</item>
+  </plurals>
+  <plurals name="selection_info_file_count">
+    <item quantity="one">%1$d fichier</item>
+    <item quantity="other">%1$d fichiers</item>
+  </plurals>
+  <plurals name="selection_info_folder_count">
+    <item quantity="one">%1$d dossier</item>
+    <item quantity="other">%1$d dossiers</item>
+  </plurals>
+
+  <!-- Audio format indicators -->
+  <string name="audio_quality_hi_res">Sans perte en haute résolution</string>
+  <string name="audio_quality_lossless">Sans perte</string>
+  <string name="audio_quality_lossy">Avec perte</string>
+  <string name="audio_quality_dsd">Direct Stream Digital</string>
+  <string name="audio_quality_audio">Audio</string>
+
+  <!-- Delete action size -->
+  <string name="delete_size_loading">Calcul en cours…</string>
+  <string name="delete_size_unknown">Taille inconnue</string>
+  <string name="delete_size_description">Taille totale : %1$s</string>
+
+  <!-- Thumbnail information -->
+  <string name="media_info_tab_thumbnail">Miniature</string>
+  <string name="thumbnail_preview_description">Miniature en cache pour %1$s</string>
+  <string name="thumbnail_status_disk">En cache sur le disque</string>
+  <string name="thumbnail_status_memory">En cache en mémoire</string>
+  <string name="thumbnail_status_unreadable">Impossible de décoder l’image en cache</string>
+  <string name="thumbnail_status_missing">Aucune miniature en cache</string>
+  <string name="thumbnail_info_status">État du cache</string>
+  <string name="thumbnail_info_generator">Stratégie de génération</string>
+  <string name="thumbnail_info_strategy">Sélection de l’image vidéo ou de la pochette</string>
+  <string name="thumbnail_strategy_artwork">Pochette de l’album</string>
+  <string name="thumbnail_strategy_android">Image vidéo choisie par Android</string>
+  <string name="thumbnail_info_quality">Qualité configurée</string>
+  <string name="thumbnail_info_maximum">Taille maximale configurée</string>
+  <string name="thumbnail_maximum_value">Jusqu’à %1$d pixels sur le côté le plus long</string>
+  <string name="thumbnail_info_dimensions">Dimensions réelles de l’image</string>
+  <string name="thumbnail_dimensions_value">%1$d × %2$d pixels</string>
+  <string name="thumbnail_info_format">Format de l’image en cache</string>
+  <string name="thumbnail_info_size">Taille du fichier en cache</string>
+  <string name="thumbnail_info_memory">Présente dans le cache mémoire de l’explorateur</string>
+  <string name="thumbnail_info_preview_memory">Mémoire utilisée par l’aperçu</string>
+  <string name="thumbnail_info_frame">Position de capture configurée</string>
+  <string name="thumbnail_percent_value">%1$.1f%%</string>
+  <string name="thumbnail_info_jpeg_setting">Réglage de l’encodeur JPEG de l’application</string>
+  <string name="thumbnail_jpeg_value">%1$d%%</string>
+  <string name="thumbnail_info_modified">Dernière mise à jour du fichier de cache</string>
+  <string name="thumbnail_info_cache_path">Chemin du fichier de cache</string>
+  <string name="thumbnail_info_source">URI de la source</string>
+  <string name="thumbnail_yes">Oui</string>
+  <string name="thumbnail_no">Non</string>
+  <string name="thumbnail_refresh">Actualiser les informations</string>
+  <string name="thumbnail_generate">Générer une miniature</string>
+  <string name="thumbnail_quality_note">L’aperçu affiche l’image réellement mise en cache avec les réglages actuels. Les vignettes de l’explorateur peuvent mettre en cache une image plus petite que la taille maximale configurée. L’ouverture de cet onglet ne génère pas de nouvelle image vidéo.</string>
+  <string name="thumbnail_inspection_failed">Impossible de lire les informations de la miniature. Essayez de les actualiser.</string>
+  <string name="thumbnail_generation_unavailable">Le générateur sélectionné n’a renvoyé aucune miniature pour ce fichier.</string>
+
+  <!-- Automatic thumbnail generation -->
+  <string name="pref_appearance_thumbnail_generator_summary">Choisir Auto, Native ou MediaStore pour les miniatures et pochettes locales</string>
+  <string name="pref_thumbnail_generator_auto">Auto (par défaut)</string>
+  <string name="pref_thumbnail_generator_auto_summary">Essayer MediaStore en premier, puis utiliser Native si la miniature ou la pochette est indisponible, y compris dans les dossiers masqués. Changer de mode efface les miniatures en cache.</string>
+  <string name="thumbnail_strategy_auto">MediaStore en premier, puis Native en secours</string>
+
+  <string name="update_download_failed">Échec du téléchargement. Appuyez sur Réessayer pour reprendre.</string>
+  <string name="update_install_failed">Impossible d’ouvrir le programme d’installation. Vous pouvez réessayer.</string>
+  <string name="update_install_permission">Autorisez cette application à installer des mises à jour dans les paramètres Android, puis appuyez à nouveau sur Installer.</string>
+  <string name="update_checking_download">Vérification de l’APK téléchargé…</string>
+  <string name="update_check_failed">Impossible de rechercher des mises à jour. Vérifiez la connexion ou réessayez plus tard.</string>
+  <string name="update_auto_install">Télécharger et installer automatiquement</string>
+  <string name="update_auto_install_summary">Télécharger sur les réseaux sans limitation de données et installer lorsque mpvRx est inactif. Android peut demander votre accord.</string>
+  <string name="update_download_and_install">Télécharger et installer</string>
+  <string name="update_background_downloading">Téléchargement de la mise à jour…</string>
+  <string name="update_installing">Installation de la mise à jour…</string>
+  <string name="update_approval_required">Android demande votre accord pour terminer l’installation. Appuyez sur Confirmer l’installation.</string>
+  <string name="update_confirm_install">Confirmer l’installation</string>
+  <string name="update_install_complete">Mise à jour installée. Appuyez pour ouvrir mpvRx.</string>
+  <string name="update_download_waiting">En attente du réseau ou nouvelle tentative de téléchargement…</string>
+  <string name="pref_appearance_thumbnail_generator_title">Générateur de miniatures</string>
+  <string name="pref_thumbnail_generator_native">Extraction directe</string>
+  <string name="pref_thumbnail_generator_mediastore">MediaStore</string>
+  <string name="pref_thumbnail_generator_native_summary">Extraire les miniatures des vidéos locales et les pochettes des chansons depuis le fichier multimédia. Changer de méthode efface les miniatures en cache.</string>
+  <string name="pref_thumbnail_generator_mediastore_summary">Utiliser les miniatures et pochettes d’albums Android pour les vidéos et chansons locales. Changer de méthode efface les miniatures en cache ; une image de remplacement apparaît si la pochette est indisponible. Les aperçus réseau utilisent l’extraction directe.</string>
+  <string name="ui_update_channels_summary">Versions stables, aperçus nocturnes ou compilations expérimentales issues de l’intégration continue.</string>
+  <string name="update_experimental_build_format">Exp. r%1$d</string>
+  <string name="tv_nav_settings">Paramètres</string>
+  <string name="tv_player_play_pause">Lire ou mettre en pause</string>
+  <string name="tv_player_subtitles">Sous-titres</string>
+  <string name="tv_player_audio">Pistes audio</string>
+  <string name="tv_player_chapters">Chapitres</string>
+  <string name="tv_player_speed">Vitesse de lecture</string>
+  <string name="tv_player_aspect_ratio">Rapport d’image</string>
+  <string name="tv_player_quality">Qualité vidéo</string>
+  <string name="tv_player_seek_bar">Barre de progression</string>
+  <string name="pref_audio_animated_artwork_title">Pochettes d’albums animées</string>
+  <string name="pref_audio_animated_artwork_summary">Récupérer les pochettes animées correspondantes sur Apple Music dans le lecteur de musique en plein écran. Envoie le titre, l’artiste et l’album à Apple et utilise les données mobiles. Désactivé par défaut ; conserve la pochette actuelle si aucune animation n’est disponible. Passez du visualiseur à la pochette pour la voir.</string>
 </resources>

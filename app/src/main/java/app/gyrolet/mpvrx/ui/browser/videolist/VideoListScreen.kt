@@ -102,6 +102,7 @@ import app.gyrolet.mpvrx.ui.browser.dialogs.FileOperationProgressDialog
 import app.gyrolet.mpvrx.ui.browser.dialogs.FolderPickerDialog
 import app.gyrolet.mpvrx.ui.browser.dialogs.LoadingDialog
 import app.gyrolet.mpvrx.ui.browser.dialogs.RenameDialog
+import app.gyrolet.mpvrx.ui.browser.dialogs.rememberSelectionInfoAction
 import app.gyrolet.mpvrx.ui.browser.dialogs.VideoCompressorOverlay
 import app.gyrolet.mpvrx.ui.browser.dialogs.VideoSortDialog
 import app.gyrolet.mpvrx.ui.browser.fab.FabPlacement
@@ -151,7 +152,6 @@ data class VideoListScreen(
     val backstack = LocalBackStack.current
     val browserPreferences = koinInject<BrowserPreferences>()
     val playerPreferences = koinInject<PlayerPreferences>()
-    val playlistMode by playerPreferences.playlistMode.collectAsState()
     val appearancePreferences = koinInject<app.gyrolet.mpvrx.preferences.AppearancePreferences>()
     val showQuickPlayFab by appearancePreferences.showQuickPlayFab.collectAsState()
     val navigationBarHeight = app.gyrolet.mpvrx.ui.browser.LocalNavigationBarHeight.current
@@ -236,6 +236,10 @@ data class VideoListScreen(
         onOperationComplete = { viewModel.refresh() },
       )
     val selectedVideos = selectionManager.getSelectedItems()
+    val showSelectionInfo = rememberSelectionInfoAction(
+      videos = { selectionManager.getSelectedItems() },
+      onSingleOpened = { selectionManager.clear() },
+    )
     val watchedVideoIds = remember(sortedVideosWithInfo) {
       sortedVideosWithInfo.filter(VideoWithPlaybackInfo::isWatched).mapTo(hashSetOf()) { it.video.id }
     }
@@ -417,18 +421,7 @@ data class VideoListScreen(
           onTitleDoubleTap = { backstack.navigateTo(SecureFolderGateScreen) },
           onTitleLongPress = { backstack.navigateTo(SecureFolderGateScreen) },
           isSingleSelection = selectionManager.isSingleSelection,
-          onInfoClick = {
-            if (selectionManager.isSingleSelection) {
-              val video = selectionManager.getSelectedItems().firstOrNull()
-              if (video != null) {
-                val intent = Intent(context, app.gyrolet.mpvrx.ui.mediainfo.MediaInfoActivity::class.java)
-                intent.action = Intent.ACTION_VIEW
-                intent.data = video.uri
-                context.startActivity(intent)
-                selectionManager.clear()
-              }
-            }
-          },
+          onInfoClick = showSelectionInfo,
           onShareClick = { selectionManager.shareSelected() },
           onPlayClick = { selectionManager.playSelected() },
           onSelectAll = { selectionManager.selectAll() },
@@ -484,7 +477,7 @@ data class VideoListScreen(
                         .firstOrNull { it.filePath in folderPaths }
                     val startIndex =
                       sortedVideos.indexOfFirst { it.path == lastPlayed?.filePath }.coerceAtLeast(0)
-                    if (playlistMode) {
+                    if (playerPreferences.shouldBuildAutomaticQueue(sortedVideos[startIndex].isAudio)) {
                       MediaUtils.playFiles(sortedVideos, context, startIndex, "video_list")
                     } else {
                       MediaUtils.playFile(sortedVideos[startIndex], context, "video_list")
@@ -542,7 +535,7 @@ data class VideoListScreen(
             if (selectionManager.isInSelectionMode && !archiveFolder) {
               selectionManager.toggleFromUser(video)
             } else if (!selectionManager.isInSelectionMode) {
-              if (archiveFolder || (scopedFolder && playlistMode)) {
+              if (archiveFolder || (scopedFolder && playerPreferences.shouldBuildAutomaticQueue(video.isAudio))) {
                 val startIndex = sortedVideos.indexOfFirst { it.uri == video.uri }.coerceAtLeast(0)
                 MediaUtils.playFiles(
                   sortedVideos,
@@ -628,63 +621,18 @@ data class VideoListScreen(
     }
   }
 
-      // Sort Dialog
-      if (isAudio) {
-        app.gyrolet.mpvrx.ui.browser.dialogs.MusicSortDialog(
-          isOpen = sortDialogOpen.value,
-          onDismiss = { sortDialogOpen.value = false },
-          sortField =
-            when (videoSortType) {
-              app.gyrolet.mpvrx.preferences.VideoSortType.Duration -> app.gyrolet.mpvrx.ui.browser.music.MusicSortField.DURATION
-              app.gyrolet.mpvrx.preferences.VideoSortType.Date -> app.gyrolet.mpvrx.ui.browser.music.MusicSortField.DATE_ADDED
-              else -> app.gyrolet.mpvrx.ui.browser.music.MusicSortField.TITLE
-            },
-          sortOrder =
-            if (videoSortOrder.isAscending) {
-              app.gyrolet.mpvrx.ui.browser.music.MusicSortOrder.ASCENDING
-            } else {
-              app.gyrolet.mpvrx.ui.browser.music.MusicSortOrder.DESCENDING
-            },
-          viewMode = if (mediaLayoutMode == MediaLayoutMode.GRID) app.gyrolet.mpvrx.ui.browser.music.MusicViewMode.GRID else app.gyrolet.mpvrx.ui.browser.music.MusicViewMode.LIST,
-          // VideoSortType has no Artist/Album, so only offer the fields it can actually persist
-          // (Title/Duration/Date Added) instead of silently collapsing Artist/Album back to Title.
-          availableFields =
-            listOf(
-              app.gyrolet.mpvrx.ui.browser.music.MusicSortField.TITLE,
-              app.gyrolet.mpvrx.ui.browser.music.MusicSortField.DURATION,
-              app.gyrolet.mpvrx.ui.browser.music.MusicSortField.DATE_ADDED,
-            ),
-          onSortFieldChange = { field ->
-            val mapped =
-              when (field) {
-                app.gyrolet.mpvrx.ui.browser.music.MusicSortField.DURATION -> app.gyrolet.mpvrx.preferences.VideoSortType.Duration
-                app.gyrolet.mpvrx.ui.browser.music.MusicSortField.DATE_ADDED -> app.gyrolet.mpvrx.preferences.VideoSortType.Date
-                else -> app.gyrolet.mpvrx.preferences.VideoSortType.Title
-              }
-            browserPreferences.videoSortType.set(mapped)
-          },
-          onSortOrderChange = { order ->
-            browserPreferences.videoSortOrder.set(
-              if (order == app.gyrolet.mpvrx.ui.browser.music.MusicSortOrder.ASCENDING) SortOrder.Ascending else SortOrder.Descending,
-            )
-          },
-          onViewModeChange = { mode ->
-            browserPreferences.folderViewVideoLayoutMode.set(
-              if (mode == app.gyrolet.mpvrx.ui.browser.music.MusicViewMode.GRID) MediaLayoutMode.GRID else MediaLayoutMode.LIST,
-            )
-          },
-        )
-      } else {
-        VideoSortDialog(
-          isOpen = sortDialogOpen.value,
-          onDismiss = { sortDialogOpen.value = false },
-          sortType = videoSortType,
-          sortOrder = videoSortOrder,
-          onSortTypeChange = { browserPreferences.videoSortType.set(it) },
-          onSortOrderChange = { browserPreferences.videoSortOrder.set(it) },
-          isDualPane = isDualPane,
-        )
-      }
+      // Audio folders use the same preferences and card fields as video folders.
+      VideoSortDialog(
+        isOpen = sortDialogOpen.value,
+        onDismiss = { sortDialogOpen.value = false },
+        sortType = videoSortType,
+        sortOrder = videoSortOrder,
+        onSortTypeChange = { browserPreferences.videoSortType.set(it) },
+        onSortOrderChange = { browserPreferences.videoSortOrder.set(it) },
+        isDualPane = isDualPane,
+        isAudio = isAudio,
+        onMetadataFieldEnabled = viewModel::refresh,
+      )
 
       // Delete Dialog
       DeleteConfirmationDialog(
@@ -694,6 +642,8 @@ data class VideoListScreen(
         itemType = "video",
         itemCount = selectionManager.selectedCount,
         itemNames = selectionManager.getSelectedItems().map { it.displayName },
+        itemPaths = selectionManager.getSelectedItems().map { it.uri.toString() },
+        totalSizeBytes = selectionManager.getSelectedItems().sumOf { it.size.coerceAtLeast(0L) }.takeIf { it > 0L },
       )
 
       // Rename Dialogs

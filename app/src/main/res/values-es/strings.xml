@@ -618,7 +618,7 @@ Siguiente: NEXT</string>
   <string name="pref_section_general">General</string>
   <string name="pref_playlist_mode_title">Activar navegación siguiente/anterior</string>
   <string name="pref_playlist_mode_summary">Mostrar botones siguiente/anterior para todos los vídeos de la carpeta</string>
-  <string name="pref_playlist_mode_summary_disabled">Reproducir vídeos individualmente (selecciona varios para una lista)</string>
+  <string name="pref_playlist_mode_summary_disabled">Ocultar los botones siguiente/anterior; la reproducción automática se controla por separado</string>
 
   <!-- Player - Seeking Section (additional)                      -->
   <string name="pref_online_skip_markers_title">Usar marcadores de salto en línea</string>
@@ -2625,4 +2625,133 @@ Reinicia la aplicación para que se apliquen todos los cambios.</string>
   <string name="color_picker_brightness">Brillo</string>
     <string name="only_for_video_list">Solo para la lista de vídeos</string>
     <string name="only_for_folder_list">Solo para la lista de carpetas</string>
+  <string name="selection_info_title">Detalles de la selección</string>
+  <string name="selection_info_folders">Carpetas</string>
+  <string name="selection_info_total_size">Tamaño total</string>
+  <string name="selection_info_total_duration">Duración total</string>
+  <string name="selection_info_average_duration">Duración media</string>
+  <string name="selection_info_average_size">Tamaño medio</string>
+  <string name="selection_info_resolutions">Resoluciones</string>
+  <string name="selection_info_codecs">Códecs de vídeo</string>
+  <string name="selection_info_formats">Formatos</string>
+  <string name="selection_info_frame_rates">Tasas de fotogramas</string>
+  <string name="selection_info_subtitles">Subtítulos integrados</string>
+  <string name="selection_info_subtitles_value">%1$d / %2$d</string>
+  <string name="selection_info_longest">Archivo más largo</string>
+  <string name="selection_info_largest">Archivo de mayor tamaño</string>
+  <string name="selection_info_modified">Fecha de modificación</string>
+  <string name="selection_info_items">Elementos seleccionados</string>
+  <string name="selection_info_scanning">Buscando en carpetas (%1$d/%2$d)…</string>
+  <string name="selection_info_scan_failed">No se pudieron cargar los detalles de la selección. Comprueba el acceso a las carpetas e inténtalo de nuevo.</string>
+  <string name="selection_info_folder_unreadable">No se pudieron leer los archivos multimedia de %1$s</string>
+  <string name="selection_info_fps_value">%1$.2f fotogramas/s</string>
+  <string name="selection_info_metadata_note">El resumen utiliza los metadatos disponibles en la biblioteca. Toca un archivo para ver todos sus metadatos.</string>
+  <string name="selection_info_missing_metadata">Metadatos no disponibles</string>
+  <string name="selection_info_missing_metadata_value">Archivos con tamaño desconocido: %1$d; duración desconocida: %2$d. Los totales y las medias solo incluyen los valores conocidos.</string>
+  <string name="selection_info_no_media">No se encontraron archivos multimedia reproducibles en las carpetas seleccionadas</string>
+  <string name="selection_info_copy_summary">Copiar resumen</string>
+  <string name="selection_info_open_media_info">Abrir toda la información multimedia</string>
+  <plurals name="selection_info_video_count">
+    <item quantity="one">%1$d vídeo</item>
+    <item quantity="other">%1$d vídeos</item>
+  </plurals>
+  <plurals name="selection_info_audio_count">
+    <item quantity="one">%1$d archivo de audio</item>
+    <item quantity="other">%1$d archivos de audio</item>
+  </plurals>
+  <plurals name="selection_info_file_count">
+    <item quantity="one">%1$d archivo</item>
+    <item quantity="other">%1$d archivos</item>
+  </plurals>
+  <plurals name="selection_info_folder_count">
+    <item quantity="one">%1$d carpeta</item>
+    <item quantity="other">%1$d carpetas</item>
+  </plurals>
+
+  <!-- Audio format indicators -->
+  <string name="audio_quality_hi_res">Sin pérdida en alta resolución</string>
+  <string name="audio_quality_lossless">Sin pérdida</string>
+  <string name="audio_quality_lossy">Con pérdida</string>
+  <string name="audio_quality_dsd">Direct Stream Digital</string>
+  <string name="audio_quality_audio">Audio</string>
+
+  <!-- Delete action size -->
+  <string name="delete_size_loading">Calculando…</string>
+  <string name="delete_size_unknown">Tamaño desconocido</string>
+  <string name="delete_size_description">Tamaño total: %1$s</string>
+
+  <!-- Thumbnail information -->
+  <string name="media_info_tab_thumbnail">Miniatura</string>
+  <string name="thumbnail_preview_description">Miniatura en caché de %1$s</string>
+  <string name="thumbnail_status_disk">Almacenada en caché en disco</string>
+  <string name="thumbnail_status_memory">Almacenada en caché en memoria</string>
+  <string name="thumbnail_status_unreadable">No se pudo decodificar la imagen en caché</string>
+  <string name="thumbnail_status_missing">No hay ninguna miniatura en caché</string>
+  <string name="thumbnail_info_status">Estado de la caché</string>
+  <string name="thumbnail_info_generator">Política de generación</string>
+  <string name="thumbnail_info_strategy">Selección de fotograma o carátula</string>
+  <string name="thumbnail_strategy_artwork">Carátula del álbum</string>
+  <string name="thumbnail_strategy_android">Fotograma seleccionado por Android</string>
+  <string name="thumbnail_info_quality">Calidad configurada</string>
+  <string name="thumbnail_info_maximum">Límite de tamaño configurado</string>
+  <string name="thumbnail_maximum_value">Hasta %1$d píxeles en el lado más largo</string>
+  <string name="thumbnail_info_dimensions">Dimensiones reales de la imagen</string>
+  <string name="thumbnail_dimensions_value">%1$d × %2$d píxeles</string>
+  <string name="thumbnail_info_format">Formato de la imagen en caché</string>
+  <string name="thumbnail_info_size">Tamaño del archivo en caché</string>
+  <string name="thumbnail_info_memory">Presente en la caché de memoria del explorador</string>
+  <string name="thumbnail_info_preview_memory">Memoria de la vista previa</string>
+  <string name="thumbnail_info_frame">Posición de fotograma configurada</string>
+  <string name="thumbnail_percent_value">%1$.1f%%</string>
+  <string name="thumbnail_info_jpeg_setting">Ajuste del codificador JPEG de la aplicación</string>
+  <string name="thumbnail_jpeg_value">%1$d%%</string>
+  <string name="thumbnail_info_modified">Última actualización del archivo de caché</string>
+  <string name="thumbnail_info_cache_path">Ruta del archivo de caché</string>
+  <string name="thumbnail_info_source">URI de origen</string>
+  <string name="thumbnail_yes">Sí</string>
+  <string name="thumbnail_no">No</string>
+  <string name="thumbnail_refresh">Actualizar información</string>
+  <string name="thumbnail_generate">Generar miniatura</string>
+  <string name="thumbnail_quality_note">La vista previa muestra la imagen realmente almacenada en caché con la configuración actual. Los mosaicos del explorador pueden almacenar una imagen más pequeña que el límite de tamaño configurado. Abrir esta pestaña no genera un fotograma nuevo.</string>
+  <string name="thumbnail_inspection_failed">No se pudo leer la información de la miniatura. Prueba a actualizarla.</string>
+  <string name="thumbnail_generation_unavailable">El generador seleccionado no devolvió una miniatura para este archivo.</string>
+
+  <!-- Automatic thumbnail generation -->
+  <string name="pref_appearance_thumbnail_generator_summary">Elige Auto, Native o MediaStore para miniaturas y portadas locales</string>
+  <string name="pref_thumbnail_generator_auto">Automático (predeterminado)</string>
+  <string name="pref_thumbnail_generator_auto_summary">Primero intenta MediaStore; usa Native si no hay miniatura o portada de la canción, también en carpetas ocultas. Cambiar de modo borra las miniaturas en caché.</string>
+  <string name="thumbnail_strategy_auto">Primero MediaStore y después Native como alternativa</string>
+
+  <string name="update_download_failed">La descarga falló. Toca Reintentar para continuar.</string>
+  <string name="update_install_failed">No se pudo abrir el instalador. Puedes volver a intentarlo.</string>
+  <string name="update_install_permission">Permite que esta aplicación instale actualizaciones en los ajustes de Android y vuelve a tocar Instalar.</string>
+  <string name="update_checking_download">Comprobando el APK descargado…</string>
+  <string name="update_check_failed">No se pudieron buscar actualizaciones. Comprueba la conexión o inténtalo más tarde.</string>
+  <string name="update_auto_install">Descargar e instalar automáticamente</string>
+  <string name="update_auto_install_summary">Descarga mediante redes sin límite de datos e instala cuando mpvRx no esté en uso. Android puede pedir tu aprobación.</string>
+  <string name="update_download_and_install">Descargar e instalar</string>
+  <string name="update_background_downloading">Descargando actualización de la aplicación…</string>
+  <string name="update_installing">Instalando actualización…</string>
+  <string name="update_approval_required">Android necesita tu aprobación para completar la instalación. Pulsa Confirmar instalación.</string>
+  <string name="update_confirm_install">Confirmar instalación</string>
+  <string name="update_install_complete">Actualización instalada. Pulsa para abrir mpvRx.</string>
+  <string name="update_download_waiting">Esperando la red o reintentando la descarga…</string>
+  <string name="pref_appearance_thumbnail_generator_title">Generador de miniaturas</string>
+  <string name="pref_thumbnail_generator_native">Extracción directa</string>
+  <string name="pref_thumbnail_generator_mediastore">MediaStore</string>
+  <string name="pref_thumbnail_generator_native_summary">Extraer miniaturas de vídeos locales y carátulas de canciones del archivo multimedia. Al cambiar se borran las miniaturas en caché.</string>
+  <string name="pref_thumbnail_generator_mediastore_summary">Usar miniaturas y carátulas de álbumes de Android para vídeos y canciones locales. Al cambiar se borran las miniaturas en caché; si falta una imagen, se muestra un marcador de posición. Las vistas previas de red usan la extracción directa.</string>
+  <string name="ui_update_channels_summary">Versiones estables, versiones preliminares nocturnas o compilaciones experimentales de CI.</string>
+  <string name="update_experimental_build_format">Exp. r%1$d</string>
+  <string name="tv_nav_settings">Ajustes</string>
+  <string name="tv_player_play_pause">Reproducir o pausar</string>
+  <string name="tv_player_subtitles">Subtítulos</string>
+  <string name="tv_player_audio">Pistas de audio</string>
+  <string name="tv_player_chapters">Capítulos</string>
+  <string name="tv_player_speed">Velocidad de reproducción</string>
+  <string name="tv_player_aspect_ratio">Relación de aspecto</string>
+  <string name="tv_player_quality">Calidad de vídeo</string>
+  <string name="tv_player_seek_bar">Barra de progreso</string>
+  <string name="pref_audio_animated_artwork_title">Carátulas de álbumes animadas</string>
+  <string name="pref_audio_animated_artwork_summary">Obtener carátulas animadas coincidentes de Apple Music en el reproductor de música a pantalla completa. Envía el título, el artista y el álbum de la canción a Apple y usa datos móviles. Desactivado por defecto; conserva la carátula actual si no hay ninguna disponible. Cambia del visualizador a la carátula para verla.</string>
 </resources>

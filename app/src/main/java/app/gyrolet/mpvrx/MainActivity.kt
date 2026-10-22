@@ -113,10 +113,14 @@ import app.gyrolet.mpvrx.utils.permission.PermissionRecovery
 import app.gyrolet.mpvrx.utils.permission.PermissionUtils
 import app.gyrolet.mpvrx.utils.storage.FileTypeUtils
 import app.gyrolet.mpvrx.ui.update.UpdateSheet
+import app.gyrolet.mpvrx.ui.update.UpdateUiState
 import app.gyrolet.mpvrx.ui.update.UpdateViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import androidx.lifecycle.lifecycleScope
 import kotlinx.serialization.json.Json
 import org.koin.android.ext.android.getKoin
@@ -137,6 +141,8 @@ open class MainActivity : AppCompatActivity() {
   private var wasInPipMode = false
   private var pendingPipExitResolution = false
   private var isExpandingFromPip by mutableStateOf(false)
+  private var openUpdateSheet by mutableStateOf(false)
+  private var mediaDiscoveryJob: Job? = null
 
   // Register the ActivityResultLauncher at class level
   private val mediaAccessLauncher =
@@ -155,6 +161,8 @@ open class MainActivity : AppCompatActivity() {
     // directly into the real UI. Do not draw a second Compose logo/title layer afterwards.
     installSplashScreen()
     super.onCreate(savedInstanceState)
+    openUpdateSheet = intent.getBooleanExtra("open_update_sheet", false)
+    intent.removeExtra("open_update_sheet")
 
     if (DeviceFormFactor.isTelevision(this)) {
       requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
@@ -358,9 +366,20 @@ open class MainActivity : AppCompatActivity() {
     PlayerSheetTransitions.clearBrowserCache()
     // Interactive again without the player having taken over, so its expansion is void.
     PlayerSheetTransitions.abandonExpansion()
+    mediaDiscoveryJob?.cancel()
+    mediaDiscoveryJob = lifecycleScope.launch(Dispatchers.IO) {
+      // Let the cached browser draw first. A second bounded pass catches extraction that was
+      // still finishing when the user switched back; there is no continuous storage polling.
+      delay(350L)
+      app.gyrolet.mpvrx.utils.storage.UnindexedVideoDiscovery.refresh(applicationContext)
+      delay(2_000L)
+      app.gyrolet.mpvrx.utils.storage.UnindexedVideoDiscovery.refresh(applicationContext)
+    }
   }
 
   override fun onPause() {
+    mediaDiscoveryJob?.cancel()
+    mediaDiscoveryJob = null
     // Still on screen here, so this is the last point where the browser layer can be frozen
     // for the player's swipe-down and predictive-back previews.
     PlayerSheetTransitions.captureBrowser()
@@ -602,9 +621,15 @@ open class MainActivity : AppCompatActivity() {
     }
   }
 
-  /**
-   * Navigator that handles screen transitions and provides shared states
-   */
+  override fun onNewIntent(intent: Intent) {
+    super.onNewIntent(intent)
+    if (intent.getBooleanExtra("open_update_sheet", false)) {
+      openUpdateSheet = true
+      intent.removeExtra("open_update_sheet")
+    }
+  }
+
+  /** Navigator that handles screen transitions and provides shared states. */
   @Composable
   fun Navigator() {
     val backstack = rememberNavBackStack(MainScreen)
@@ -628,15 +653,14 @@ open class MainActivity : AppCompatActivity() {
         null
       }
 
-    // These flows are only fallback state for builds where the updater is compiled out. Remember
-    // them once so navigator recompositions do not allocate three new StateFlow instances and
-    // create fresh collectAsState subscriptions.
-    val fallbackUpdateState = remember { MutableStateFlow<UpdateViewModel.UpdateState>(UpdateViewModel.UpdateState.Idle) }
-    val fallbackIsDownloading = remember { MutableStateFlow(false) }
-    val fallbackDownloadProgress = remember { MutableStateFlow(0f) }
-    val updateState by (updateViewModel?.updateState ?: fallbackUpdateState).collectAsState()
-    val isDownloading by (updateViewModel?.isDownloading ?: fallbackIsDownloading).collectAsState()
-    val downloadProgress by (updateViewModel?.downloadProgress ?: fallbackDownloadProgress).collectAsState()
+    val fallbackUpdateState = remember { MutableStateFlow(UpdateUiState()) }
+    val updateState by (updateViewModel?.uiState ?: fallbackUpdateState).collectAsState()
+    LaunchedEffect(openUpdateSheet, updateViewModel) {
+      if (openUpdateSheet && updateViewModel != null) {
+        updateViewModel.showPendingUpdate()
+        openUpdateSheet = false
+      }
+    }
     val liquidGlassEnabled by appearancePreferences.liquidGlassEnabled.collectAsState()
     val legacyNavigationBar by appearancePreferences.legacyNavigationBar.collectAsState()
 
@@ -756,40 +780,20 @@ open class MainActivity : AppCompatActivity() {
         }
       }
 
-      // Display the update sheet when appropriate (only if update feature is enabled)
-      if (BuildConfig.ENABLE_UPDATE_FEATURE && updateViewModel != null) {
-        when (updateState) {
-          is UpdateViewModel.UpdateState.Available -> {
-            val update = updateState as UpdateViewModel.UpdateState.Available
-            UpdateSheet(
-              release = update.release,
-              asset = update.asset,
-              isDownloading = isDownloading,
-              progress = downloadProgress,
-              isInstallReady = false,
-              currentVersion = currentVersion,
-              onDismiss = { updateViewModel.dismiss() },
-              onAction = { updateViewModel.downloadUpdate(update.release, update.asset) },
-              onIgnore = { updateViewModel.ignoreVersion(update.release.updateKey) },
-            )
-          }
-          is UpdateViewModel.UpdateState.ReadyToInstall -> {
-            val update = updateState as UpdateViewModel.UpdateState.ReadyToInstall
-            UpdateSheet(
-              release = update.release,
-              asset = update.asset,
-              isDownloading = isDownloading,
-              progress = downloadProgress,
-              isInstallReady = true,
-              currentVersion = currentVersion,
-              onDismiss = { updateViewModel.dismiss() },
-              onAction = { updateViewModel.installUpdate(update.release) },
-              onIgnore = { updateViewModel.ignoreVersion(update.release.updateKey) },
-            )
-          }
-          else -> {}
-        }
+      // One call site preserves sheet state across loading, selection, errors and completion.
+      if (BuildConfig.ENABLE_UPDATE_FEATURE && updateViewModel != null && updateState.visible) {
+        UpdateSheet(
+          state = updateState,
+          currentVersion = currentVersion,
+          onDismiss = updateViewModel::dismiss,
+          onDownload = updateViewModel::downloadUpdate,
+          onCancelDownload = updateViewModel::cancelDownload,
+          onInstall = updateViewModel::installUpdate,
+          onIgnore = updateViewModel::ignoreVersion,
+          onRetryCheck = updateViewModel::retryCheck,
+        )
       }
     }
   }
 }
+

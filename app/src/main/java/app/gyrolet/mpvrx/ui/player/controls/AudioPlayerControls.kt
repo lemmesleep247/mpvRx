@@ -112,6 +112,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import kotlinx.coroutines.launch
 import androidx.palette.graphics.Palette
+import app.gyrolet.mpvrx.data.artwork.MotionArtworkQuery
 import app.gyrolet.mpvrx.database.repository.PlaylistRepository
 import app.gyrolet.mpvrx.repository.JellyfinRepository
 import app.gyrolet.mpvrx.repository.NavidromeRepository
@@ -175,7 +176,10 @@ import kotlin.math.abs
 import kotlinx.coroutines.flow.collect
 import kotlin.math.roundToInt
 import app.gyrolet.mpvrx.R
+import app.gyrolet.mpvrx.preferences.BrowserPreferences
 import app.gyrolet.mpvrx.domain.thumbnail.EmbeddedArtworkResolver
+import app.gyrolet.mpvrx.domain.thumbnail.getArtwork
+import app.gyrolet.mpvrx.domain.thumbnail.isLocalArtworkSource
 import app.gyrolet.mpvrx.ui.player.EmbeddedMotionArtwork
 import app.gyrolet.mpvrx.ui.player.MotionArtworkImage
 import app.gyrolet.mpvrx.ui.player.rememberMotionArtworkDrawable
@@ -195,6 +199,8 @@ import app.gyrolet.mpvrx.ui.player.Panels
 import app.gyrolet.mpvrx.ui.player.PlayerActivity
 import app.gyrolet.mpvrx.ui.player.PlayerViewModel
 import app.gyrolet.mpvrx.ui.player.PlaybackPhase
+import app.gyrolet.mpvrx.ui.player.AudioQuality
+import app.gyrolet.mpvrx.ui.player.resolveAudioFormatInfo
 import app.gyrolet.mpvrx.ui.player.RepeatMode
 import app.gyrolet.mpvrx.ui.player.Sheets
 import app.gyrolet.mpvrx.ui.player.controls.components.AbLoopIcon
@@ -241,7 +247,16 @@ private data class AudioPresentationMetadata(
 private object AudioPresentationMetadataCache {
   private const val MAX_CACHE_KB = 16 * 1024
   private const val METADATA_ONLY_WEIGHT_KB = 64
-  private val loadMutex = Mutex()
+  @Volatile private var loadMutex = Mutex()
+  private var activeRevision = -1L
+
+  fun invalidate(revision: Long) = synchronized(cache) {
+    if (activeRevision != revision) {
+      activeRevision = revision
+      cache.evictAll()
+      loadMutex = Mutex()
+    }
+  }
   private val cache =
     object : LruCache<String, AudioPresentationMetadata>(MAX_CACHE_KB) {
       override fun sizeOf(
@@ -259,26 +274,24 @@ private object AudioPresentationMetadataCache {
     artworkUri: String?,
   ): String = "$pathOrUri\u0000${artworkUri.orEmpty()}"
 
-  fun peek(
-    pathOrUri: String?,
-    artworkUri: String?,
-  ): AudioPresentationMetadata? {
-    if (pathOrUri.isNullOrBlank()) return null
-    return synchronized(cache) { cache.get(cacheKey(pathOrUri, artworkUri)) }
-  }
-
   suspend fun resolve(
     context: android.content.Context,
     pathOrUri: String,
     artworkUri: String?,
+    repository: app.gyrolet.mpvrx.domain.thumbnail.ThumbnailRepository,
+    generator: app.gyrolet.mpvrx.preferences.ThumbnailGenerator,
+    revision: Long,
   ): AudioPresentationMetadata =
     withContext(Dispatchers.IO) {
-      val key = cacheKey(pathOrUri, artworkUri)
+      val key = "${cacheKey(pathOrUri, artworkUri)}|$generator|$revision"
       synchronized(cache) { cache.get(key) }?.let { return@withContext it }
 
+      // An old native retriever may still be unwinding; Android artwork must not wait for it.
+      if (isLocalArtworkSource(pathOrUri) && generator != app.gyrolet.mpvrx.preferences.ThumbnailGenerator.Native) {
+        return@withContext AudioPresentationMetadata(artwork = repository.getArtwork(pathOrUri), artist = null)
+      }
       loadMutex.withLock {
         synchronized(cache) { cache.get(key) }?.let { return@withLock it }
-
         val cleanPath =
           when {
             pathOrUri.startsWith("file://") -> Uri.parse(pathOrUri).path ?: pathOrUri.removePrefix("file://")
@@ -288,7 +301,10 @@ private object AudioPresentationMetadataCache {
             }
             else -> pathOrUri
           }
-        val explicitArtwork = EmbeddedArtworkResolver.decodeArtworkUri(context, artworkUri)
+        val nativeArtworkUri = artworkUri?.takeUnless {
+          isLocalArtworkSource(pathOrUri) && Uri.parse(it).authority == android.provider.MediaStore.AUTHORITY
+        }
+        val explicitArtwork = EmbeddedArtworkResolver.decodeArtworkUri(context, nativeArtworkUri)
         val isNetworkStream = pathOrUri.startsWith("http://", ignoreCase = true) || pathOrUri.startsWith("https://", ignoreCase = true)
         val retriever = if (!isNetworkStream) MediaMetadataRetriever() else null
         val loaded =
@@ -330,7 +346,7 @@ private object AudioPresentationMetadataCache {
             runCatching { retriever?.release() }
           }
 
-        synchronized(cache) { cache.put(key, loaded) }
+        synchronized(cache) { if (activeRevision == revision) cache.put(key, loaded) }
         loaded
       }
     }
@@ -342,16 +358,17 @@ private fun rememberAudioPresentationMetadata(
   artworkUri: String? = null,
 ): AudioPresentationMetadata? {
   val context = LocalContext.current
-  var metadata by remember(pathOrUri, artworkUri) {
-    mutableStateOf(AudioPresentationMetadataCache.peek(pathOrUri, artworkUri))
+  val repository = koinInject<app.gyrolet.mpvrx.domain.thumbnail.ThumbnailRepository>()
+  val revision by repository.cacheRevision.collectAsState()
+  val generator by koinInject<BrowserPreferences>().thumbnailGenerator.collectAsState()
+  AudioPresentationMetadataCache.invalidate(revision)
+  var metadata by remember(pathOrUri, artworkUri, generator, revision) {
+    mutableStateOf<AudioPresentationMetadata?>(null)
   }
-  LaunchedEffect(pathOrUri, artworkUri) {
-    metadata =
-      if (pathOrUri.isNullOrBlank()) {
-        null
-      } else {
-        AudioPresentationMetadataCache.resolve(context, pathOrUri, artworkUri)
-      }
+  LaunchedEffect(pathOrUri, artworkUri, generator, revision) {
+    metadata = if (pathOrUri.isNullOrBlank()) null else {
+      AudioPresentationMetadataCache.resolve(context, pathOrUri, artworkUri, repository, generator, revision)
+    }
   }
   return metadata
 }
@@ -586,6 +603,7 @@ private fun CoverArtCardImage(
   contentScale: ContentScale = ContentScale.Crop,
   motionArtwork: ByteArray? = null,
   isPlaying: Boolean = false,
+  remoteMotionQuery: MotionArtworkQuery? = null,
 ) {
   val context = LocalContext.current
   val client = org.koin.compose.koinInject<okhttp3.OkHttpClient>()
@@ -612,30 +630,39 @@ private fun CoverArtCardImage(
   val imageBitmap = remember(finalBitmap) { finalBitmap?.asImageBitmap() }
   val animatedDrawable = rememberMotionArtworkDrawable(motionArtwork)
 
-  if (animatedDrawable != null) {
-    MotionArtworkImage(
-      drawable = animatedDrawable,
-      isPlaying = isPlaying,
-      fit = contentScale == ContentScale.Fit,
-      modifier = Modifier.fillMaxSize(),
-    )
-  } else if (imageBitmap != null) {
-    Image(
-      bitmap = imageBitmap,
-      contentDescription = null,
-      contentScale = contentScale,
-      modifier = Modifier.fillMaxSize(),
-    )
-  } else {
-    Box(
-      modifier = Modifier.fillMaxSize(),
-      contentAlignment = Alignment.Center,
-    ) {
-      Icon(
-        imageVector = Icons.RoundedFilled.Audiotrack,
+  Box(Modifier.fillMaxSize()) {
+    if (animatedDrawable != null) {
+      MotionArtworkImage(
+        drawable = animatedDrawable,
+        isPlaying = isPlaying,
+        fit = contentScale == ContentScale.Fit,
+        modifier = Modifier.fillMaxSize(),
+      )
+    } else if (imageBitmap != null) {
+      Image(
+        bitmap = imageBitmap,
         contentDescription = null,
-        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-        modifier = Modifier.size(64.dp),
+        contentScale = contentScale,
+        modifier = Modifier.fillMaxSize(),
+      )
+    } else {
+      Box(
+        modifier = Modifier.fillMaxSize(),
+        contentAlignment = Alignment.Center,
+      ) {
+        Icon(
+          imageVector = Icons.RoundedFilled.Audiotrack,
+          contentDescription = null,
+          tint = MaterialTheme.colorScheme.onSurfaceVariant,
+          modifier = Modifier.size(64.dp),
+        )
+      }
+    }
+    if (remoteMotionQuery != null && animatedDrawable == null) {
+      RemoteMotionArtwork(
+        query = remoteMotionQuery,
+        isPlaying = isPlaying,
+        modifier = Modifier.fillMaxSize(),
       )
     }
   }
@@ -710,147 +737,43 @@ fun AudioPlayerControls(
       ?: currentItem?.playableUri?.takeIf { it.isNotBlank() }
       ?: mediaPath
 
-  val audioCodec by PlaybackSession.propString["current-tracks/audio/codec"].collectAsState()
-  val sampleRate by PlaybackSession.propInt["audio-params/samplerate"].collectAsState()
-  val audioFormat by PlaybackSession.propString["audio-params/format"].collectAsState()
-  val bitsPerSample by PlaybackSession.propString["metadata/by-key/BITS_PER_SAMPLE"].collectAsState()
-  val bitsPerSampleAlt by PlaybackSession.propString["metadata/by-key/bits_per_sample"].collectAsState()
-  val audioBitrateProp by PlaybackSession.propInt["audio-bitrate"].collectAsState()
-  val generalBitrateProp by PlaybackSession.propInt["bitrate"].collectAsState()
   val playbackSpeed by PlaybackSession.propFloat["speed"].collectAsState()
 
-  val cleanCodecName =
-    remember(audioCodec, mediaPath) {
-      val codec = audioCodec?.lowercase().orEmpty()
-      val rawExt = mediaPath?.fileExtension().orEmpty().lowercase()
-      val ext = if (rawExt in app.gyrolet.mpvrx.utils.storage.FileTypeUtils.AUDIO_EXTENSIONS) rawExt.uppercase() else ""
-      when {
-        codec.contains("flac") -> "FLAC"
-        codec.contains("alac") -> "ALAC"
-        codec.contains("mp3") -> "MP3"
-        codec.contains("aac") -> "AAC"
-        codec.contains("opus") -> "OPUS"
-        codec.contains("vorbis") -> "VORBIS"
-        codec.contains("wavpack") -> "WAVPACK"
-        codec.contains("ape") -> "APE"
-        codec.contains("dsd") -> "DSD"
-        codec.contains("pcm") -> if (ext in setOf("WAV", "AIFF", "AIF")) ext else "PCM"
-        codec.contains("wma") -> "WMA"
-        codec.isNotBlank() && codec.length <= 10 && !codec.contains("/") && !codec.contains(":") -> {
-          codec.replace("float", "").replace("_latm", "").uppercase().trim()
-        }
-        ext.isNotBlank() -> ext
-        else -> ""
-      }
+  // Use the active decoder's metadata; the indicator must never start an artwork/file probe.
+  val audioCodec by PlaybackSession.propString["current-tracks/audio/codec"].collectAsState()
+  val audioCodecProfile by PlaybackSession.propString["current-tracks/audio/codec-profile"].collectAsState()
+  val sampleRate by PlaybackSession.propInt["audio-params/samplerate"].collectAsState()
+  val bitsPerSample by PlaybackSession.propString["metadata/by-key/BITS_PER_SAMPLE"].collectAsState()
+  val bitsPerSampleAlt by PlaybackSession.propString["metadata/by-key/bits_per_sample"].collectAsState()
+  val audioTracks by viewModel.audioTracks.collectAsStateWithLifecycle()
+  val selectedAudioTrack = audioTracks.firstOrNull { it.isSelected }
+  val audioFormatInfo = remember(
+    playbackState.generation, playbackState.phase, audioCodec, audioCodecProfile,
+    sampleRate, bitsPerSample, bitsPerSampleAlt, selectedAudioTrack, audioTracks.size,
+  ) {
+    if (playbackState.phase != PlaybackPhase.READY && playbackState.phase != PlaybackPhase.BACKGROUND) {
+      null
+    } else {
+      resolveAudioFormatInfo(
+        codec = audioCodec?.takeIf(String::isNotBlank) ?: selectedAudioTrack?.codec,
+        profile = audioCodecProfile?.takeIf(String::isNotBlank) ?: selectedAudioTrack?.codecProfile,
+        sampleRate = selectedAudioTrack?.demuxSampleRate?.toInt()?.takeIf { it > 0 } ?: sampleRate,
+        bitsPerSample = if (audioTracks.size <= 1) bitsPerSample?.takeIf(String::isNotBlank) ?: bitsPerSampleAlt else null,
+        bitrate = selectedAudioTrack?.effectiveBitrate,
+        trackMetadata = selectedAudioTrack?.metadata,
+      )
     }
-
-  val isLosslessCodecOrExt =
-    remember(audioCodec, mediaPath) {
-      val codec = audioCodec?.lowercase().orEmpty()
-      val rawExt = mediaPath?.fileExtension().orEmpty().lowercase()
-      val ext = if (rawExt in app.gyrolet.mpvrx.utils.storage.FileTypeUtils.AUDIO_EXTENSIONS) rawExt else ""
-      codec.contains("flac") ||
-        codec.contains("alac") ||
-        codec.contains("pcm") ||
-        codec.contains("wavpack") ||
-        codec.contains("ape") ||
-        codec.contains("dsd") ||
-        codec.contains("tak") ||
-        ext in setOf("flac", "wav", "aiff", "aif", "alac", "ape", "dsf", "dff")
-    }
-
-  val isHiRes =
-    remember(sampleRate, isLosslessCodecOrExt) {
-      isLosslessCodecOrExt && (sampleRate ?: 0) >= 88200
-    }
-
-  var showLosslessDetails by remember { mutableStateOf(false) }
-
-  LaunchedEffect(currentItem?.stableId, mediaPath) {
-    showLosslessDetails = false
   }
-
-  val collapsedAudioBadgeLabel =
-    remember(isHiRes, isLosslessCodecOrExt, cleanCodecName) {
-      when {
-        isHiRes -> "HI-RES LOSSLESS"
-        isLosslessCodecOrExt -> "LOSSLESS"
-        cleanCodecName.isNotBlank() -> cleanCodecName
-        else -> ""
-      }
-    }
-
-  val fullLosslessDetailString =
-    remember(
-      isHiRes,
-      isLosslessCodecOrExt,
-      sampleRate,
-      audioFormat,
-      bitsPerSample,
-      bitsPerSampleAlt,
-      audioBitrateProp,
-      generalBitrateProp,
-      cleanCodecName,
-    ) {
-      val sr = sampleRate ?: 0
-      val khzStr =
-        if (sr > 0) {
-          val khz = sr / 1000f
-          if (sr % 1000 == 0) "${sr / 1000} kHz" else String.format(java.util.Locale.US, "%.1f kHz", khz)
-        } else {
-          ""
-        }
-
-      val bitrateInt = (audioBitrateProp?.takeIf { it > 0 } ?: generalBitrateProp?.takeIf { it > 0 } ?: 0)
-      val kbpsStr = if (bitrateInt > 0) "${bitrateInt / 1000} kbps" else ""
-
-      val bps = bitsPerSample?.takeIf { it.isNotBlank() } ?: bitsPerSampleAlt?.takeIf { it.isNotBlank() }
-      val bitStr =
-        when {
-          !bps.isNullOrBlank() && bps.toIntOrNull() != null -> "${bps.toInt()}-bit"
-          audioFormat?.contains("24") == true || audioFormat == "s24" || audioFormat == "s24p" -> "24-bit"
-          audioFormat?.contains("16") == true || audioFormat == "s16" || audioFormat == "s16p" -> "16-bit"
-          audioFormat?.contains("32") == true || audioFormat == "s32" || audioFormat == "s32p" || audioFormat == "flt" || audioFormat == "fltp" -> "32-bit"
-          audioFormat?.contains("8") == true || audioFormat == "u8" -> "8-bit"
-          isHiRes -> "24-bit"
-          isLosslessCodecOrExt -> "16-bit"
-          else -> ""
-        }
-
-      if (isLosslessCodecOrExt) {
-        val baseLabel = if (isHiRes) "HI-RES LOSSLESS" else "LOSSLESS"
-        val specsCore =
-          when {
-            bitStr.isNotBlank() && khzStr.isNotBlank() -> "$bitStr/$khzStr"
-            khzStr.isNotBlank() -> khzStr
-            bitStr.isNotBlank() -> bitStr
-            else -> ""
-          }
-        buildString {
-          append(baseLabel)
-          if (specsCore.isNotBlank()) {
-            append(" - ").append(specsCore)
-          }
-          if (cleanCodecName.isNotBlank()) {
-            append(" ").append(cleanCodecName)
-          }
-        }
-      } else {
-        val baseLabel = cleanCodecName.ifBlank { "AUDIO" }
-        val specs =
-          when {
-            kbpsStr.isNotBlank() && khzStr.isNotBlank() -> "$kbpsStr/$khzStr"
-            kbpsStr.isNotBlank() -> kbpsStr
-            khzStr.isNotBlank() -> khzStr
-            else -> ""
-          }
-        if (specs.isNotBlank()) {
-          "$baseLabel - $specs"
-        } else {
-          baseLabel
-        }
-      }
-    }
+  val qualityLabel = stringResource(
+    when (audioFormatInfo?.quality ?: AudioQuality.Unknown) {
+      AudioQuality.HiRes -> R.string.audio_quality_hi_res
+      AudioQuality.Lossless -> R.string.audio_quality_lossless
+      AudioQuality.Lossy -> R.string.audio_quality_lossy
+      AudioQuality.Dsd -> R.string.audio_quality_dsd
+      AudioQuality.Unknown -> R.string.audio_quality_audio
+    },
+  )
+  var showAudioFormatDetails by remember(currentItem?.stableId, mediaPath, selectedAudioTrack?.id) { mutableStateOf(false) }
 
   val currentArtworkUri =
     audiobook?.book?.coverUri?.takeIf(String::isNotBlank)
@@ -859,7 +782,7 @@ fun AudioPlayerControls(
 
   val currentAudioPresentation =
     rememberAudioPresentationMetadata(
-      pathOrUri = currentMediaSource?.takeIf { isAudiobook } ?: mediaPath?.takeIf { it.isNotBlank() } ?: currentMediaSource,
+      pathOrUri = currentMediaSource?.takeIf { isAudiobook || isLocalArtworkSource(it) } ?: mediaPath?.takeIf { it.isNotBlank() } ?: currentMediaSource,
       artworkUri = currentArtworkUri,
     )
   val albumArtBitmap = currentAudioPresentation?.artwork
@@ -915,6 +838,35 @@ fun AudioPlayerControls(
     }
 
   val audioPreferences = koinInject<AudioPreferences>()
+  val animatedAlbumArtwork by audioPreferences.animatedAlbumArtwork.collectAsState()
+  val motionQuery =
+    if (animatedAlbumArtwork && !isAudiobook &&
+      (playbackState.phase == PlaybackPhase.READY || playbackState.phase == PlaybackPhase.BACKGROUND)
+    ) {
+      // One metadata observer, only while opted in. Tag names vary in case across containers;
+      // metadata/album is not the by-key lookup, and queue titles may still be raw filenames.
+      val nativeMetadata by PlaybackSession.propNode["metadata"].collectAsState()
+      remember(nativeMetadata, playbackState.generation, currentItem?.title, mediaTitle, displayArtist) {
+        // Use the event as a trigger, then take one generation-checked native snapshot.
+        // A cached metadata event from the previous file must not identify the new song.
+        PlaybackSession.readLoadedMedia(playbackState.generation) { reader ->
+          fun known(value: String?): String? = value?.trim()?.takeUnless {
+            it.isBlank() || it.equals("<unknown>", ignoreCase = true) ||
+              it.equals("Unknown Artist", ignoreCase = true) || it.equals("Unknown Album", ignoreCase = true)
+          }
+          fun tag(vararg keys: String): String? = keys.asSequence()
+            .mapNotNull { known(reader.string("metadata/by-key/$it")) }.firstOrNull()
+          val artist = tag("artist", "Artist", "ARTIST", "album_artist", "ALBUMARTIST") ?: known(displayArtist)
+          val title = (tag("title", "Title", "TITLE") ?: known(currentItem?.title) ?: known(mediaTitle))
+            ?.let { cleanSongTitle(it, artist) }?.trim()
+          if (artist != null && !title.isNullOrBlank()) {
+            MotionArtworkQuery(title = title, artist = artist, album = tag("album", "Album", "ALBUM"))
+          } else null
+        }
+      }
+    } else {
+      null
+    }
   val appearancePreferences = koinInject<AppearancePreferences>()
   val audioVisualizerStyle by audioPreferences.audioVisualizerStyle.collectAsState()
   val audioWavySeekbar by audioPreferences.audioWavySeekbar.collectAsState()
@@ -1338,44 +1290,12 @@ fun AudioPlayerControls(
       }
     }
 
-    val losslessBadge = @Composable {
-      if (collapsedAudioBadgeLabel.isNotBlank()) {
-        Surface(
-          shape = RoundedCornerShape(4.dp),
-          color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.6f),
-          border = BorderStroke(0.5.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
-          modifier =
-            Modifier.clickable(
-              interactionSource = remember { MutableInteractionSource() },
-              indication = null,
-            ) {
-              showLosslessDetails = !showLosslessDetails
-            },
-        ) {
-          Text(
-            text =
-              if (showLosslessDetails && fullLosslessDetailString.isNotBlank()) {
-                fullLosslessDetailString
-              } else {
-                collapsedAudioBadgeLabel
-              },
-            style =
-              MaterialTheme.typography.labelSmall.copy(
-                fontWeight = FontWeight.Bold,
-                fontSize = 8.5.sp,
-                letterSpacing = 0.8.sp,
-              ),
-            color = MaterialTheme.colorScheme.onSecondaryContainer,
-            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
-          )
-        }
-      }
-    }
 
     val animatableOffsetX = remember { Animatable(0f) }
     val coroutineScope = rememberCoroutineScope()
     val haptic = rememberAppHaptics()
-    var activeCoverOverride by remember { mutableStateOf<Bitmap?>(null) }
+    val artworkRevision by koinInject<app.gyrolet.mpvrx.domain.thumbnail.ThumbnailRepository>().cacheRevision.collectAsState()
+    var activeCoverOverride by remember(artworkRevision) { mutableStateOf<Bitmap?>(null) }
 
     LaunchedEffect(currentItem?.stableId, albumArtBitmap) {
       activeCoverOverride = null
@@ -1552,7 +1472,7 @@ fun AudioPlayerControls(
                 ) {
                   CoverArtCardImage(
                     bitmap = prevCoverBitmap,
-                    artworkUrl = prevItem?.tvgLogo?.takeIf { it.isNotBlank() },
+                    artworkUrl = prevItem?.tvgLogo?.takeIf { it.isNotBlank() && !isLocalArtworkSource(prevItem?.path) },
                     contentScale = if (isAudiobook) ContentScale.Fit else ContentScale.Crop,
                   )
                 }
@@ -1570,7 +1490,7 @@ fun AudioPlayerControls(
                 ) {
                   CoverArtCardImage(
                     bitmap = nextCoverBitmap,
-                    artworkUrl = nextItem?.tvgLogo?.takeIf { it.isNotBlank() },
+                    artworkUrl = nextItem?.tvgLogo?.takeIf { it.isNotBlank() && !isLocalArtworkSource(nextItem?.path) },
                     contentScale = if (isAudiobook) ContentScale.Fit else ContentScale.Crop,
                   )
                 }
@@ -1585,13 +1505,19 @@ fun AudioPlayerControls(
                 shape = coverShape,
                 color = Color.Transparent,
               ) {
-                CoverArtCardImage(
-                  bitmap = activeCoverOverride ?: albumArtBitmap,
-                  artworkUrl = currentArtworkUri,
-                  contentScale = if (isAudiobook) ContentScale.Fit else ContentScale.Crop,
-                  motionArtwork = currentAudioPresentation?.motionArtwork?.takeIf { activeCoverOverride == null },
-                  isPlaying = isPlaying,
-                )
+                Box(Modifier.fillMaxSize()) {
+                  CoverArtCardImage(
+                    bitmap = activeCoverOverride ?: albumArtBitmap,
+                    artworkUrl = currentArtworkUri?.takeUnless { isLocalArtworkSource(currentMediaSource) },
+                    contentScale = if (isAudiobook) ContentScale.Fit else ContentScale.Crop,
+                    motionArtwork = currentAudioPresentation?.motionArtwork?.takeIf { activeCoverOverride == null },
+                    isPlaying = isPlaying,
+                    remoteMotionQuery = motionQuery?.takeIf {
+                      activeCoverOverride == null && !showVisualizer && !showInPlaceLyrics
+                    },
+                  )
+
+                }
               }
             }
           }
@@ -2223,7 +2149,28 @@ fun AudioPlayerControls(
         loopEnd = abLoopB?.toFloat()?.plus(bookOffset),
         isPortrait = true,
         applyHorizontalPadding = false,
-        centerContent = losslessBadge,
+        centerContent = {
+          audioFormatInfo?.let { format ->
+            Surface(
+              shape = RoundedCornerShape(8.dp),
+              color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.6f),
+              modifier = Modifier.clickable { showAudioFormatDetails = !showAudioFormatDetails },
+            ) {
+              Text(
+                text = when {
+                  showAudioFormatDetails -> format.details(qualityLabel)
+                  format.quality == AudioQuality.Unknown -> format.codecLabel
+                  else -> "${format.codecLabel} · $qualityLabel"
+                },
+                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, fontSize = 10.sp, letterSpacing = 0.8.sp),
+                color = MaterialTheme.colorScheme.onSecondaryContainer,
+                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+              )
+            }
+          }
+        },
         modifier = Modifier.fillMaxWidth(),
       )
       }

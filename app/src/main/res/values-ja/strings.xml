@@ -618,7 +618,7 @@
   <string name="pref_section_general">一般</string>
   <string name="pref_playlist_mode_title">次へ/前へ移動を有効にする</string>
   <string name="pref_playlist_mode_summary">フォルダー内のすべての動画に次へ/前へボタンを表示します</string>
-  <string name="pref_playlist_mode_summary_disabled">動画を個別に再生（複数選択するとプレイリスト）</string>
+  <string name="pref_playlist_mode_summary_disabled">次へ・前へボタンを非表示にします。自動再生は別の設定で制御します</string>
 
   <!-- Player - Seeking Section (additional)                      -->
   <string name="pref_online_skip_markers_title">オンラインのスキップマーカーを使用</string>
@@ -2614,4 +2614,129 @@
   <string name="color_picker_brightness">明るさ</string>
     <string name="only_for_video_list">動画リストのみに適用</string>
     <string name="only_for_folder_list">フォルダーリストのみに適用</string>
+  <string name="selection_info_title">選択項目の詳細</string>
+  <string name="selection_info_folders">フォルダー</string>
+  <string name="selection_info_total_size">合計サイズ</string>
+  <string name="selection_info_total_duration">合計再生時間</string>
+  <string name="selection_info_average_duration">平均再生時間</string>
+  <string name="selection_info_average_size">平均サイズ</string>
+  <string name="selection_info_resolutions">解像度</string>
+  <string name="selection_info_codecs">動画コーデック</string>
+  <string name="selection_info_formats">形式</string>
+  <string name="selection_info_frame_rates">フレームレート</string>
+  <string name="selection_info_subtitles">埋め込み字幕</string>
+  <string name="selection_info_subtitles_value">%1$d / %2$d</string>
+  <string name="selection_info_longest">最も長いファイル</string>
+  <string name="selection_info_largest">最も大きいファイル</string>
+  <string name="selection_info_modified">更新日時</string>
+  <string name="selection_info_items">選択した項目</string>
+  <string name="selection_info_scanning">フォルダーをスキャン中（%1$d/%2$d）…</string>
+  <string name="selection_info_scan_failed">選択項目の詳細を読み込めませんでした。フォルダーへのアクセス権を確認して、もう一度お試しください。</string>
+  <string name="selection_info_folder_unreadable">%1$s 内のメディアを読み込めませんでした</string>
+  <string name="selection_info_fps_value">%1$.2f フレーム/秒</string>
+  <string name="selection_info_metadata_note">概要にはライブラリで利用可能なメタデータを使用します。ファイルをタップすると、すべてのメタデータを表示できます。</string>
+  <string name="selection_info_missing_metadata">利用できないメタデータ</string>
+  <string name="selection_info_missing_metadata_value">サイズ不明のファイル：%1$d、再生時間不明のファイル：%2$d。合計と平均には既知の値のみを使用します。</string>
+  <string name="selection_info_no_media">選択したフォルダーに再生可能なメディアが見つかりませんでした</string>
+  <string name="selection_info_copy_summary">概要をコピー</string>
+  <string name="selection_info_open_media_info">メディア情報をすべて表示</string>
+  <plurals name="selection_info_video_count">
+    <item quantity="other">動画 %1$d 本</item>
+  </plurals>
+  <plurals name="selection_info_audio_count">
+    <item quantity="other">音声ファイル %1$d 個</item>
+  </plurals>
+  <plurals name="selection_info_file_count">
+    <item quantity="other">ファイル %1$d 個</item>
+  </plurals>
+  <plurals name="selection_info_folder_count">
+    <item quantity="other">フォルダー %1$d 個</item>
+  </plurals>
+
+  <!-- Audio format indicators -->
+  <string name="audio_quality_hi_res">ハイレゾ・ロスレス</string>
+  <string name="audio_quality_lossless">ロスレス</string>
+  <string name="audio_quality_lossy">非可逆圧縮</string>
+  <string name="audio_quality_dsd">ダイレクトストリームデジタル</string>
+  <string name="audio_quality_audio">音声</string>
+
+  <!-- Delete action size -->
+  <string name="delete_size_loading">計算中…</string>
+  <string name="delete_size_unknown">サイズ不明</string>
+  <string name="delete_size_description">合計サイズ: %1$s</string>
+
+  <!-- Thumbnail information -->
+  <string name="media_info_tab_thumbnail">サムネイル</string>
+  <string name="thumbnail_preview_description">%1$s のキャッシュ済みサムネイル</string>
+  <string name="thumbnail_status_disk">ディスクにキャッシュ済み</string>
+  <string name="thumbnail_status_memory">メモリにキャッシュ済み</string>
+  <string name="thumbnail_status_unreadable">キャッシュされた画像をデコードできませんでした</string>
+  <string name="thumbnail_status_missing">キャッシュされたサムネイルはありません</string>
+  <string name="thumbnail_info_status">キャッシュの状態</string>
+  <string name="thumbnail_info_generator">生成ポリシー</string>
+  <string name="thumbnail_info_strategy">フレームまたはカバー画像の選択</string>
+  <string name="thumbnail_strategy_artwork">アルバムのカバー画像</string>
+  <string name="thumbnail_strategy_android">Android が選択したフレーム</string>
+  <string name="thumbnail_info_quality">設定された画質</string>
+  <string name="thumbnail_info_maximum">設定されたサイズ上限</string>
+  <string name="thumbnail_maximum_value">長辺が最大 %1$d ピクセル</string>
+  <string name="thumbnail_info_dimensions">実際の画像サイズ</string>
+  <string name="thumbnail_dimensions_value">%1$d × %2$d ピクセル</string>
+  <string name="thumbnail_info_format">キャッシュされた画像の形式</string>
+  <string name="thumbnail_info_size">キャッシュファイルのサイズ</string>
+  <string name="thumbnail_info_memory">メディアブラウザのメモリキャッシュに存在</string>
+  <string name="thumbnail_info_preview_memory">プレビューのメモリ使用量</string>
+  <string name="thumbnail_info_frame">設定されたフレーム位置</string>
+  <string name="thumbnail_percent_value">%1$.1f%%</string>
+  <string name="thumbnail_info_jpeg_setting">アプリの JPEG エンコーダ設定</string>
+  <string name="thumbnail_jpeg_value">%1$d%%</string>
+  <string name="thumbnail_info_modified">キャッシュファイルの更新日時</string>
+  <string name="thumbnail_info_cache_path">キャッシュファイルのパス</string>
+  <string name="thumbnail_info_source">ソース URI</string>
+  <string name="thumbnail_yes">はい</string>
+  <string name="thumbnail_no">いいえ</string>
+  <string name="thumbnail_refresh">情報を更新</string>
+  <string name="thumbnail_generate">サムネイルを生成</string>
+  <string name="thumbnail_quality_note">プレビューには、現在の設定で実際にキャッシュされた画像が表示されます。メディアブラウザのタイルには、設定されたサイズ上限より小さい画像がキャッシュされることがあります。このタブを開いても、新しいフレームは生成されません。</string>
+  <string name="thumbnail_inspection_failed">サムネイル情報を読み取れませんでした。更新してください。</string>
+  <string name="thumbnail_generation_unavailable">選択した生成方法では、このファイルのサムネイルを取得できませんでした。</string>
+
+  <!-- Automatic thumbnail generation -->
+  <string name="pref_appearance_thumbnail_generator_summary">ローカルのサムネイルと曲のカバーに自動、Native、MediaStoreのいずれかを選択</string>
+  <string name="pref_thumbnail_generator_auto">自動（デフォルト）</string>
+  <string name="pref_thumbnail_generator_auto_summary">最初にMediaStoreを試し、サムネイルや曲のカバーを取得できない場合はNativeを使用します。隠しフォルダにも適用されます。モードを切り替えるとキャッシュ済みのサムネイルが消去されます。</string>
+  <string name="thumbnail_strategy_auto">最初にMediaStore、取得できない場合はNative</string>
+
+  <string name="update_download_failed">ダウンロードに失敗しました。「再試行」をタップすると再開します。</string>
+  <string name="update_install_failed">インストーラーを開けませんでした。もう一度お試しください。</string>
+  <string name="update_install_permission">Android の設定でこのアプリによる更新のインストールを許可し、再度「インストール」をタップしてください。</string>
+  <string name="update_checking_download">ダウンロードした APK を確認中…</string>
+  <string name="update_check_failed">更新を確認できませんでした。接続を確認するか、後でもう一度お試しください。</string>
+  <string name="update_auto_install">自動でダウンロードしてインストール</string>
+  <string name="update_auto_install_summary">従量制ではないネットワークでダウンロードし、mpvRx を使用していないときにインストールします。Android が承認を求める場合があります。</string>
+  <string name="update_download_and_install">ダウンロードしてインストール</string>
+  <string name="update_background_downloading">アプリの更新をダウンロード中…</string>
+  <string name="update_installing">更新をインストール中…</string>
+  <string name="update_approval_required">インストールを完了するには Android での承認が必要です。「インストールを確認」をタップしてください。</string>
+  <string name="update_confirm_install">インストールを確認</string>
+  <string name="update_install_complete">更新をインストールしました。タップして mpvRx を開きます。</string>
+  <string name="update_download_waiting">ネットワークを待機中、またはダウンロードを再試行中…</string>
+  <string name="pref_appearance_thumbnail_generator_title">サムネイルの生成方法</string>
+  <string name="pref_thumbnail_generator_native">直接抽出</string>
+  <string name="pref_thumbnail_generator_mediastore">MediaStore</string>
+  <string name="pref_thumbnail_generator_native_summary">ローカル動画のサムネイルと楽曲のカバーをメディアファイルから抽出します。切り替えるとキャッシュ済みのサムネイルが削除されます。</string>
+  <string name="pref_thumbnail_generator_mediastore_summary">ローカルの動画や楽曲に Android のサムネイルとアルバムアートを使用します。切り替えるとキャッシュ済みのサムネイルが削除され、画像を取得できない場合は代替画像を表示します。ネットワークのプレビューには直接抽出を使用します。</string>
+  <string name="ui_update_channels_summary">安定版、ナイトリープレビュー、実験的な CI ビルド。</string>
+  <string name="update_experimental_build_format">実験版 r%1$d</string>
+  <string name="tv_nav_settings">設定</string>
+  <string name="tv_player_play_pause">再生または一時停止</string>
+  <string name="tv_player_subtitles">字幕</string>
+  <string name="tv_player_audio">音声トラック</string>
+  <string name="tv_player_chapters">チャプター</string>
+  <string name="tv_player_speed">再生速度</string>
+  <string name="tv_player_aspect_ratio">アスペクト比</string>
+  <string name="tv_player_quality">画質</string>
+  <string name="tv_player_seek_bar">シークバー</string>
+  <string name="pref_audio_animated_artwork_title">アニメーションアルバムアート</string>
+  <string name="pref_audio_animated_artwork_summary">全画面の音楽プレーヤーで、楽曲に合うアニメーションカバーを Apple Music から取得します。曲名、アーティスト名、アルバム名を Apple に送信し、モバイルデータを使用します。初期設定ではオフです。取得できない場合は現在のカバーを表示します。表示するにはビジュアライザーからカバーに切り替えてください。</string>
 </resources>
