@@ -1747,6 +1747,9 @@ Bitte starten Sie die App neu, damit alle Änderungen wirksam werden.</string>
     <string name="ui_sort_descending">Absteigend sortieren</string>
     <string name="ui_no_matching_episodes">Keine passenden Episoden</string>
     <string name="ui_buffering">Puffern…</string>
+    <string name="player_opening_stream">Stream wird geöffnet…</string>
+    <string name="player_buffering_percent">Puffern %1$d %%</string>
+    <string name="player_buffering_seconds">Puffern · %1$s s bereit</string>
     <string name="ui_jellyfin">Jellyfin</string>
     <string name="ui_media">Medien</string>
     <string name="ui_saved_media">Gespeicherte Links</string>
@@ -2334,6 +2337,11 @@ Bitte starten Sie die App neu, damit alle Änderungen wirksam werden.</string>
   <string name="onboarding_configuration_restoring">Einstellungssicherungen werden geprüft…</string>
   <string name="onboarding_configuration_no_backup">Ordner eingerichtet. Downloads verwenden Configuration/Downloads.</string>
   <string name="onboarding_configuration_restored">Einstellungen aus %1$s wiederhergestellt. Downloads verwenden Configuration/Downloads.</string>
+  <plurals name="onboarding_configuration_restored_partial">
+    <item quantity="one">Einstellungen aus %1$s wiederhergestellt. %2$d beschädigter Eintrag wurde übersprungen. Downloads verwenden Configuration/Downloads.</item>
+    <item quantity="other">Einstellungen aus %1$s wiederhergestellt. %2$d beschädigte Einträge wurden übersprungen. Downloads verwenden Configuration/Downloads.</item>
+  </plurals>
+  <string name="settings_restore_reverted">Die aus %1$s wiederhergestellten Einstellungen haben einen Absturz verursacht und wurden zurückgesetzt.</string>
   <string name="onboarding_configuration_restore_failed">Ordnereinrichtung konnte nicht abgeschlossen werden: %1$s</string>
   <string name="navbar_glow_title">Glasleuchten</string>
   <string name="navbar_glow_summary">Randlicht und Berührungsleuchten der Navigationsleiste anzeigen</string>
@@ -2769,5 +2777,20 @@ Bitte starten Sie die App neu, damit alle Änderungen wirksam werden.</string>
   <string name="jellyfin_continue_watching">Weiterschauen</string>
   <string name="jellyfin_latest_movies">Neueste Filme</string>
   <string name="jellyfin_latest_series">Neueste Serien</string>
+  <string name="jellyfin_top_picks">Empfehlungen für dich</string>
+  <string name="jellyfin_top_picks_subtitle">Beliebt und angesagt auf deinem Server</string>
+  <string name="jellyfin_music_subtitle">Alben und Titel</string>
+  <string name="jellyfin_connect_message">Streame deine Mediathek mit mpvRx-Hardwaredekodierung, ganz ohne Transkodierung.</string>
+  <string name="jellyfin_empty_folder_message">In diesem Ordner gibt es noch keine Medien.</string>
+  <string name="jellyfin_no_results_message">Nichts passt zu „%1$s“. Versuche einen anderen Titel oder eine andere Kategorie.</string>
+  <string name="jellyfin_filter_all">Alle</string>
+  <string name="jellyfin_play_random">Zufällig abspielen</string>
+  <string name="jellyfin_switch_server">Server wechseln</string>
+  <string name="jellyfin_error_title">Server nicht erreichbar</string>
+  <string name="jellyfin_auth_error_message">Deine Sitzung ist abgelaufen oder dieses Konto ist nicht berechtigt. Melde dich erneut an, um fortzufahren.</string>
+  <string name="jellyfin_reauthenticate">Erneut anmelden</string>
+  <string name="jellyfin_cast">Besetzung</string>
+  <string name="jellyfin_more_like_this">Ähnliche Titel</string>
+  <string name="jellyfin_watched">Angesehen</string>
   <string name="jellyfin_search_hint">Filme, Serien und Episoden suchen…</string>
 </resources>

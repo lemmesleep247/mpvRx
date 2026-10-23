@@ -1747,6 +1747,9 @@ Veuillez redémarrer l’application pour appliquer toutes les modifications.</s
     <string name="ui_sort_descending">Ordre décroissant</string>
     <string name="ui_no_matching_episodes">Aucun épisode correspondant</string>
     <string name="ui_buffering">Mise en mémoire tampon…</string>
+    <string name="player_opening_stream">Ouverture du flux…</string>
+    <string name="player_buffering_percent">Mise en mémoire tampon %1$d %%</string>
+    <string name="player_buffering_seconds">Mise en mémoire tampon · %1$s s prêtes</string>
     <string name="ui_jellyfin">Jellyfin</string>
     <string name="ui_media">Médias</string>
     <string name="ui_saved_media">Liens enregistrés</string>
@@ -2334,6 +2337,11 @@ Veuillez redémarrer l’application pour appliquer toutes les modifications.</s
   <string name="onboarding_configuration_restoring">Recherche de sauvegardes des réglages…</string>
   <string name="onboarding_configuration_no_backup">Dossier configuré. Les téléchargements utiliseront Configuration/Downloads.</string>
   <string name="onboarding_configuration_restored">Réglages restaurés depuis %1$s. Les téléchargements utiliseront Configuration/Downloads.</string>
+  <plurals name="onboarding_configuration_restored_partial">
+    <item quantity="one">Réglages restaurés depuis %1$s. %2$d entrée endommagée a été ignorée. Les téléchargements utiliseront Configuration/Downloads.</item>
+    <item quantity="other">Réglages restaurés depuis %1$s. %2$d entrées endommagées ont été ignorées. Les téléchargements utiliseront Configuration/Downloads.</item>
+  </plurals>
+  <string name="settings_restore_reverted">Les réglages restaurés depuis %1$s ont provoqué un plantage ; ils ont donc été annulés.</string>
   <string name="onboarding_configuration_restore_failed">La configuration du dossier a échoué : %1$s</string>
   <string name="navbar_glow_title">Éclat du verre</string>
   <string name="navbar_glow_summary">Afficher l’éclairage du bord et l’éclat au toucher de la barre de navigation</string>
@@ -2769,5 +2777,20 @@ Veuillez redémarrer l’application pour appliquer toutes les modifications.</s
   <string name="jellyfin_continue_watching">Reprendre la lecture</string>
   <string name="jellyfin_latest_movies">Films récents</string>
   <string name="jellyfin_latest_series">Séries récentes</string>
+  <string name="jellyfin_top_picks">Sélection pour vous</string>
+  <string name="jellyfin_top_picks_subtitle">Populaire et tendance sur votre serveur</string>
+  <string name="jellyfin_music_subtitle">Albums et titres</string>
+  <string name="jellyfin_connect_message">Diffusez votre bibliothèque avec le décodage matériel de mpvRx, sans transcodage.</string>
+  <string name="jellyfin_empty_folder_message">Ce dossier ne contient encore aucun média.</string>
+  <string name="jellyfin_no_results_message">Aucun résultat pour « %1$s ». Essayez un autre titre ou une autre catégorie.</string>
+  <string name="jellyfin_filter_all">Tout</string>
+  <string name="jellyfin_play_random">Lecture aléatoire</string>
+  <string name="jellyfin_switch_server">Changer de serveur</string>
+  <string name="jellyfin_error_title">Impossible de joindre ce serveur</string>
+  <string name="jellyfin_auth_error_message">Votre session a expiré ou ce compte n\'est pas autorisé. Reconnectez-vous pour continuer.</string>
+  <string name="jellyfin_reauthenticate">Se reconnecter</string>
+  <string name="jellyfin_cast">Distribution</string>
+  <string name="jellyfin_more_like_this">Titres similaires</string>
+  <string name="jellyfin_watched">Vu</string>
   <string name="jellyfin_search_hint">Rechercher des films, séries et épisodes…</string>
 </resources>

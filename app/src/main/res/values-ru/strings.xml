@@ -1761,6 +1761,9 @@
     <string name="ui_sort_descending">По убыванию</string>
     <string name="ui_no_matching_episodes">Нет подходящих эпизодов</string>
     <string name="ui_buffering">Буферизация…</string>
+    <string name="player_opening_stream">Открытие потока…</string>
+    <string name="player_buffering_percent">Буферизация %1$d %%</string>
+    <string name="player_buffering_seconds">Буферизация · готово %1$s с</string>
     <string name="ui_jellyfin">Jellyfin</string>
     <string name="ui_media">Медиа</string>
     <string name="ui_saved_media">Сохранённые ссылки</string>
@@ -2348,6 +2351,13 @@
   <string name="onboarding_configuration_restoring">Проверка резервных копий настроек…</string>
   <string name="onboarding_configuration_no_backup">Папка настроена. Загрузки будут сохраняться в Configuration/Downloads.</string>
   <string name="onboarding_configuration_restored">Настройки восстановлены из %1$s. Загрузки будут сохраняться в Configuration/Downloads.</string>
+  <plurals name="onboarding_configuration_restored_partial">
+    <item quantity="one">Настройки восстановлены из %1$s. Пропущена %2$d повреждённая запись. Загрузки будут сохраняться в Configuration/Downloads.</item>
+    <item quantity="few">Настройки восстановлены из %1$s. Пропущены %2$d повреждённые записи. Загрузки будут сохраняться в Configuration/Downloads.</item>
+    <item quantity="many">Настройки восстановлены из %1$s. Пропущено %2$d повреждённых записей. Загрузки будут сохраняться в Configuration/Downloads.</item>
+    <item quantity="other">Настройки восстановлены из %1$s. Пропущено %2$d повреждённой записи. Загрузки будут сохраняться в Configuration/Downloads.</item>
+  </plurals>
+  <string name="settings_restore_reverted">Настройки, восстановленные из %1$s, вызвали сбой, поэтому они были отменены.</string>
   <string name="onboarding_configuration_restore_failed">Не удалось завершить настройку папки: %1$s</string>
   <string name="navbar_glow_title">Свечение стекла</string>
   <string name="navbar_glow_summary">Подсветка края и касаний панели навигации</string>
@@ -2799,5 +2809,20 @@
   <string name="jellyfin_continue_watching">Продолжить просмотр</string>
   <string name="jellyfin_latest_movies">Новые фильмы</string>
   <string name="jellyfin_latest_series">Новые сериалы</string>
+  <string name="jellyfin_top_picks">Рекомендуем вам</string>
+  <string name="jellyfin_top_picks_subtitle">Популярное на вашем сервере</string>
+  <string name="jellyfin_music_subtitle">Альбомы и треки</string>
+  <string name="jellyfin_connect_message">Смотрите медиатеку с аппаратным декодированием mpvRx, без перекодирования.</string>
+  <string name="jellyfin_empty_folder_message">В этой папке пока нет медиафайлов.</string>
+  <string name="jellyfin_no_results_message">Ничего не найдено по запросу «%1$s». Попробуйте другое название или категорию.</string>
+  <string name="jellyfin_filter_all">Все</string>
+  <string name="jellyfin_play_random">Случайное воспроизведение</string>
+  <string name="jellyfin_switch_server">Сменить сервер</string>
+  <string name="jellyfin_error_title">Не удалось подключиться к серверу</string>
+  <string name="jellyfin_auth_error_message">Сеанс истёк или у этой учётной записи нет доступа. Войдите снова, чтобы продолжить.</string>
+  <string name="jellyfin_reauthenticate">Войти снова</string>
+  <string name="jellyfin_cast">В ролях</string>
+  <string name="jellyfin_more_like_this">Похожее</string>
+  <string name="jellyfin_watched">Просмотрено</string>
   <string name="jellyfin_search_hint">Поиск фильмов, сериалов и серий…</string>
 </resources>

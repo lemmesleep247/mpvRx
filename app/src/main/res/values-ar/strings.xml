@@ -1773,6 +1773,9 @@
     <string name="ui_sort_descending">ترتيب تنازلي</string>
     <string name="ui_no_matching_episodes">لا توجد حلقات مطابقة</string>
     <string name="ui_buffering">جارٍ التخزين المؤقت…</string>
+    <string name="player_opening_stream">جارٍ فتح البث…</string>
+    <string name="player_buffering_percent">جارٍ التخزين المؤقت %1$d%%</string>
+    <string name="player_buffering_seconds">جارٍ التخزين المؤقت · %1$s ث جاهزة</string>
     <string name="ui_jellyfin">Jellyfin</string>
     <string name="ui_media">الوسائط</string>
     <string name="ui_saved_media">الروابط المحفوظة</string>
@@ -2360,6 +2363,15 @@
   <string name="onboarding_configuration_restoring">جارٍ البحث عن نسخ الإعدادات…</string>
   <string name="onboarding_configuration_no_backup">تم إعداد المجلد. ستستخدم التنزيلات Configuration/Downloads.</string>
   <string name="onboarding_configuration_restored">تمت استعادة الإعدادات من %1$s. ستستخدم التنزيلات Configuration/Downloads.</string>
+  <plurals name="onboarding_configuration_restored_partial">
+    <item quantity="zero">تمت استعادة الإعدادات من %1$s. لم يتم تخطي أي إدخال تالف (%2$d). ستستخدم التنزيلات Configuration/Downloads.</item>
+    <item quantity="one">تمت استعادة الإعدادات من %1$s. تم تخطي إدخال تالف واحد (%2$d). ستستخدم التنزيلات Configuration/Downloads.</item>
+    <item quantity="two">تمت استعادة الإعدادات من %1$s. تم تخطي إدخالين تالفين (%2$d). ستستخدم التنزيلات Configuration/Downloads.</item>
+    <item quantity="few">تمت استعادة الإعدادات من %1$s. تم تخطي %2$d إدخالات تالفة. ستستخدم التنزيلات Configuration/Downloads.</item>
+    <item quantity="many">تمت استعادة الإعدادات من %1$s. تم تخطي %2$d إدخالًا تالفًا. ستستخدم التنزيلات Configuration/Downloads.</item>
+    <item quantity="other">تمت استعادة الإعدادات من %1$s. تم تخطي %2$d إدخال تالف. ستستخدم التنزيلات Configuration/Downloads.</item>
+  </plurals>
+  <string name="settings_restore_reverted">تسببت الإعدادات المستعادة من %1$s في تعطل التطبيق، لذا تم التراجع عنها.</string>
   <string name="onboarding_configuration_restore_failed">تعذر إكمال إعداد المجلد: %1$s</string>
   <string name="navbar_glow_title">توهج الزجاج</string>
   <string name="navbar_glow_summary">إظهار إضاءة حافة شريط التنقل وتوهج اللمس</string>
@@ -2827,5 +2839,20 @@
   <string name="jellyfin_continue_watching">متابعة المشاهدة</string>
   <string name="jellyfin_latest_movies">أحدث الأفلام</string>
   <string name="jellyfin_latest_series">أحدث المسلسلات</string>
+  <string name="jellyfin_top_picks">مختارات لك</string>
+  <string name="jellyfin_top_picks_subtitle">الأكثر رواجًا على خادمك</string>
+  <string name="jellyfin_music_subtitle">الألبومات والمقاطع</string>
+  <string name="jellyfin_connect_message">شغّل مكتبتك بفك الترميز عبر العتاد في mpvRx دون الحاجة إلى تحويل الترميز.</string>
+  <string name="jellyfin_empty_folder_message">لا توجد وسائط في هذا المجلد بعد.</string>
+  <string name="jellyfin_no_results_message">لا توجد نتائج مطابقة لـ ”%1$s“. جرّب عنوانًا أو فئة أخرى.</string>
+  <string name="jellyfin_filter_all">الكل</string>
+  <string name="jellyfin_play_random">تشغيل عشوائي</string>
+  <string name="jellyfin_switch_server">تبديل الخادم</string>
+  <string name="jellyfin_error_title">تعذّر الوصول إلى هذا الخادم</string>
+  <string name="jellyfin_auth_error_message">انتهت صلاحية جلستك أو أن هذا الحساب غير مصرّح له. سجّل الدخول مجددًا للمتابعة.</string>
+  <string name="jellyfin_reauthenticate">تسجيل الدخول مجددًا</string>
+  <string name="jellyfin_cast">طاقم التمثيل</string>
+  <string name="jellyfin_more_like_this">عناوين مشابهة</string>
+  <string name="jellyfin_watched">تمت المشاهدة</string>
   <string name="jellyfin_search_hint">ابحث عن الأفلام والمسلسلات والحلقات…</string>
 </resources>

@@ -30,6 +30,8 @@ import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
@@ -165,6 +167,7 @@ import app.gyrolet.mpvrx.ui.player.controls.components.TextPlayerUpdate
 import app.gyrolet.mpvrx.ui.player.controls.components.VolumeSlider
 import app.gyrolet.mpvrx.ui.player.controls.components.playerButtonContentColor
 import app.gyrolet.mpvrx.ui.player.controls.components.rememberBufferingState
+import app.gyrolet.mpvrx.ui.player.controls.components.BufferingPhase
 import app.gyrolet.mpvrx.ui.player.controls.components.rememberTvInitialFocusRequester
 import app.gyrolet.mpvrx.ui.player.controls.components.tvFocusHighlight
 import app.gyrolet.mpvrx.ui.player.controls.components.tvInitialFocus
@@ -185,6 +188,9 @@ import app.gyrolet.mpvrx.ui.liquidglass.AdaptiveControlsContainer
 import app.gyrolet.mpvrx.ui.liquidglass.LiquidPillButton
 import app.gyrolet.mpvrx.ui.liquidglass.LocalKyantPlayerBackdrop
 import app.gyrolet.mpvrx.ui.liquidglass.LocalPlayerHdrOutputEnabled
+import app.gyrolet.mpvrx.ui.liquidglass.LocalPlayerLiquidGlassActive
+import app.gyrolet.mpvrx.ui.player.shouldUseTextureRendering
+import app.gyrolet.mpvrx.preferences.DecoderPreferences
 import com.kyant.backdrop.backdrops.layerBackdrop
 import com.kyant.backdrop.backdrops.rememberLayerBackdrop
 import kotlin.math.abs
@@ -375,8 +381,18 @@ fun PlayerControls(
   val aiEnabled by aiPreferences.enabled.collectAsState()
   val realtimeSubsEnabled by aiPreferences.realtimeSubsEnabled.collectAsState()
   val hideBackground by appearancePreferences.hidePlayerButtonsBackground.collectAsState()
-  val enableLiquidGlass by appearancePreferences.liquidGlassEnabled.collectAsState()
+  val liquidGlassPreference by appearancePreferences.liquidGlassEnabled.collectAsState()
   val liquidGlassInHdr by appearancePreferences.liquidGlassInHdr.collectAsState()
+  val hdrOutputPreference by koinInject<DecoderPreferences>().hdrScreenOutput.collectAsState()
+  // Glass needs the video on the Compose-recordable renderer, so this mirrors the renderer choice.
+  // When HDR output keeps the video on a native surface ("Liquid glass in HDR" off, or HDR owned by
+  // mpv.conf), every player control uses its regular form, exactly as with Liquid Glass off.
+  val enableLiquidGlass =
+    shouldUseTextureRendering(
+      liquidGlass = liquidGlassPreference,
+      hdrOutput = hdrOutputPreference,
+      liquidGlassInHdr = liquidGlassInHdr,
+    )
   val forceDarkButtonBackground by appearancePreferences.forceDarkPlayerButtonsBackground.collectAsState()
   val portraitPlaybackControlsPosition by
     appearancePreferences.portraitPlaybackControlsPosition.collectAsState()
@@ -430,10 +446,21 @@ fun PlayerControls(
   val showLoadingCircle by playerPreferences.showLoadingCircle.collectAsState()
 
   var isSeeking by remember { mutableStateOf(false) }
+  // Opening a network item (including link resolution before mpv starts) waits on the network too.
+  val openingNetworkStream =
+    videoOpenAnimState.isWaitingForVideo &&
+      playbackSessionState.error == null &&
+      playbackSessionState.phase != app.gyrolet.mpvrx.ui.player.PlaybackPhase.ERROR &&
+      currentQueueItem?.let { item ->
+        sequenceOf(item.playableUri, item.originalUri).any { uri ->
+          app.gyrolet.mpvrx.utils.media.HttpUtils.isNetworkStream(android.net.Uri.parse(uri))
+        }
+      } == true
   val bufferingState =
     rememberBufferingState(
       enabled = showLoadingCircle && !isSeeking,
       sessionState = playbackSessionState,
+      openingNetworkStream = openingNetworkStream,
     )
   val isMpvBuffering = bufferingState.isCacheStall
   val safeAreaWindow by playerPreferences.safeAreaWindow.collectAsState()
@@ -693,6 +720,7 @@ fun PlayerControls(
 
     CompositionLocalProvider(
       LocalPlayerHdrOutputEnabled provides isHdrOutputEnabled,
+      LocalPlayerLiquidGlassActive provides enableLiquidGlass,
       LocalForceDarkPlayerButtonsBackground provides forceDarkButtonBackground,
       LocalHidePlayerButtonsBackground provides hideBackground,
     ) {
@@ -831,6 +859,7 @@ fun PlayerControls(
   CompositionLocalProvider(
     LocalKyantPlayerBackdrop provides playerKyantBackdrop,
     LocalPlayerHdrOutputEnabled provides isHdrOutputEnabled,
+    LocalPlayerLiquidGlassActive provides enableLiquidGlass,
     LocalForceDarkPlayerButtonsBackground provides forceDarkButtonBackground,
     LocalHidePlayerButtonsBackground provides hideBackground,
   ) {
@@ -1611,8 +1640,8 @@ is PlayerUpdates.FrameInfo -> {
 
           AnimatedVisibility(
             visible = showBufferingIndicator,
-            enter = fadeIn(),
-            exit = fadeOut(animationSpec = tween(0)),
+            enter = fadeIn(tween(200)) + scaleIn(initialScale = 0.88f, animationSpec = tween(200)),
+            exit = fadeOut(tween(250)) + scaleOut(targetScale = 0.88f, animationSpec = tween(250)),
             modifier =
               Modifier.constrainAs(bufferingIndicator) {
                 start.linkTo(parent.absoluteLeft)
@@ -1647,9 +1676,13 @@ is PlayerUpdates.FrameInfo -> {
                   }
                   // mpv only reports a fill target while it is actually holding playback for cache.
                   isMpvBuffering && cachePercent != null && cachePercent in 1..99 ->
-                    "Buffering $cachePercent%"
+                    stringResource(R.string.player_buffering_percent, cachePercent)
                   isMpvBuffering && cacheSeconds != null ->
-                    "Buffering (${String.format(java.util.Locale.ROOT, "%.1f", cacheSeconds)}s)"
+                    stringResource(
+                      R.string.player_buffering_seconds,
+                      String.format(java.util.Locale.getDefault(), "%.1f", cacheSeconds),
+                    )
+                  bufferingState.phase == BufferingPhase.OPENING -> stringResource(R.string.player_opening_stream)
                   else -> stringResource(R.string.ui_buffering)
                 }
               if (enableLiquidGlass) {
