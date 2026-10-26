@@ -20,6 +20,7 @@ import androidx.core.net.toUri
 import app.gyrolet.mpvrx.domain.media.model.Video
 import app.gyrolet.mpvrx.domain.torrent.isTorrentSource
 import app.gyrolet.mpvrx.ui.browser.NavigationBarState
+import app.gyrolet.mpvrx.ui.player.ContainerGeometryProbe
 import app.gyrolet.mpvrx.ui.player.MediaPlaybackService
 import app.gyrolet.mpvrx.ui.player.PlaybackIdentity
 import app.gyrolet.mpvrx.ui.player.PlaybackItem
@@ -181,8 +182,9 @@ object MediaUtils {
         localPlaybackPath(selected)?.let { putExtra("local_media_path", it) }
         putExtra(PlayerActivity.EXTRA_VIDEO_WIDTH, selected.width)
         putExtra(PlayerActivity.EXTRA_VIDEO_HEIGHT, selected.height)
-        selected.rotation?.let { putExtra(PlayerActivity.EXTRA_VIDEO_ROTATION, it) }
+        putExtra(PlayerActivity.EXTRA_VIDEO_ROTATION, selected.rotation)
       }
+    ContainerGeometryProbe.prefetch(localPlaybackPath(selected), selected.width, selected.height, selected.rotation, selected.isAudio)
     PlaybackPerformanceTrace.mark("OPEN_REQUEST", "source=$launchSource queue=${videos.size}")
     context.startActivity(intent)
   }
@@ -327,8 +329,15 @@ object MediaUtils {
       intent.putExtra("is_audio", videoSource.isAudio)
       intent.putExtra(PlayerActivity.EXTRA_VIDEO_WIDTH, videoSource.width)
       intent.putExtra(PlayerActivity.EXTRA_VIDEO_HEIGHT, videoSource.height)
-      videoSource.rotation?.let { intent.putExtra(PlayerActivity.EXTRA_VIDEO_ROTATION, it) }
+      intent.putExtra(PlayerActivity.EXTRA_VIDEO_ROTATION, videoSource.rotation)
     }
+    ContainerGeometryProbe.prefetch(
+      localPath,
+      videoSource?.width ?: 0,
+      videoSource?.height ?: 0,
+      videoSource?.rotation ?: 0,
+      isAudioMedia,
+    )
     startPositionSeconds?.takeIf { it.isFinite() && it >= 0 }?.let {
       intent.putExtra(PlayerActivity.EXTRA_START_POSITION_SECONDS, it)
     }

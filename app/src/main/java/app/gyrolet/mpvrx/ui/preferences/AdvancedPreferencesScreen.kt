@@ -81,7 +81,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
-import me.zhanghai.compose.preference.ListPreference
+import app.gyrolet.mpvrx.ui.preferences.components.AppListPreference as ListPreference
 import me.zhanghai.compose.preference.Preference
 import app.gyrolet.mpvrx.ui.preferences.components.AppSliderPreference as SliderPreference
 import org.koin.compose.koinInject
@@ -343,65 +343,9 @@ object AdvancedPreferencesScreen : Screen {
               .padding(padding)
               .then(settingsHighlight),
         ) {
-          // Language and notification style share one connected Advanced group.
-          item {
-            PreferenceSectionHeader(
-              position = PreferenceSectionPosition.First,
-              title = stringResource(R.string.pref_advanced),
-              modifier = Modifier.settingsSearchTarget(R.string.pref_advanced),
-            )
-          }
-
-          item {
-            val notificationStyle by preferences.notificationStyle.collectAsState()
-            val supportedNotificationStyles =
-              remember {
-                NotificationStyle.entries.filter { it.isSupportedOn(Build.VERSION.SDK_INT) }
-              }
-            val selectedNotificationStyle =
-              notificationStyle.takeIf { it.isSupportedOn(Build.VERSION.SDK_INT) }
-                ?: NotificationStyle.Media
-            PreferenceCard {
-              ExpressivePreferenceItem {
-                ListPreference(
-                  modifier = Modifier.settingsSearchTarget(R.string.pref_app_language_title),
-                  value = currentAppLanguage,
-                  onValueChange = { language ->
-                    if (language != currentAppLanguage) pendingAppLanguage = language
-                  },
-                  values = AppLanguage.entries,
-                  valueToText = { AnnotatedString(it.displayName(context)) },
-                  title = { Text(stringResource(R.string.pref_app_language_title)) },
-                  summary = {
-                    Text(
-                      text = currentAppLanguage.displayName(context),
-                      color = MaterialTheme.colorScheme.outline,
-                    )
-                  },
-                )
-              }
-              ExpressivePreferenceItem {
-                ListPreference(
-                  modifier = Modifier.settingsSearchTarget(R.string.pref_advanced_notification_style),
-                  value = selectedNotificationStyle,
-                  onValueChange = preferences.notificationStyle::set,
-                  values = supportedNotificationStyles,
-                  valueToText = { AnnotatedString(it.displayName) },
-                  title = { Text(text = stringResource(R.string.pref_advanced_notification_style)) },
-                  summary = {
-                    Text(
-                      text = selectedNotificationStyle.displayName,
-                      color = MaterialTheme.colorScheme.outline,
-                    )
-                  },
-                )
-              }
-            }
-          }
-
           // Backup & Restore Section
           item {
-            PreferenceSectionHeader(position = PreferenceSectionPosition.Middle, title = stringResource(R.string.pref_section_backup_restore))
+            PreferenceSectionHeader(position = PreferenceSectionPosition.First, title = stringResource(R.string.pref_section_backup_restore))
           }
 
           item {
@@ -701,19 +645,79 @@ object AdvancedPreferencesScreen : Screen {
 
               PreferenceDivider()
 
+              DevicePreference(R.string.pref_custom_buttons_title) {
+                ExpressivePreferenceItem {
+                Preference(
+                  title = { Text(stringResource(R.string.pref_custom_buttons_title)) },
+                  summary = {
+                    Text(
+                      stringResource(R.string.pref_custom_buttons_summary),
+                      color = MaterialTheme.colorScheme.outline,
+                    )
+                  },
+                  onClick = {
+                    backStack.navigateTo(app.gyrolet.mpvrx.ui.preferences.CustomButtonScreen)
+                  },
+                )
+                }
+              }
+            }
+          }
+
+          // Language and notification style share one connected Advanced group.
+          item {
+            PreferenceSectionHeader(
+              position = PreferenceSectionPosition.Middle,
+              title = stringResource(R.string.pref_advanced),
+              modifier = Modifier.settingsSearchTarget(R.string.pref_advanced),
+            )
+          }
+
+          item {
+            val notificationStyle by preferences.notificationStyle.collectAsState()
+            val supportedNotificationStyles =
+              remember {
+                NotificationStyle.entries.filter { it.isSupportedOn(Build.VERSION.SDK_INT) }
+              }
+            val selectedNotificationStyle =
+              notificationStyle.takeIf { it.isSupportedOn(Build.VERSION.SDK_INT) }
+                ?: NotificationStyle.Media
+            PreferenceCard {
               ExpressivePreferenceItem {
-              Preference(
-                title = { Text(stringResource(R.string.pref_custom_buttons_title)) },
-                summary = {
-                  Text(
-                    stringResource(R.string.pref_custom_buttons_summary),
-                    color = MaterialTheme.colorScheme.outline,
+                ListPreference(
+                  modifier = Modifier.settingsSearchTarget(R.string.pref_app_language_title),
+                  value = currentAppLanguage,
+                  onValueChange = { language ->
+                    if (language != currentAppLanguage) pendingAppLanguage = language
+                  },
+                  values = AppLanguage.entries,
+                  valueToText = { AnnotatedString(it.displayName(context)) },
+                  title = { Text(stringResource(R.string.pref_app_language_title)) },
+                  summary = {
+                    Text(
+                      text = currentAppLanguage.displayName(context),
+                      color = MaterialTheme.colorScheme.outline,
+                    )
+                  },
+                )
+              }
+              DevicePreference(R.string.pref_advanced_notification_style) {
+                ExpressivePreferenceItem {
+                  ListPreference(
+                    modifier = Modifier.settingsSearchTarget(R.string.pref_advanced_notification_style),
+                    value = selectedNotificationStyle,
+                    onValueChange = preferences.notificationStyle::set,
+                    values = supportedNotificationStyles,
+                    valueToText = { AnnotatedString(it.displayName) },
+                    title = { Text(text = stringResource(R.string.pref_advanced_notification_style)) },
+                    summary = {
+                      Text(
+                        text = selectedNotificationStyle.displayName,
+                        color = MaterialTheme.colorScheme.outline,
+                      )
+                    },
                   )
-                },
-                onClick = {
-                  backStack.navigateTo(app.gyrolet.mpvrx.ui.preferences.CustomButtonScreen)
-                },
-              )
+                }
               }
             }
           }

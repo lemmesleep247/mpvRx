@@ -35,6 +35,7 @@ import android.os.Bundle
 import android.os.IBinder
 import android.os.Looper
 import android.os.PowerManager
+import android.os.SystemClock
 import android.provider.DocumentsContract
 import android.provider.MediaStore
 import android.provider.Settings
@@ -120,8 +121,10 @@ import app.gyrolet.mpvrx.ui.player.components.VideoAmbientBackground
 import app.gyrolet.mpvrx.ui.player.components.rememberVideoAmbientFrame
 import app.gyrolet.mpvrx.ui.player.ytdlp.YtdlpManager
 import app.gyrolet.mpvrx.ui.theme.MpvrxTheme
+import app.gyrolet.mpvrx.ui.remote.RemotePairingPrompt
 import app.gyrolet.mpvrx.ui.torrent.TorrentSelectionActivity
 import app.gyrolet.mpvrx.utils.device.DeviceFormFactor
+import app.gyrolet.mpvrx.ui.player.controls.tvScrubStepSeconds
 import app.gyrolet.mpvrx.utils.device.VulkanCapabilities
 import app.gyrolet.mpvrx.utils.device.appUiScaleOverrideConfiguration
 import app.gyrolet.mpvrx.utils.history.RecentlyPlayedOps
@@ -166,6 +169,7 @@ import kotlinx.coroutines.withContext
 import org.koin.android.ext.android.inject
 import okhttp3.OkHttpClient
 import java.io.File
+import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.math.roundToInt
 
@@ -208,6 +212,10 @@ class PlayerActivity :
    */
   private val binding by lazy { PlayerLayoutBinding.inflate(layoutInflater) }
   private val isTelevision by lazy(LazyThreadSafetyMode.NONE) { DeviceFormFactor.isTelevision(this) }
+  private var launchOrientationDecisionId = 0
+  private var launchOrientationName: String? = null
+  private var launchOrientationDecidedAtNs = 0L
+  private var orientationFromPlayback = false
   private val consumedTvRemoteKeys = mutableSetOf<Int>()
 
   /**
@@ -574,7 +582,7 @@ class PlayerActivity :
         when (intent?.action) {
           Intent.ACTION_SCREEN_OFF -> {
             screenUnlockPlaybackController.onScreenTurnedOff(
-              autoplayAfterScreenUnlockEnabled = playerPreferences.autoplayAfterScreenUnlock.get(),
+              autoplayAfterScreenUnlockEnabled = !isTelevision && playerPreferences.autoplayAfterScreenUnlock.get(),
               wasPlayingBeforePause = wasPlayingBeforePause,
               isCurrentlyPaused = viewModel.paused,
               backgroundPlaybackActive = isBackgroundPlaybackEnabled(),
@@ -755,7 +763,7 @@ class PlayerActivity :
       finish()
       return
     }
-    externalDisplayManager =
+    externalDisplayManager = if (isTelevision) null else
       ExternalDisplayManager(this) { active ->
         onExternalDisplayStateChanged(active)
       }.also {
@@ -1161,7 +1169,7 @@ class PlayerActivity :
       return
     }
 
-    if (isReady && gesturePreferences.confirmBackToExit.get()) {
+    if (!isTelevision && isReady && gesturePreferences.confirmBackToExit.get()) {
       val now = android.os.SystemClock.elapsedRealtime()
       val previousPress = lastExitBackPressAtMs
       if (previousPress == null || now - previousPress !in 0L..2_000L) {
@@ -1175,7 +1183,7 @@ class PlayerActivity :
     // If mini player is enabled, back press within the app hands off playback to the mini player
     // rather than entering PiP. If mini player is disabled, auto-PiP retains priority on Back
     // unless the user restricted auto-PiP to the home gesture.
-    if (!isMiniPlayerEnabled() &&
+    if (!isTelevision && !isMiniPlayerEnabled() &&
       shouldEnterPipOnNavigation() &&
       !playerPreferences.pipOnHomeGestureOnly.get() &&
       enterPipModeSmoothly()
@@ -1308,6 +1316,7 @@ class PlayerActivity :
               contentReady = playerControlsReady,
               onMinimize = ::minimizeFromHandOff,
             )
+            RemotePairingPrompt()
           }
         }
       }
@@ -1535,9 +1544,6 @@ class PlayerActivity :
         viewModel.isAudioOnly.collect { isAudioOnly ->
           if (isAudioOnly) {
             applyPlaybackBrightnessPolicy(isAudio = true)
-            // A video-mode launch without trusted geometry holds its orientation until mpv reports
-            // the source; an audio-only result never will, so switch to the audio preference now.
-            setOrientation()
             viewModel.showControls()
             binding.player.visibility = View.INVISIBLE
             try {
@@ -1734,7 +1740,7 @@ class PlayerActivity :
 
   private fun shouldEnterPipOnNavigation(): Boolean =
     PlayerLifecyclePolicy.shouldEnterPipOnNavigation(
-      autoPipEnabled = playerPreferences.autoPiPOnNavigation.get(),
+      autoPipEnabled = DeviceFormFactor.supportsPlaybackPictureInPicture(this) && playerPreferences.autoPiPOnNavigation.get(),
       mediaReady = isReady,
       isAudioMedia = viewModel.isAudioOnly.value || isCurrentMediaKnownAudio(),
       isActivityUnavailable = isFinishing || isDestroyed || isUserFinishing,
@@ -2532,7 +2538,7 @@ class PlayerActivity :
   }
 
   fun setExternalDisplayProjectionEnabled(enabled: Boolean) {
-    externalDisplayManager?.enabled = enabled
+    externalDisplayManager?.enabled = enabled && !isTelevision
   }
 
   private fun setLayoutInDisplayCutoutModeIfSupported(shortEdges: Boolean) {
@@ -3805,7 +3811,7 @@ class PlayerActivity :
     return if (isCurrentPlaybackAudio()) {
       true
     } else {
-      playerPreferences.enableVideoMiniPlayer.get() &&
+      !isTelevision && playerPreferences.enableVideoMiniPlayer.get() &&
         (audioPreferences.backgroundPlaybackBehavior.get() != app.gyrolet.mpvrx.preferences.BackgroundPlaybackBehavior.PerVideo ||
           PlaybackSession.isVideoBackgroundPlaybackEnabled())
     }
@@ -3883,7 +3889,7 @@ class PlayerActivity :
 
   private fun rememberResumeAfterUnlockBeforeForcedPause() {
     screenUnlockPlaybackController.onScreenTurnedOff(
-      autoplayAfterScreenUnlockEnabled = playerPreferences.autoplayAfterScreenUnlock.get(),
+      autoplayAfterScreenUnlockEnabled = !isTelevision && playerPreferences.autoplayAfterScreenUnlock.get(),
       wasPlayingBeforePause = wasPlayingBeforePause,
       isCurrentlyPaused = viewModel.paused,
       backgroundPlaybackActive = false,
@@ -4464,10 +4470,6 @@ class PlayerActivity :
         if (!mpvInitialized || player.isExiting || isFinishing) return
         scheduleVideoParamRefresh(reloadShaders = true)
       }
-      "video-params/rotate" -> {
-        if (!mpvInitialized || player.isExiting || isFinishing) return
-        scheduleVideoParamRefresh(reloadShaders = false)
-      }
     }
   }
 
@@ -4696,18 +4698,11 @@ class PlayerActivity :
         delay(100)
         if (!mpvInitialized || player.isExiting || isFinishing) return@launch
 
-        // Pin the read to the file that is loaded now. Observer events from the previous file can
-        // still be queued when the next request starts, and their geometry must not rotate it.
-        val generation = PlaybackSession.loadedMediaGeneration()
-        val geometry =
-          if (generation > 0L) {
-            withContext(playbackRenderDispatcher) { VideoDisplayGeometry.read(generation) }
-          } else {
-            null
+        val aspect =
+          withContext(playbackRenderDispatcher) {
+            player.getVideoOutAspect()
           }
-        if (generation > 0L && !PlaybackSession.isCurrentGeneration(generation)) return@launch
-        val aspect = geometry?.displayAspect
-        Log.d(TAG, "Coalesced video params refresh, geometry: $geometry, display aspect: $aspect")
+        Log.d(TAG, "Coalesced video params refresh, aspect: $aspect")
         PlayerOrientationPolicy.rememberVideoAspect(PlaybackSession.state.value.currentItem?.stableId, aspect)
         pipHelper.updatePictureInPictureParams()
 
@@ -4947,9 +4942,12 @@ class PlayerActivity :
     if (playerPreferences.orientation.get() != PlayerOrientation.Video) {
       setOrientation()
     }
-    // The demuxer's geometry (with container rotation) is readable from FILE_LOADED, well before
-    // the decoder publishes video-params, so orientation and PiP can settle without a frame.
-    scheduleVideoParamRefresh(reloadShaders = false)
+    lifecycleScope.launch {
+      delay(100)
+      if (PlaybackSession.isCurrentGeneration(loadGeneration) && mpvInitialized && !player.isExiting && !isFinishing) {
+        setOrientation()
+      }
+    }
 
     applySubtitlePreferences()
     applyVideoFilterPreferences()
@@ -6710,19 +6708,29 @@ private suspend fun restorePlaybackPosition(state: PlaybackStateEntity?, loadGen
         PlayerOrientationPolicy.forAudioPreference(audioPreferences.audioOrientation.get())
       } else {
         val preference = playerPreferences.orientation.get()
-        // A hand-set aspect ratio is a deliberate override of the picture's shape, so keep the
-        // current orientation rather than rotating to the source geometry behind the user's back.
-        if (preference == PlayerOrientation.Video && hasCustomAspectRatio()) {
-          return
-        }
+        // A saved custom ratio is re-applied to every file and is already part of mpv's reported
+        // aspect, so it must not freeze "Video" orientation for all later videos.
         PlayerOrientationPolicy.forPreference(preference) {
           (sourceAspect ?: player.getVideoOutAspect())?.also { aspect ->
             PlayerOrientationPolicy.rememberVideoAspect(PlaybackSession.state.value.currentItem?.stableId, aspect)
+            orientationFromPlayback = true
           }
-        }
+        }?.also(::reportLaunchOrientationFlip)
       } ?: return
 
     if (requestedOrientation != target) requestedOrientation = target
+  }
+
+  /** Logs, once per launch, when mpv's geometry turns the window away from how it opened. */
+  private fun reportLaunchOrientationFlip(target: Int) {
+    val opened = launchOrientationName ?: return
+    launchOrientationName = null
+    val corrected = orientationName(target)
+    if (opened == corrected) return
+    val detail =
+      "opened=$opened corrected=$corrected afterMs=${"%.1f".format(ContainerGeometryProbe.elapsedMs(launchOrientationDecidedAtNs))}"
+    PlaybackPerformanceTrace.mark("ORIENTATION_FLIP", detail)
+    Log.i(TAG, "Launch orientation flipped: $detail")
   }
 
   /**
@@ -6751,9 +6759,6 @@ private suspend fun restorePlaybackPosition(state: PlaybackStateEntity?, loadGen
     if (requestedOrientation != target) requestedOrientation = target
   }
 
-  private fun hasCustomAspectRatio(): Boolean =
-    playerPreferences.lastCustomAspectRatio.get() > 0f
-
   /**
    * Orientation for "Video" mode before mpv exists, so the window opens the right way round.
    *
@@ -6764,34 +6769,118 @@ private suspend fun restorePlaybackPosition(state: PlaybackStateEntity?, loadGen
    * PlayerActivity handles orientation|screenSize|screenLayout itself, so the late assignment does
    * not recreate the Activity; it relayouts the window mid-transition.
    *
-   * Use only geometry already supplied by the launch intent. Missing metadata must not delay
-   * playback: MediaMetadataRetriever can stall on the same files as thumbnail extraction. When the
-   * rotation is unknown the current orientation is held instead of guessed — assuming 0 is exactly
-   * what opened portrait phone recordings in landscape and then flipped them. mpv's demuxer reports
-   * the real rotation at FILE_LOADED, before the first frame, and [scheduleVideoParamRefresh] /
-   * [handleFileLoaded] apply it.
+   * Geometry comes from the launch intent, else from the container header the browser began reading
+   * on tap (waited for briefly here, applied late if slower). Unknown geometry keeps the current
+   * orientation: only the video's own geometry may turn the window. MediaMetadataRetriever is never
+   * used; it can stall like thumbnail extraction.
    */
   private fun applyInitialVideoOrientation(sourceIntent: Intent) {
+    launchOrientationName = null
     if (isTelevision) {
       requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
       return
     }
     if (playerPreferences.orientation.get() != PlayerOrientation.Video || isKnownAudioLaunch(sourceIntent)) return
+    // Mini player and notification re-entry carry no media; applyLiveSessionOrientation decides those.
+    if (sourceIntent.data == null) return
 
-    val width = sourceIntent.getIntExtra(EXTRA_VIDEO_WIDTH, 0)
-    val height = sourceIntent.getIntExtra(EXTRA_VIDEO_HEIGHT, 0)
-    // Absent means unknown, not 0: browser rows only carry the extra when a trusted source set it.
-    val rotation =
-      if (sourceIntent.hasExtra(EXTRA_VIDEO_ROTATION)) {
-        VideoDisplayGeometry.normalizeQuarterTurn(sourceIntent.getIntExtra(EXTRA_VIDEO_ROTATION, 0))
+    val decisionId = ++launchOrientationDecisionId
+    val decisionStartedAtNs = SystemClock.elapsedRealtimeNanos()
+    orientationFromPlayback = false
+    var width = sourceIntent.getIntExtra(EXTRA_VIDEO_WIDTH, 0)
+    var height = sourceIntent.getIntExtra(EXTRA_VIDEO_HEIGHT, 0)
+    var rotation = sourceIntent.getIntExtra(EXTRA_VIDEO_ROTATION, 0)
+    var source = "intent"
+    var probeState = "none"
+
+    val path = localVideoPath(sourceIntent)
+    val probe =
+      if (ContainerGeometryProbe.needsProbe(width, height, rotation)) {
+        val prefetched = ContainerGeometryProbe.isPrefetched(path)
+        ContainerGeometryProbe.request(path, sourceIntent.data, contentResolver)?.let { future ->
+          future to if (prefetched) PREFETCHED_GEOMETRY_WAIT_MS else UNPREFETCHED_GEOMETRY_WAIT_MS
+        }
       } else {
         null
       }
-    val initialOrientation =
-      rotation?.let { PlayerOrientationPolicy.forSourceGeometry(width, height, it) }
-        ?: ActivityInfo.SCREEN_ORIENTATION_LOCKED
-    if (requestedOrientation != initialOrientation) requestedOrientation = initialOrientation
+    probe?.let { (future, waitMs) ->
+      val geometry = runCatching { future.get(waitMs, TimeUnit.MILLISECONDS) }.getOrNull()
+      probeState =
+        when {
+          geometry != null -> "%.1fms".format(geometry.probeNanos / 1_000_000.0)
+          future.isDone -> "unreadable"
+          else -> "pending"
+        }
+      if (geometry != null && geometry.width > 0 && geometry.height > 0) {
+        if (width <= 0 || height <= 0) {
+          width = geometry.width
+          height = geometry.height
+        }
+        if (rotation == 0 && geometry.quarterTurned) rotation = 90
+        source = "container"
+      }
+    }
+
+    val target = PlayerOrientationPolicy.forSourceGeometry(width, height, rotation)
+    if (target == null) {
+      source = "unknown"
+    } else if (requestedOrientation != target) {
+      requestedOrientation = target
+    }
+    launchOrientationName = target?.let(::orientationName) ?: currentOrientationName()
+    launchOrientationDecidedAtNs = decisionStartedAtNs
+
+    val detail =
+      "source=$source orientation=$launchOrientationName size=${width}x$height rotation=$rotation " +
+        "probe=$probeState decideMs=${"%.1f".format(ContainerGeometryProbe.elapsedMs(decisionStartedAtNs))}"
+    PlaybackPerformanceTrace.mark("ORIENTATION_DECIDED", detail)
+    Log.d(TAG, "Launch orientation: $detail")
+
+    if (probeState != "pending") return
+    val pending = probe?.first ?: return
+    lifecycleScope.launch {
+      val geometry =
+        withContext(Dispatchers.IO) { runCatching { pending.get(LATE_GEOMETRY_WAIT_MS, TimeUnit.MILLISECONDS) }.getOrNull() }
+          ?: return@launch
+      if (decisionId != launchOrientationDecisionId || orientationFromPlayback || isFinishing) return@launch
+      val hasSize = width > 0 && height > 0
+      val lateTarget =
+        PlayerOrientationPolicy.forSourceGeometry(
+          if (hasSize) width else geometry.width,
+          if (hasSize) height else geometry.height,
+          if (rotation == 0 && geometry.quarterTurned) 90 else rotation,
+        ) ?: return@launch
+      val opened = launchOrientationName
+      launchOrientationName = orientationName(lateTarget)
+      if (requestedOrientation != lateTarget) requestedOrientation = lateTarget
+      val lateDetail =
+        "orientation=$launchOrientationName changed=${opened != launchOrientationName} " +
+          "probeMs=${"%.1f".format(geometry.probeNanos / 1_000_000.0)} " +
+          "afterMs=${"%.1f".format(ContainerGeometryProbe.elapsedMs(decisionStartedAtNs))}"
+      PlaybackPerformanceTrace.mark("ORIENTATION_LATE_PROBE", lateDetail)
+      Log.d(TAG, "Late container geometry: $lateDetail")
+    }
   }
+
+  private fun currentOrientationName(): String =
+    if (resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE) "landscape" else "portrait"
+
+  private fun orientationName(orientation: Int): String =
+    when (orientation) {
+      ActivityInfo.SCREEN_ORIENTATION_PORTRAIT,
+      ActivityInfo.SCREEN_ORIENTATION_SENSOR_PORTRAIT,
+      ActivityInfo.SCREEN_ORIENTATION_REVERSE_PORTRAIT,
+      -> "portrait"
+      ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE,
+      ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE,
+      ActivityInfo.SCREEN_ORIENTATION_REVERSE_LANDSCAPE,
+      -> "landscape"
+      else -> orientation.toString()
+    }
+
+  private fun localVideoPath(sourceIntent: Intent): String? =
+    sourceIntent.getStringExtra("local_media_path")?.takeIf { it.isNotBlank() }
+      ?: sourceIntent.data?.takeIf { it.scheme == "file" }?.path
 
   private fun isKnownAudioLaunch(sourceIntent: Intent): Boolean =
     sourceIntent.getBooleanExtra("is_audio", false) ||
@@ -6804,7 +6893,7 @@ private suspend fun restorePlaybackPosition(state: PlaybackStateEntity?, loadGen
   private fun applyPlaybackBrightnessPolicy(
     isAudio: Boolean = viewModel.isAudioOnly.value || isCurrentMediaKnownAudio(),
   ) {
-    if (isAudio || !playerPreferences.rememberBrightness.get()) {
+    if (isTelevision || isAudio || !playerPreferences.rememberBrightness.get()) {
       // Audio playback must never hold a per-window video brightness override. Resetting to
       // BRIGHTNESS_OVERRIDE_NONE also restores the system brightness slider immediately.
       viewModel.resetBrightnessToSystem()
@@ -6862,12 +6951,12 @@ private suspend fun restorePlaybackPosition(state: PlaybackStateEntity?, loadGen
         }
         TvPlayerRemoteAction.SEEK_BACKWARD -> {
           consumedTvRemoteKeys += keyCode
-          viewModel.handleLeftDoubleTap()
+          viewModel.seekFromTvRemote(-tvScrubStepSeconds(event?.repeatCount ?: 0))
           return true
         }
         TvPlayerRemoteAction.SEEK_FORWARD -> {
           consumedTvRemoteKeys += keyCode
-          viewModel.handleRightDoubleTap()
+          viewModel.seekFromTvRemote(tvScrubStepSeconds(event?.repeatCount ?: 0))
           return true
         }
         TvPlayerRemoteAction.TOGGLE_PLAYBACK -> {
@@ -6884,6 +6973,22 @@ private suspend fun restorePlaybackPosition(state: PlaybackStateEntity?, loadGen
         TvPlayerRemoteAction.TOGGLE_SUBTITLES -> {
           consumedTvRemoteKeys += keyCode
           if ((event?.repeatCount ?: 0) == 0 && !viewModel.isAudioOnly.value) toggleTvSheet(Sheets.SubtitleTracks)
+          return true
+        }
+        TvPlayerRemoteAction.PLAY,
+        TvPlayerRemoteAction.PAUSE,
+        TvPlayerRemoteAction.PREVIOUS,
+        TvPlayerRemoteAction.NEXT,
+        -> {
+          consumedTvRemoteKeys += keyCode
+          if ((event?.repeatCount ?: 0) == 0) {
+            when (keyCode) {
+              KeyEvent.KEYCODE_MEDIA_PLAY -> viewModel.unpause()
+              KeyEvent.KEYCODE_MEDIA_PAUSE -> viewModel.pause()
+              KeyEvent.KEYCODE_MEDIA_PREVIOUS -> viewModel.playPrevious()
+              KeyEvent.KEYCODE_MEDIA_NEXT -> viewModel.playNext()
+            }
+          }
           return true
         }
         TvPlayerRemoteAction.DELEGATE -> {
@@ -6968,6 +7073,7 @@ private suspend fun restorePlaybackPosition(state: PlaybackStateEntity?, loadGen
       }
 
       KeyEvent.KEYCODE_VOLUME_UP -> {
+        if (isTelevision) consumedTvRemoteKeys += keyCode
         if (viewModel.isAudioOnly.value) {
           viewModel.changeVolumeBy(1, showUi = true)
           return true
@@ -6978,6 +7084,7 @@ private suspend fun restorePlaybackPosition(state: PlaybackStateEntity?, loadGen
       }
 
       KeyEvent.KEYCODE_VOLUME_DOWN -> {
+        if (isTelevision) consumedTvRemoteKeys += keyCode
         if (viewModel.isAudioOnly.value) {
           viewModel.changeVolumeBy(-1, showUi = true)
           return true
@@ -6988,6 +7095,7 @@ private suspend fun restorePlaybackPosition(state: PlaybackStateEntity?, loadGen
       }
 
       KeyEvent.KEYCODE_MEDIA_STOP -> {
+        if (isTelevision) consumedTvRemoteKeys += keyCode
         finishAndRemoveTask()
         return true
       }
@@ -8873,6 +8981,11 @@ private suspend fun restorePlaybackPosition(state: PlaybackStateEntity?, loadGen
     const val EXTRA_VIDEO_WIDTH = "video_width"
     const val EXTRA_VIDEO_HEIGHT = "video_height"
     const val EXTRA_VIDEO_ROTATION = "video_rotation"
+
+    // The browser starts the container probe on tap, so this mostly finds it finished already.
+    private const val PREFETCHED_GEOMETRY_WAIT_MS = 200L
+    private const val UNPREFETCHED_GEOMETRY_WAIT_MS = 80L
+    private const val LATE_GEOMETRY_WAIT_MS = 2_000L
 
     /** Start playback at this many seconds in, overriding resume-from-history. Set by snapshot jumps. */
     const val EXTRA_START_POSITION_SECONDS = "start_position_seconds"

@@ -111,6 +111,7 @@ import app.gyrolet.mpvrx.ui.browser.selection.rememberSelectionManager
 import app.gyrolet.mpvrx.ui.components.InlineSearchBar
 import app.gyrolet.mpvrx.ui.icons.Icon
 import app.gyrolet.mpvrx.ui.icons.Icons
+import app.gyrolet.mpvrx.ui.player.ContainerGeometryProbe
 import app.gyrolet.mpvrx.ui.player.PlaybackIdentity
 import app.gyrolet.mpvrx.ui.player.PlaybackItem
 import app.gyrolet.mpvrx.ui.player.PlayerActivity
@@ -126,6 +127,8 @@ import kotlinx.serialization.Serializable
 import org.koin.compose.koinInject
 import sh.calvin.reorderable.ReorderableItem
 import sh.calvin.reorderable.rememberReorderableLazyListState
+import app.gyrolet.mpvrx.ui.tv.TvReorderButtons
+import app.gyrolet.mpvrx.ui.tv.isTelevision
 
 /**
  * Playlist detail screen showing videos in a playlist.
@@ -367,8 +370,18 @@ data class PlaylistDetailScreen(
           putExtra("launch_source", if (playlist?.isM3uPlaylist == true) "m3u_playlist" else "playlist")
           putExtra("is_audio", item.video.isAudio)
           putExtra("title", item.playlistItem.fileName)
+          putExtra(PlayerActivity.EXTRA_VIDEO_WIDTH, item.video.width)
+          putExtra(PlayerActivity.EXTRA_VIDEO_HEIGHT, item.video.height)
+          putExtra(PlayerActivity.EXTRA_VIDEO_ROTATION, item.video.rotation)
           buildM3UHeadersExtra(playlist, item.playlistItem)?.let { putExtra("headers", it) }
         }
+      ContainerGeometryProbe.prefetch(
+        item.video.path.takeIf { it.startsWith("/") },
+        item.video.width,
+        item.video.height,
+        item.video.rotation,
+        isAudio,
+      )
       context.startActivity(intent)
     }
 
@@ -1108,6 +1121,8 @@ private fun PlaylistVideoListContent(
 
       // Reorderable state
       val reorderFeedback = rememberReorderFeedback()
+      // TV: a remote cannot drag, so reorder mode shows Move up / Move down instead of a handle.
+      val isTelevision = isTelevision()
       val reorderableLazyListState =
         rememberReorderableLazyListState(listState) { from, to ->
           if (isReorderMode) {
@@ -1155,7 +1170,14 @@ private fun PlaylistVideoListContent(
               ) {
                 itemContent(item, false, 1, neighbors, Modifier.weight(1f))
 
-                if (isReorderMode) {
+                if (isReorderMode && isTelevision) {
+                  TvReorderButtons(
+                    canMoveUp = index > 0,
+                    canMoveDown = index < videoItems.lastIndex,
+                    onMoveUp = { onReorder(index, index - 1) },
+                    onMoveDown = { onReorder(index, index + 1) },
+                  )
+                } else if (isReorderMode) {
                   IconButton(
                     onClick = { },
                     modifier =

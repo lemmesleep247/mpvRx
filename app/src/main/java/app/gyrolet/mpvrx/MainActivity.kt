@@ -63,6 +63,7 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.tappableElement
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
@@ -76,6 +77,8 @@ import app.gyrolet.mpvrx.presentation.components.rememberLiquidGlassBackdrop
 import app.gyrolet.mpvrx.ui.browser.MainScreen
 import app.gyrolet.mpvrx.ui.browser.LocalNavigationBarHeight
 import app.gyrolet.mpvrx.ui.browser.NavigationBarState
+import app.gyrolet.mpvrx.ui.browser.TvSideNavigationDefaults
+import app.gyrolet.mpvrx.ui.tv.TvSafeArea
 import app.gyrolet.mpvrx.ui.browser.components.MiniPlayer
 import app.gyrolet.mpvrx.ui.theme.AppMotion
 import app.gyrolet.mpvrx.ui.theme.DarkMode
@@ -90,6 +93,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.viewinterop.AndroidView
 import app.gyrolet.mpvrx.ui.player.MPVPipHelper
 import app.gyrolet.mpvrx.ui.player.InAppMusicPlayerSheet
+import app.gyrolet.mpvrx.ui.remote.RemotePairingPrompt
 import app.gyrolet.mpvrx.ui.player.LocalInAppMusicSheet
 import app.gyrolet.mpvrx.ui.player.coveredByInAppMusicSheet
 import app.gyrolet.mpvrx.ui.player.inAppMusicSheetMiniSource
@@ -309,6 +313,7 @@ open class MainActivity : AppCompatActivity() {
             }
             // Above the browser and outside its inset padding: the music player fills the window.
             InAppMusicPlayerSheet(musicSheet)
+            RemotePairingPrompt()
             if (showRendererBuildNotice) {
               val acknowledgeNotice = {
                 rendererNoticePreferences.edit().putBoolean(NON_VULKAN_NOTICE_SHOWN, true).apply()
@@ -725,6 +730,7 @@ open class MainActivity : AppCompatActivity() {
                   .captureLiquidGlassBackdrop(miniPlayerBackdrop, liquidGlassEnabled),
               backStack = typedBackstack,
               opaqueFrom = app.gyrolet.mpvrx.ui.preferences.PreferencesScreen,
+              tvSafeArea = true,
               onBack = {
                 if (typedBackstack.size <= 1 || !typedBackstack.popSafely()) {
                   this@MainActivity.finish()
@@ -765,14 +771,28 @@ open class MainActivity : AppCompatActivity() {
             }
 
           val miniPlayerModifier =
-            Modifier
-              .align(if (isDualPane) Alignment.BottomEnd else Alignment.BottomStart)
-              .fillMaxWidth(if (isDualPane) 0.6f else 1f)
-              .windowInsetsPadding(
-                if (isDualPane) safeInsets.only(WindowInsetsSides.End + WindowInsetsSides.Bottom) else safeInsets,
-              )
-              .padding(start = startSpacing, end = spacing, bottom = spacing)
-              .offset(y = -miniPlayerLift)
+            if (DeviceFormFactor.isTelevision(context)) {
+              // TV: a compact card in the bottom-end corner, inside the overscan-safe area and clear
+              // of the side rail, instead of a full-width bar covering the rail's Settings item.
+              Modifier
+                .align(Alignment.BottomEnd)
+                .padding(
+                  start = TvSideNavigationDefaults.CollapsedWidth + spacing,
+                  end = TvSafeArea.Horizontal,
+                  bottom = TvSafeArea.Vertical,
+                ).widthIn(max = 480.dp)
+                .fillMaxWidth()
+                .offset(y = -miniPlayerLift)
+            } else {
+              Modifier
+                .align(if (isDualPane) Alignment.BottomEnd else Alignment.BottomStart)
+                .fillMaxWidth(if (isDualPane) 0.6f else 1f)
+                .windowInsetsPadding(
+                  if (isDualPane) safeInsets.only(WindowInsetsSides.End + WindowInsetsSides.Bottom) else safeInsets,
+                )
+                .padding(start = startSpacing, end = spacing, bottom = spacing)
+                .offset(y = -miniPlayerLift)
+            }
 
           Box(
             modifier = miniPlayerModifier

@@ -818,7 +818,7 @@ object SearchablePreferences {
           titleRes = R.string.pref_folders_add_folder,
           keywords = listOf("add", "folder", "exclude", "blacklist"),
           category = "Folders",
-          screen = FoldersPreferencesScreen,
+          screen = FolderBlacklistScreen,
         ),
       )
       add(
@@ -826,7 +826,57 @@ object SearchablePreferences {
           titleRes = R.string.pref_folders_clear_all,
           keywords = listOf("clear", "all", "folders", "blacklist", "reset"),
           category = "Folders",
+          screen = FolderBlacklistScreen,
+        ),
+      )
+      add(
+        SearchablePreference(
+          titleRes = R.string.pref_blacklist_title,
+          summaryRes = R.string.pref_blacklist_summary,
+          keywords = listOf("blacklist", "exclude", "excluded", "hide", "folder", "audio", "video"),
+          category = "Folders",
           screen = FoldersPreferencesScreen,
+        ),
+      )
+      add(
+        SearchablePreference(
+          titleRes = R.string.pref_filter_short_videos,
+          keywords = listOf("minimum duration", "short videos", "filter", "scan"),
+          category = "Folders",
+          screen = FoldersPreferencesScreen,
+        ),
+      )
+      add(
+        SearchablePreference(
+          titleRes = R.string.pref_filter_small_files,
+          keywords = listOf("small files", "minimum size", "filter", "scan"),
+          category = "Folders",
+          screen = FoldersPreferencesScreen,
+        ),
+      )
+      add(
+        SearchablePreference(
+          titleRes = R.string.pref_whitelist_title,
+          summaryRes = R.string.pref_whitelist_summary,
+          keywords = listOf("include", "allow", "folder", "whitelist", "only"),
+          category = "Folders",
+          screen = FoldersPreferencesScreen,
+        ),
+      )
+      add(
+        SearchablePreference(
+          titleRes = R.string.pref_whitelist_enable,
+          keywords = listOf("whitelist", "enable", "only", "scan", "restrict"),
+          category = "Folders",
+          screen = FolderWhitelistScreen,
+        ),
+      )
+      add(
+        SearchablePreference(
+          titleRes = R.string.pref_whitelist_add,
+          keywords = listOf("whitelist", "add", "folder", "include", "allow"),
+          category = "Folders",
+          screen = FolderWhitelistScreen,
         ),
       )
       // Decoder preferences
@@ -1508,8 +1558,22 @@ object SearchablePreferences {
       addSearchEntries(
         category = "Appearance",
         screen = PlayerControlsPreferencesScreen,
-        anchorItemIndex = 7,
+        anchorItemIndex = 1,
+        SearchEntrySpec(R.string.ui_landscape_seekbar_position, listOf("landscape", "seekbar", "position", "above", "below", "buttons")),
+        SearchEntrySpec(R.string.ui_landscape_playback_buttons, listOf("landscape", "playback", "play", "pause", "next", "previous", "position", "center")),
+      )
+      addSearchEntries(
+        category = "Appearance",
+        screen = PlayerControlsPreferencesScreen,
+        anchorItemIndex = 3,
+        SearchEntrySpec(R.string.ui_portrait_seekbar_position, listOf("portrait", "seekbar", "position", "above", "below", "buttons")),
         SearchEntrySpec(R.string.ui_portrait_playback_buttons, listOf("portrait", "playback", "buttons", "position")),
+      )
+      addSearchEntries(
+        category = "Appearance",
+        screen = PlayerControlsPreferencesScreen,
+        anchorItemIndex = 7,
+        SearchEntrySpec(R.string.pref_player_buttons_opacity, listOf("opacity", "transparency", "transparent", "alpha", "background", "buttons", "player")),
         SearchEntrySpec(R.string.ui_time_network_clock, listOf("clock", "time", "network", "format", "12 hour", "24 hour")),
       )
 
@@ -1584,6 +1648,7 @@ object SearchablePreferences {
         screen = GesturePreferencesScreen,
         anchorItemIndex = 1,
         SearchEntrySpec(R.string.pref_player_gestures_pinch_to_zoom_subtitles, listOf("pinch", "zoom", "subtitle", "gesture")),
+        SearchEntrySpec(R.string.pref_player_gestures_two_finger_speed_swipe, listOf("two finger", "swipe", "speed", "playback speed", "gesture")),
         SearchEntrySpec(R.string.pref_player_gestures_swipe_subtitles_to_seek_dialog, listOf("swipe", "subtitle", "seek", "dialog")),
         SearchEntrySpec(R.string.pref_player_gestures_swipe_subtitles_invert_direction, listOf("swipe", "subtitle", "invert", "direction")),
         SearchEntrySpec(R.string.pref_player_gestures_enable_center_swipe_up_gesture, listOf("swipe up", "center", "playlist", "gesture")),
@@ -1689,28 +1754,29 @@ object SearchablePreferences {
       addSearchEntries(
         category = "Advanced",
         screen = AdvancedPreferencesScreen,
-        anchorItemIndex = 1,
+        anchorItemIndex = 9,
         SearchEntrySpec(R.string.pref_app_language_title, listOf("app", "language", "locale", "translation")),
       )
       addSearchEntries(
         category = "Advanced",
         screen = AdvancedPreferencesScreen,
-        anchorItemIndex = 5,
+        anchorItemIndex = 3,
         SearchEntrySpec(R.string.pref_clear_storage_root_title, listOf("storage", "root", "folder", "clear"), R.string.pref_advanced_mpv_conf_storage_location),
       )
       addSearchEntries(
         category = "Advanced",
         screen = AdvancedPreferencesScreen,
-        anchorItemIndex = 7,
+        anchorItemIndex = 5,
         SearchEntrySpec(R.string.pref_mpv_conf_overrides_title, listOf("mpv", "config", "override", "ownership")),
       )
-      addSearchEntries(
-        category = "Network",
-        screen = NetworkConfigurationPreferencesScreen,
-        anchorItemIndex = 1,
-        SearchEntrySpec(R.string.pref_enable_p2p_streaming_title, listOf("p2p", "torrent", "streaming", "enable")),
-        SearchEntrySpec(R.string.pref_enable_hls_proxy_title, listOf("hls", "proxy", "streaming", "network")),
-      )
+      if (!app.gyrolet.mpvrx.BuildConfig.IS_PLAY_STORE_BUILD) {
+        addSearchEntries(
+          category = "Network",
+          screen = NetworkConfigurationPreferencesScreen,
+          anchorItemIndex = 1,
+          SearchEntrySpec(R.string.pref_enable_p2p_streaming_title, listOf("p2p", "torrent", "streaming", "enable")),
+        )
+      }
       addSearchEntries(
         category = "Advanced",
         screen = CustomButtonScreen,
@@ -1905,7 +1971,7 @@ object SearchablePreferences {
       addSearchEntries(
         category = "Advanced",
         screen = AdvancedPreferencesScreen,
-        anchorItemIndex = 3,
+        anchorItemIndex = 1,
         SearchEntrySpec(R.string.pref_advanced_notification_style, listOf("notification", "style", "media", "compact")),
         SearchEntrySpec(R.string.pref_auto_backup_title, listOf("automatic", "backup", "settings", "restore", "folder")),
         SearchEntrySpec(R.string.pref_debug_log_size_title, listOf("debug", "log", "size", "limit", "storage")),
@@ -2157,6 +2223,7 @@ object SearchablePreferences {
   fun search(
     query: String,
     includeSecureFolder: Boolean = true,
+    television: Boolean = false,
     getStringRes: (Int) -> String,
   ): List<SettingsSearchResult> {
     if (query.isBlank()) return emptyList()
@@ -2164,12 +2231,15 @@ object SearchablePreferences {
     val normalizedQuery = normalizeSearchText(query)
     if (normalizedQuery.isBlank()) return emptyList()
 
+    fun available(preference: SearchablePreference): Boolean =
+      preference.isAvailable() && (includeSecureFolder || preference.screen != SecureFolderSettingsScreen) &&
+        (!television || TvSettingsPolicy.supportsSearch(preference))
+
     val directResults =
       staticPreferences
         .mapIndexedNotNull { index, preference ->
-          preference.takeIf {
-            it.isAvailable() && (includeSecureFolder || it.screen != SecureFolderSettingsScreen)
-          }?.match(normalizedQuery, getStringRes, index)
+          val entry = if (television) TvSettingsPolicy.searchEntry(preference) else preference
+          entry.takeIf(::available)?.match(normalizedQuery, getStringRes, index)
         }.sortedWith(
           compareByDescending<SettingsSearchResult> { it.score }
             .thenBy { it.preference.category }
@@ -2181,7 +2251,8 @@ object SearchablePreferences {
 
     return screenFallbackPreferences
       .mapIndexedNotNull { index, preference ->
-        preference.takeIf { it.isAvailable() }?.match(normalizedQuery, getStringRes, staticPreferences.size + index)
+        val entry = if (television) TvSettingsPolicy.searchEntry(preference) else preference
+        entry.takeIf(::available)?.match(normalizedQuery, getStringRes, staticPreferences.size + index)
       }.sortedByDescending(SettingsSearchResult::score)
   }
 

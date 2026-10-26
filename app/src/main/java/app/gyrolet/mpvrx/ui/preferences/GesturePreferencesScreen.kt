@@ -50,7 +50,7 @@ import app.gyrolet.mpvrx.ui.utils.popSafely
 import kotlinx.collections.immutable.toImmutableList
 import kotlinx.serialization.Serializable
 import me.zhanghai.compose.preference.FooterPreference
-import me.zhanghai.compose.preference.ListPreference
+import app.gyrolet.mpvrx.ui.preferences.components.AppListPreference as ListPreference
 import app.gyrolet.mpvrx.ui.preferences.components.AppSliderPreference as SliderPreference
 import org.koin.compose.koinInject
 
@@ -169,6 +169,17 @@ object GesturePreferencesScreen : Screen {
                 value = pinchToZoomSubtitles,
                 onValueChange = preferences.pinchToZoomSubtitles::set,
                 title = { Text(stringResource(R.string.pref_player_gestures_pinch_to_zoom_subtitles)) },
+              )
+
+              PreferenceDivider()
+
+              val twoFingerSpeedSwipe by preferences.twoFingerSpeedSwipe.collectAsState()
+              SwitchPreference(
+                modifier = Modifier.settingsSearchTarget(R.string.pref_player_gestures_two_finger_speed_swipe),
+                value = twoFingerSpeedSwipe,
+                onValueChange = preferences.twoFingerSpeedSwipe::set,
+                title = { Text(stringResource(R.string.pref_player_gestures_two_finger_speed_swipe)) },
+                summary = { Text(stringResource(R.string.pref_player_gestures_two_finger_speed_swipe_summary)) },
               )
 
               PreferenceDivider()

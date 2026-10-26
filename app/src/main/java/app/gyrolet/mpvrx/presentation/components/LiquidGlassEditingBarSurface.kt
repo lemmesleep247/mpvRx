@@ -9,14 +9,16 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import app.gyrolet.mpvrx.preferences.AppearancePreferences
 import app.gyrolet.mpvrx.preferences.preference.collectAsState
+import app.gyrolet.mpvrx.ui.liquidglass.drawCapsuleTint
 import app.gyrolet.mpvrx.ui.liquidglass.liquidGlassEffects
+import app.gyrolet.mpvrx.ui.liquidglass.outsideShadow
 import app.gyrolet.mpvrx.ui.liquidglass.rememberLiquidGlassSettings
 import app.gyrolet.mpvrx.ui.theme.AppMotion
+import com.kyant.backdrop.Backdrop
 import com.kyant.backdrop.drawBackdrop
 import com.kyant.backdrop.highlight.Highlight
 import com.kyant.backdrop.shadow.InnerShadow
@@ -24,13 +26,15 @@ import com.kyant.backdrop.shadow.Shadow
 import com.kyant.shapes.Capsule
 import org.koin.compose.koinInject
 
+/** The selection action bar's glass. It refracts [backdrop] over the app background. */
 @Composable
 fun LiquidGlassEditingBarSurface(
-  backdrop: LiquidGlassBackdrop?,
+  backdrop: Backdrop?,
   content: @Composable BoxScope.() -> Unit,
 ) {
   val preferences = koinInject<AppearancePreferences>()
   val glassEnabled by preferences.liquidGlassEnabled.collectAsState()
+  val sceneBackdrop = rememberSceneGlassBackdrop(backdrop)
   val settings = rememberLiquidGlassSettings()
   val reducedMotion = AppMotion.shouldReduceMotion()
   val shape = CircleShape
@@ -38,9 +42,9 @@ fun LiquidGlassEditingBarSurface(
   val fallbackColor = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.96f)
 
   val surfaceModifier =
-    if (glassEnabled && backdrop != null) {
+    if (glassEnabled && sceneBackdrop != null) {
       Modifier.drawBackdrop(
-        backdrop = backdrop,
+        backdrop = sceneBackdrop,
         shape = { Capsule() },
         effects = {
           liquidGlassEffects(
@@ -61,10 +65,10 @@ fun LiquidGlassEditingBarSurface(
         innerShadow = {
           InnerShadow(radius = 3.dp, color = Color.White.copy(alpha = 0.16f))
         },
-        onDrawSurface = { drawRect(settings.surfaceColor(glassColor)) },
+        onDrawSurface = { drawCapsuleTint(settings.surfaceColor(glassColor)) },
       )
     } else {
-      Modifier.shadow(8.dp, shape).clip(shape).background(fallbackColor)
+      Modifier.outsideShadow(shape, radius = 8.dp).clip(shape).background(fallbackColor)
     }
 
   Box(modifier = surfaceModifier, content = content)

@@ -64,7 +64,7 @@ import app.gyrolet.mpvrx.ui.utils.currentMpvConfigOverrideOptions
 import app.gyrolet.mpvrx.ui.utils.popSafely
 import app.gyrolet.mpvrx.utils.media.MediaLibraryEvents
 import kotlinx.serialization.Serializable
-import me.zhanghai.compose.preference.ListPreference
+import app.gyrolet.mpvrx.ui.preferences.components.AppListPreference as ListPreference
 import app.gyrolet.mpvrx.ui.preferences.components.AppSliderPreference as SliderPreference
 import me.zhanghai.compose.preference.TextFieldPreference
 import org.koin.compose.koinInject
@@ -117,7 +117,7 @@ object AudioPreferencesScreen : Screen {
               .then(settingsHighlight),
         ) {
           item {
-            PreferenceSectionHeader(position = PreferenceSectionPosition.First, 
+            PreferenceSectionHeader(position = PreferenceSectionPosition.First,
               title = stringResource(R.string.pref_media_library_section),
               modifier = Modifier.settingsSearchTarget(R.string.pref_audio),
             )
@@ -345,25 +345,28 @@ object AudioPreferencesScreen : Screen {
               }
 
               PreferenceDivider()
-              val audioOrientation by preferences.audioOrientation.collectAsState()
-              ExpressivePreferenceItem {
-              ListPreference(
-                modifier = Modifier.settingsSearchTarget(R.string.pref_audio_orientation_title),
-                value = audioOrientation,
-                onValueChange = { preferences.audioOrientation.set(it) },
-                values = AudioPlayerOrientation.entries,
-                valueToText = { AnnotatedString(resources.getString(it.titleRes)) },
-                title = { Text(stringResource(R.string.pref_audio_orientation_title)) },
-                summary = {
-                  Text(
-                    stringResource(audioOrientation.titleRes),
-                    color = MaterialTheme.colorScheme.outline,
-                  )
-                },
-              )
+              DevicePreference(R.string.pref_audio_orientation_title) {
+                val audioOrientation by preferences.audioOrientation.collectAsState()
+                ExpressivePreferenceItem {
+                ListPreference(
+                  modifier = Modifier.settingsSearchTarget(R.string.pref_audio_orientation_title),
+                  value = audioOrientation,
+                  onValueChange = { preferences.audioOrientation.set(it) },
+                  values = AudioPlayerOrientation.entries,
+                  valueToText = { AnnotatedString(resources.getString(it.titleRes)) },
+                  title = { Text(stringResource(R.string.pref_audio_orientation_title)) },
+                  summary = {
+                    Text(
+                      stringResource(audioOrientation.titleRes),
+                      color = MaterialTheme.colorScheme.outline,
+                    )
+                  },
+                )
+                }
+
+                PreferenceDivider()
               }
 
-              PreferenceDivider()
               val audioAmbientMode by preferences.audioAmbientMode.collectAsState()
               SwitchPreference(
                 modifier = Modifier.settingsSearchTarget(R.string.pref_audio_ambient_mode_title),

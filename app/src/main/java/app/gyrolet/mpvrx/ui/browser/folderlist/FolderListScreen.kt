@@ -142,6 +142,7 @@ import app.gyrolet.mpvrx.ui.securefolder.SecureFolderGateScreen
 import app.gyrolet.mpvrx.ui.utils.LocalBackStack
 import app.gyrolet.mpvrx.ui.utils.navigateTo
 import app.gyrolet.mpvrx.ui.utils.calculateResponsiveGridSpans
+import app.gyrolet.mpvrx.ui.tv.focusableWhen
 import app.gyrolet.mpvrx.utils.history.RecentlyPlayedOps
 import app.gyrolet.mpvrx.utils.media.CopyPasteOps
 import app.gyrolet.mpvrx.utils.media.MediaSearchEngine
@@ -196,6 +197,7 @@ object FolderListScreen : Screen {
     searchQuery: String = "",
   ) {
     val context = LocalContext.current
+    val isTelevision = app.gyrolet.mpvrx.utils.device.DeviceFormFactor.isTelevision(context)
     val backstack = LocalBackStack.current
     val coroutineScope = rememberCoroutineScope()
     val folderDeletionMutex = remember { Mutex() }
@@ -823,7 +825,7 @@ object FolderListScreen : Screen {
                     Modifier.animateFloatingActionButton(
                       visible = isFabShouldBeVisible,
                       alignment = Alignment.BottomEnd,
-                    ),
+                    ).focusableWhen(isFabShouldBeVisible),
                   checked = isFabExpanded.value && !quickPlayFabDirect,
                   onCheckedChange = {
                     if (quickPlayFabDirect) {
@@ -865,7 +867,7 @@ object FolderListScreen : Screen {
               FloatingActionButtonMenuItem(
                 onClick = {
                   isFabExpanded.value = false
-                  filePicker.launch(if (audioOnly) arrayOf("audio/*") else arrayOf("video/*"))
+                  filePicker.launch(if (audioOnly) arrayOf("audio/*") else FileTypeUtils.videoPickerMimeTypes())
                 },
                 icon = { Icon(Icons.RoundedFilled.FileOpen, contentDescription = null) },
                 text = {
@@ -1112,7 +1114,52 @@ object FolderListScreen : Screen {
     }
   }
 
-    if (isDualPaneActive && selectedFolderBucketId != null) {
+    // On TV, replacing FoldersPane with a new Row removes the focused card and can send
+    // focus to the navigation rail. Keep the folder pane at a stable composition position.
+    @Composable
+    fun SelectedFolderContent() {
+      val bucketId = selectedFolderBucketId ?: return
+      key(bucketId) {
+        CompositionLocalProvider(
+          LocalNavigationBarHeight provides
+            if (app.gyrolet.mpvrx.ui.browser.NavigationBarState.isDualPaneLayout) {
+              app.gyrolet.mpvrx.ui.browser.NavigationBarState.miniPlayerClearance
+            } else {
+              LocalNavigationBarHeight.current
+            },
+        ) {
+          VideoListScreen(
+            bucketId = bucketId,
+            folderName = selectedFolderName.orEmpty(),
+            isDualPane = true,
+            isAudio = audioOnly,
+            onBack = {
+              selectedFolderBucketId = null
+              selectedFolderName = null
+            },
+          ).Content()
+        }
+      }
+    }
+
+    if (isTelevision && isDualPaneActive) {
+      Row(modifier = Modifier.fillMaxSize()) {
+        Box(modifier = Modifier.weight(if (selectedFolderBucketId != null) 0.4f else 1f)) {
+          FoldersPane()
+        }
+        if (selectedFolderBucketId != null) {
+          VerticalDivider(
+            modifier = Modifier.fillMaxHeight(),
+            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
+            thickness = 1.dp,
+          )
+          Box(modifier = Modifier.weight(0.6f)) {
+            SelectedFolderContent()
+          }
+        }
+      }
+    } else if (isDualPaneActive && selectedFolderBucketId != null) {
+      // Non-TV tablet split-pane remains unchanged.
       Row(modifier = Modifier.fillMaxSize()) {
         Box(modifier = Modifier.weight(0.4f)) {
           FoldersPane()
@@ -1123,27 +1170,7 @@ object FolderListScreen : Screen {
           thickness = 1.dp,
         )
         Box(modifier = Modifier.weight(0.6f)) {
-          key(selectedFolderBucketId) {
-            CompositionLocalProvider(
-              LocalNavigationBarHeight provides
-                if (app.gyrolet.mpvrx.ui.browser.NavigationBarState.isDualPaneLayout) {
-                  app.gyrolet.mpvrx.ui.browser.NavigationBarState.miniPlayerClearance
-                } else {
-                  LocalNavigationBarHeight.current
-                },
-            ) {
-              VideoListScreen(
-                bucketId = selectedFolderBucketId!!,
-                folderName = selectedFolderName.orEmpty(),
-                isDualPane = true,
-                isAudio = audioOnly,
-                onBack = {
-                  selectedFolderBucketId = null
-                  selectedFolderName = null
-                },
-              ).Content()
-            }
-          }
+          SelectedFolderContent()
         }
       }
     } else {
@@ -1495,6 +1522,8 @@ private fun GridContent(
     val dualPaneForTablet by browserPreferences.dualPaneForTablet.collectAsState()
     val isDualPaneActive = isTablet && dualPaneForTablet
     val isDualPane = isDualPaneActive && selectedFolderBucketId != null
+    val focusGutter =
+      if (app.gyrolet.mpvrx.utils.device.DeviceFormFactor.isTelevision(LocalContext.current)) 20.dp else 8.dp
 
     val spansInfo = calculateResponsiveGridSpans(maxWidth = maxWidth, isDualPane = isDualPane)
     val computedColumns = spansInfo.spans / spansInfo.folderSpan
@@ -1510,8 +1539,8 @@ private fun GridContent(
       modifier = Modifier.fillMaxSize(),
       contentPadding =
         PaddingValues(
-          start = 8.dp,
-          end = 8.dp,
+          start = focusGutter,
+          end = focusGutter,
           top = 8.dp,
           bottom = navigationBarHeight + 8.dp,
         ),
@@ -1616,6 +1645,8 @@ private fun ListContent(
   val browserPreferences = org.koin.compose.koinInject<app.gyrolet.mpvrx.preferences.BrowserPreferences>()
   val dualPaneForTablet by browserPreferences.dualPaneForTablet.collectAsState()
   val isDualPaneActive = isTablet && dualPaneForTablet
+  val focusGutter =
+    if (app.gyrolet.mpvrx.utils.device.DeviceFormFactor.isTelevision(LocalContext.current)) 20.dp else 8.dp
   val newCountByBucketId =
     remember(foldersWithNewCount) {
       foldersWithNewCount.associate { it.folder.bucketId to it.newVideoCount }
@@ -1629,8 +1660,8 @@ private fun ListContent(
       verticalArrangement = Arrangement.spacedBy(MediaSelectionListGap),
       contentPadding =
         PaddingValues(
-          start = 8.dp,
-          end = 8.dp,
+          start = focusGutter,
+          end = focusGutter,
           top = 4.dp,
           bottom = navigationBarHeight,
         ),

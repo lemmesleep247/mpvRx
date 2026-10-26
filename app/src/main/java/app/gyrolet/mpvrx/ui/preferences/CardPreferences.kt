@@ -51,6 +51,8 @@ import app.gyrolet.mpvrx.ui.theme.AppMotion
 import app.gyrolet.mpvrx.ui.theme.ConnectedLayout
 import app.gyrolet.mpvrx.ui.theme.rememberConnectedShape
 import app.gyrolet.mpvrx.ui.theme.rememberLowEndDevice
+import app.gyrolet.mpvrx.ui.player.controls.components.tvFocusHighlight
+import app.gyrolet.mpvrx.ui.tv.isTelevision
 
 /**
  * A connected Material 3 Expressive group for legacy Compose Preference rows.
@@ -213,7 +215,11 @@ fun ExpressivePreferenceTile(
     shape = shape,
     color = containerColor,
   ) {
-    content()
+    // The tile already owns the row surface and the 16dp group inset. Nested
+    // ComposePreference rows (especially sliders) must not add another inset.
+    CompositionLocalProvider(LocalInsidePreferenceCard provides true) {
+      content()
+    }
   }
 }
 
@@ -234,6 +240,8 @@ fun ExpressivePreferenceItem(
 ) {
   val colors = MaterialTheme.colorScheme
   val insideGroup = LocalInsidePreferenceCard.current
+  val shape = if (insideGroup && !standalone) MaterialTheme.shapes.small else MaterialTheme.shapes.large
+  val television = isTelevision()
   val color by animateColorAsState(
     // PreferenceCard paints both selected and unselected tiles at their measured connected
     // corners; a child surface must not override that geometry.
@@ -248,9 +256,10 @@ fun ExpressivePreferenceItem(
   Surface(
     modifier = modifier
       .fillMaxWidth()
+      .then(if (television) Modifier.tvFocusHighlight(shape, clipToShape = false) else Modifier)
       .then(if (insideGroup && selected) Modifier.layoutId(SelectedPreferenceTile) else Modifier)
       .then(if (insideGroup) Modifier else Modifier.padding(horizontal = 16.dp, vertical = 2.dp)),
-    shape = if (insideGroup && !standalone) MaterialTheme.shapes.small else MaterialTheme.shapes.large,
+    shape = shape,
     color = color,
   ) {
     content()

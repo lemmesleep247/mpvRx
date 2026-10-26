@@ -9,6 +9,7 @@
 
 package app.gyrolet.mpvrx.ui.preferences
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.layout.Arrangement
@@ -39,12 +40,18 @@ import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshots.Snapshot
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.heading
@@ -62,13 +69,17 @@ import app.gyrolet.mpvrx.presentation.Screen
 import app.gyrolet.mpvrx.ui.icons.AppIcon
 import app.gyrolet.mpvrx.ui.icons.Icon
 import app.gyrolet.mpvrx.ui.icons.Icons
-import app.gyrolet.mpvrx.ui.player.controls.components.rememberTvInitialFocusRequester
 import app.gyrolet.mpvrx.ui.player.controls.components.tvFocusGroup
 import app.gyrolet.mpvrx.ui.player.controls.components.tvFocusHighlight
-import app.gyrolet.mpvrx.ui.player.controls.components.tvInitialFocus
+import app.gyrolet.mpvrx.ui.tv.TvFocusMemory
+import app.gyrolet.mpvrx.ui.tv.isTelevision
+import app.gyrolet.mpvrx.ui.tv.tryRequestFocus
+import app.gyrolet.mpvrx.ui.tv.tvContentFocus
+import app.gyrolet.mpvrx.ui.tv.tvFocusMemory
 import app.gyrolet.mpvrx.ui.theme.AppConnectedShapeTokens
 import app.gyrolet.mpvrx.ui.theme.ConnectedLayout
 import app.gyrolet.mpvrx.ui.securefolder.SecureFolderSettingsScreen
+import app.gyrolet.mpvrx.ui.remote.RemoteControlScreen
 import app.gyrolet.mpvrx.ui.theme.LocalEmphasizedTypography
 import app.gyrolet.mpvrx.ui.theme.rememberConnectedShape
 import app.gyrolet.mpvrx.ui.utils.LocalBackStack
@@ -100,27 +111,43 @@ object PreferencesScreen : Screen {
   override fun Content() {
     val backstack = LocalBackStack.current
     val colorScheme = MaterialTheme.colorScheme
-    val sections = settingsSections()
+    val television = isTelevision()
+    val sections = settingsSections().mapNotNull { section ->
+      val items = section.items.filter { !television || TvSettingsPolicy.supportsScreen(it.screen) }
+      section.copy(items = items).takeIf { items.isNotEmpty() }
+    }
 
     val configuration = LocalConfiguration.current
     val isTablet = configuration.smallestScreenWidthDp >= 600
 
-    if (isTablet) {
+    if (isTablet || television) {
       @Suppress("UNCHECKED_CAST")
       val detailBackstack = rememberNavBackStack(AppearancePreferencesScreen) as NavBackStack<Screen>
       val selectedScreen = detailBackstack.first()
+      val categoryFocusRequester = remember { FocusRequester() }
+      var detailFocusRequested by remember { mutableIntStateOf(0) }
+      var detailPaneFocused by remember { mutableStateOf(false) }
+      var detailPaneActivated by remember { mutableStateOf(false) }
+      BackHandler(enabled = television && detailPaneFocused && detailBackstack.size == 1) {
+        if (!TvFocusMemory.restore(PreferencesScreen)) categoryFocusRequester.tryRequestFocus()
+      }
       Row(modifier = Modifier.fillMaxSize()) {
         Box(modifier = Modifier.weight(0.4f).tvFocusGroup()) {
           SettingsPane(
             sections = sections,
             selectedScreen = selectedScreen,
+            modifier = Modifier.focusRequester(categoryFocusRequester),
             onScreenSelected = { screen ->
-              if (screen != selectedScreen) {
+              if (screen != selectedScreen || (television && detailBackstack.size > 1)) {
                 // Replace the category atomically without ever exposing an empty stack.
                 Snapshot.withMutableSnapshot {
                   detailBackstack[0] = screen
                   while (detailBackstack.size > 1) detailBackstack.removeAt(detailBackstack.lastIndex)
                 }
+              }
+              if (television) {
+                detailPaneActivated = true
+                detailFocusRequested++
               }
             },
           )
@@ -130,12 +157,17 @@ object PreferencesScreen : Screen {
           color = colorScheme.outlineVariant.copy(alpha = 0.5f),
           thickness = 1.dp,
         )
-        Box(modifier = Modifier.weight(0.6f).tvFocusGroup()) {
+        Box(modifier = Modifier.weight(0.6f).onFocusChanged { focus ->
+          detailPaneFocused = focus.hasFocus
+          if (focus.hasFocus) detailPaneActivated = true
+        }.tvFocusGroup()) {
           CompositionLocalProvider(LocalBackStack provides detailBackstack) {
             ScreenNavDisplay(
               backStack = detailBackstack,
               modifier = Modifier.fillMaxSize(),
               opaqueBackground = true,
+              tvAutoFocus = !television || detailPaneActivated,
+              tvFocusRequestKey = detailFocusRequested,
             ) { screen ->
               CompositionLocalProvider(LocalShowSettingsBackArrow provides (screen != selectedScreen)) {
                 screen.Content()
@@ -159,11 +191,11 @@ object PreferencesScreen : Screen {
     sections: List<SettingsSection>,
     selectedScreen: Screen?,
     onScreenSelected: (Screen) -> Unit,
+    modifier: Modifier = Modifier,
   ) {
     val backstack = LocalBackStack.current
     val colorScheme = MaterialTheme.colorScheme
     val emphasizedTypography = LocalEmphasizedTypography.current
-    val initialFocusRequester = rememberTvInitialFocusRequester()
 
     Scaffold(
       topBar = {
@@ -188,9 +220,9 @@ object PreferencesScreen : Screen {
     ) { padding ->
       LazyColumn(
         modifier =
-          Modifier
+          modifier
             .fillMaxSize()
-            .tvFocusGroup()
+            .tvContentFocus()
             .padding(padding),
         contentPadding = PaddingValues(bottom = 28.dp),
         verticalArrangement = Arrangement.spacedBy(4.dp),
@@ -201,7 +233,7 @@ object PreferencesScreen : Screen {
             modifier =
               Modifier
                 .padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 18.dp)
-                .tvInitialFocus(initialFocusRequester),
+                .tvFocusMemory("settings-search"),
           )
         }
 
@@ -219,6 +251,7 @@ object PreferencesScreen : Screen {
   @Composable
   private fun settingsSections(): List<SettingsSection> {
     val colorScheme = MaterialTheme.colorScheme
+    val television = isTelevision()
     val secureFolderPreferences = koinInject<SecureFolderPreferences>()
     val isSecureFolderEntryHidden by secureFolderPreferences.isEntryPointHidden.collectAsState()
     return listOfNotNull(
@@ -285,13 +318,13 @@ object PreferencesScreen : Screen {
           ),
       ),
       SettingsSection(
-        title = stringResource(R.string.pref_section_gestures_controls),
+        title = stringResource(if (television) R.string.pref_section_display_controls else R.string.pref_section_gestures_controls),
         tint = colorScheme.onSurfaceVariant,
         items =
           listOf(
             SettingsDestination(
-              title = stringResource(R.string.pref_layout_title),
-              summary = stringResource(R.string.pref_layout_summary),
+              title = stringResource(if (television) R.string.pref_section_display_controls else R.string.pref_layout_title),
+              summary = stringResource(if (television) R.string.pref_persistent_status_summary else R.string.pref_layout_summary),
               icon = Icons.RoundedFilled.GridView,
               screen = PlayerControlsPreferencesScreen,
             ),
@@ -330,18 +363,28 @@ object PreferencesScreen : Screen {
         title = stringResource(R.string.ui_network),
         tint = colorScheme.onSurfaceVariant,
         items =
-          listOf(
-            SettingsDestination(
-              title = stringResource(R.string.ui_network),
-              summary = stringResource(R.string.pref_network_summary),
-              icon = Icons.RoundedFilled.Language,
-              screen = NetworkConfigurationPreferencesScreen,
-            ),
+          listOfNotNull(
+            if (app.gyrolet.mpvrx.BuildConfig.ENABLE_YTDLP || !app.gyrolet.mpvrx.BuildConfig.IS_PLAY_STORE_BUILD) {
+              SettingsDestination(
+                title = stringResource(R.string.ui_network),
+                summary = stringResource(R.string.pref_network_summary),
+                icon = Icons.RoundedFilled.Language,
+                screen = NetworkConfigurationPreferencesScreen,
+              )
+            } else {
+              null
+            },
             SettingsDestination(
               title = stringResource(R.string.pref_media_servers_title),
               summary = stringResource(R.string.pref_media_servers_summary),
               icon = Icons.RoundedFilled.BringYourOwnIp,
               screen = MediaServersPreferencesScreen,
+            ),
+            SettingsDestination(
+              title = stringResource(if (television) R.string.remote_settings_title_tv else R.string.remote_settings_title_phone),
+              summary = stringResource(if (television) R.string.remote_settings_summary_tv else R.string.remote_settings_summary_phone),
+              icon = Icons.RoundedFilled.Tv,
+              screen = RemoteControlScreen,
             ),
           ),
       ),
@@ -563,6 +606,7 @@ private fun SettingsDestinationRow(
     modifier =
       modifier
         .fillMaxWidth()
+        .tvFocusMemory(item.screen)
         .tvFocusHighlight(shape, focusedScale = 1.01f)
         .clip(shape)
         .semantics { selected = isSelected }

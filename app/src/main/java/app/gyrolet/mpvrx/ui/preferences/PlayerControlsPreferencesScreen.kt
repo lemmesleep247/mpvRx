@@ -9,6 +9,7 @@
 
 package app.gyrolet.mpvrx.ui.preferences
 
+import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -50,21 +51,25 @@ import app.gyrolet.mpvrx.preferences.AppearancePreferences
 import app.gyrolet.mpvrx.preferences.PlayerButton
 import app.gyrolet.mpvrx.preferences.PlayerClockFormat
 import app.gyrolet.mpvrx.preferences.PlayerPreferences
-import app.gyrolet.mpvrx.preferences.PortraitPlaybackControlsPosition
+import app.gyrolet.mpvrx.preferences.PlaybackControlsPosition
+import app.gyrolet.mpvrx.preferences.SeekbarPlacement
 import app.gyrolet.mpvrx.preferences.SeekbarStyle
+import app.gyrolet.mpvrx.preferences.preference.Preference
 import app.gyrolet.mpvrx.preferences.preference.collectAsState
 import app.gyrolet.mpvrx.presentation.Screen
 import app.gyrolet.mpvrx.ui.icons.Icon
 import app.gyrolet.mpvrx.ui.icons.Icons
 import app.gyrolet.mpvrx.ui.player.controls.components.SeekbarStyleLivePreview
+import app.gyrolet.mpvrx.ui.preferences.components.AppSliderPreference
 import app.gyrolet.mpvrx.ui.preferences.components.PlayerButtonChip
 import app.gyrolet.mpvrx.ui.preferences.components.SwitchPreference
 import app.gyrolet.mpvrx.ui.utils.LocalBackStack
 import app.gyrolet.mpvrx.ui.utils.navigateTo
 import app.gyrolet.mpvrx.ui.utils.popSafely
 import kotlinx.serialization.Serializable
-import me.zhanghai.compose.preference.ListPreference
+import app.gyrolet.mpvrx.ui.preferences.components.AppListPreference as ListPreference
 import org.koin.compose.koinInject
+import kotlin.math.roundToInt
 
 // Enum to identify which region we are editing
 @Serializable
@@ -80,6 +85,7 @@ object PlayerControlsPreferencesScreen : Screen {
   @OptIn(ExperimentalMaterial3Api::class)
   @Composable
   override fun Content() {
+    val television = app.gyrolet.mpvrx.ui.tv.isTelevision()
     val backstack = LocalBackStack.current
     val appearancePrefs = koinInject<AppearancePreferences>()
     val playerPrefs = koinInject<PlayerPreferences>()
@@ -113,7 +119,7 @@ object PlayerControlsPreferencesScreen : Screen {
     Scaffold(
       topBar = {
         SettingsTopAppBar(
-          title = stringResource(id = R.string.pref_layout_title),
+          title = stringResource(id = if (television) R.string.pref_section_display_controls else R.string.pref_layout_title),
           onBack = { backstack.popSafely() },
         )
       },
@@ -129,119 +135,160 @@ object PlayerControlsPreferencesScreen : Screen {
               .padding(padding)
               .then(settingsHighlight),
         ) {
-          // Landscape Controls Section
-          item {
-            PreferenceSectionHeader(position = PreferenceSectionPosition.First, 
-              title = stringResource(R.string.pref_section_landscape_controls),
-              modifier = Modifier.settingsSearchTarget(R.string.pref_layout_title),
-            )
-          }
-
-          item {
-            PreferenceCard {
-              // Each region owns its own fully rounded surface, rather than sharing
-              // a rectangular backdrop with neighboring regions.
-              ExpressivePreferenceItem(standalone = true) {
-                Column {
-                  PreferenceCategoryWithEditButton(
-                    modifier = Modifier.settingsSearchTarget(R.string.pref_layout_top_right_controls),
-                    title = stringResource(R.string.pref_layout_top_right_controls),
-                    onClick = { backstack.navigateTo(ControlLayoutEditorScreen(ControlRegion.TOP_RIGHT)) },
-                  )
-                  PreferenceIconSummary(buttons = topRightButtons)
-                }
-              }
-              ExpressivePreferenceItem(standalone = true) {
-                Column {
-                  PreferenceCategoryWithEditButton(
-                    modifier = Modifier.settingsSearchTarget(R.string.pref_layout_bottom_right_controls),
-                    title = stringResource(R.string.pref_layout_bottom_right_controls),
-                    onClick = { backstack.navigateTo(ControlLayoutEditorScreen(ControlRegion.BOTTOM_RIGHT)) },
-                  )
-                  PreferenceIconSummary(buttons = bottomRightButtons)
-                }
-              }
-              ExpressivePreferenceItem(standalone = true) {
-                Column {
-                  PreferenceCategoryWithEditButton(
-                    modifier = Modifier.settingsSearchTarget(R.string.pref_layout_bottom_left_controls),
-                    title = stringResource(R.string.pref_layout_bottom_left_controls),
-                    onClick = { backstack.navigateTo(ControlLayoutEditorScreen(ControlRegion.BOTTOM_LEFT)) },
-                  )
-                  PreferenceIconSummary(buttons = bottomLeftButtons)
-                }
-              }
+          if (!television) {
+            // Landscape Controls Section
+            item {
+              PreferenceSectionHeader(position = PreferenceSectionPosition.First,
+                title = stringResource(R.string.pref_section_landscape_controls),
+                modifier = Modifier.settingsSearchTarget(R.string.pref_layout_title),
+              )
             }
-          }
 
-          // Portrait Controls Section
-          item {
-            PreferenceSectionHeader(position = PreferenceSectionPosition.Middle, title = stringResource(R.string.pref_section_portrait_controls))
-          }
-
-          item {
-            PreferenceCard {
-              ExpressivePreferenceItem(standalone = true) {
-                Column {
-                  PreferenceCategoryWithEditButton(
-                    modifier = Modifier.settingsSearchTarget(R.string.pref_layout_portrait_bottom_controls),
-                    title = stringResource(R.string.pref_layout_portrait_bottom_controls),
-                    onClick = { backstack.navigateTo(ControlLayoutEditorScreen(ControlRegion.PORTRAIT_BOTTOM)) },
-                  )
-                  PreferenceIconSummary(buttons = portraitBottomButtons)
-                }
-              }
-            }
-          }
-
-          // Seekbar Section
-          item {
-            PreferenceSectionHeader(position = PreferenceSectionPosition.Middle, 
-              title = stringResource(R.string.pref_section_seekbar_style),
-              modifier = Modifier.settingsSearchTarget(R.string.pref_section_seekbar_style),
-            )
-          }
-
-          item {
-            val seekbarStyle by appearancePrefs.seekbarStyle.collectAsState()
-            val useWavySeekbar by playerPrefs.useWavySeekbar.collectAsState()
-
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-              Column(
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
-              ) {
-                Text(
-                  text = stringResource(R.string.pref_layout_preview),
-                  style = MaterialTheme.typography.labelLarge,
-                  color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                SeekbarStyleLivePreview(
-                  style = seekbarStyle,
-                  useWavySeekbar = useWavySeekbar,
-                  modifier = Modifier.fillMaxWidth(),
-                )
-              }
+            item {
               PreferenceCard {
-                SeekbarStyle.entries.forEach { style ->
-                  val isSelected = seekbarStyle == style
-                  // Every option is an independent Material Expressive tile:
-                  // OFF, selected, and a single available option have identical curvature.
-                  ExpressivePreferenceItem(selected = isSelected, standalone = true) {
-                    ListItem(
-                      trailingContent = {
-                        RadioButton(selected = isSelected, onClick = null)
-                      },
-                      colors = androidx.compose.material3.ListItemDefaults.colors(
-                        containerColor = androidx.compose.ui.graphics.Color.Transparent,
-                      ),
-                      modifier = Modifier.selectable(
-                        selected = isSelected,
-                        role = Role.RadioButton,
-                        onClick = { appearancePrefs.seekbarStyle.set(style) },
-                      ),
-                    ) {
-                      Text(style.name)
+                // Each region owns its own fully rounded surface, rather than sharing
+                // a rectangular backdrop with neighboring regions.
+                ExpressivePreferenceItem(standalone = true) {
+                  Column {
+                    PreferenceCategoryWithEditButton(
+                      modifier = Modifier.settingsSearchTarget(R.string.pref_layout_top_right_controls),
+                      title = stringResource(R.string.pref_layout_top_right_controls),
+                      onClick = { backstack.navigateTo(ControlLayoutEditorScreen(ControlRegion.TOP_RIGHT)) },
+                    )
+                    PreferenceIconSummary(buttons = topRightButtons)
+                  }
+                }
+                ExpressivePreferenceItem(standalone = true) {
+                  Column {
+                    PreferenceCategoryWithEditButton(
+                      modifier = Modifier.settingsSearchTarget(R.string.pref_layout_bottom_right_controls),
+                      title = stringResource(R.string.pref_layout_bottom_right_controls),
+                      onClick = { backstack.navigateTo(ControlLayoutEditorScreen(ControlRegion.BOTTOM_RIGHT)) },
+                    )
+                    PreferenceIconSummary(buttons = bottomRightButtons)
+                  }
+                }
+                ExpressivePreferenceItem(standalone = true) {
+                  Column {
+                    PreferenceCategoryWithEditButton(
+                      modifier = Modifier.settingsSearchTarget(R.string.pref_layout_bottom_left_controls),
+                      title = stringResource(R.string.pref_layout_bottom_left_controls),
+                      onClick = { backstack.navigateTo(ControlLayoutEditorScreen(ControlRegion.BOTTOM_LEFT)) },
+                    )
+                    PreferenceIconSummary(buttons = bottomLeftButtons)
+                  }
+                }
+                BottomLayoutPreferences(
+                  seekbarPlacement = appearancePrefs.landscapeSeekbarPlacement,
+                  seekbarTitleRes = R.string.ui_landscape_seekbar_position,
+                  playbackPosition = appearancePrefs.landscapePlaybackControlsPosition,
+                  playbackTitleRes = R.string.ui_landscape_playback_buttons,
+                )
+              }
+            }
+
+            // Portrait Controls Section
+            item {
+              PreferenceSectionHeader(position = PreferenceSectionPosition.Middle, title = stringResource(R.string.pref_section_portrait_controls))
+            }
+
+            item {
+              PreferenceCard {
+                ExpressivePreferenceItem(standalone = true) {
+                  Column {
+                    PreferenceCategoryWithEditButton(
+                      modifier = Modifier.settingsSearchTarget(R.string.pref_layout_portrait_bottom_controls),
+                      title = stringResource(R.string.pref_layout_portrait_bottom_controls),
+                      onClick = { backstack.navigateTo(ControlLayoutEditorScreen(ControlRegion.PORTRAIT_BOTTOM)) },
+                    )
+                    PreferenceIconSummary(buttons = portraitBottomButtons)
+                  }
+                }
+                BottomLayoutPreferences(
+                  seekbarPlacement = appearancePrefs.portraitSeekbarPlacement,
+                  seekbarTitleRes = R.string.ui_portrait_seekbar_position,
+                  playbackPosition = appearancePrefs.portraitPlaybackControlsPosition,
+                  playbackTitleRes = R.string.ui_portrait_playback_buttons,
+                )
+              }
+            }
+          }
+
+          // Persistent in-video HUD controls, immediately after portrait layout controls.
+          item {
+            PreferenceSectionHeader(
+              position = PreferenceSectionPosition.Middle,
+              title = stringResource(R.string.pref_persistent_status_title),
+              modifier = Modifier.settingsSearchTarget(R.string.pref_persistent_status_title),
+            )
+          }
+          item {
+            PreferenceCard {
+              ExpressivePreferenceItem {
+                me.zhanghai.compose.preference.Preference(
+                  title = { Text(stringResource(R.string.pref_persistent_status_title)) },
+                  summary = {
+                    Text(
+                      stringResource(R.string.pref_persistent_status_summary),
+                      color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                  },
+                  onClick = { backstack.navigateTo(PersistentStatusBarPreferencesScreen) },
+                )
+              }
+            }
+          }
+
+          if (!television) {
+            // Seekbar Section
+            item {
+              PreferenceSectionHeader(position = PreferenceSectionPosition.Middle,
+                title = stringResource(R.string.pref_section_seekbar_style),
+                modifier = Modifier.settingsSearchTarget(R.string.pref_section_seekbar_style),
+              )
+            }
+
+            item {
+              val seekbarStyle by appearancePrefs.seekbarStyle.collectAsState()
+              val useWavySeekbar by playerPrefs.useWavySeekbar.collectAsState()
+
+              Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Column(
+                  modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 16.dp),
+                  verticalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                  Text(
+                    text = stringResource(R.string.pref_layout_preview),
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                  )
+                  SeekbarStyleLivePreview(
+                    style = seekbarStyle,
+                    useWavySeekbar = useWavySeekbar,
+                    modifier = Modifier.fillMaxWidth(),
+                  )
+                }
+                PreferenceCard {
+                  SeekbarStyle.entries.forEach { style ->
+                    val isSelected = seekbarStyle == style
+                    // Every option is an independent Material Expressive tile:
+                    // OFF, selected, and a single available option have identical curvature.
+                    ExpressivePreferenceItem(selected = isSelected, standalone = true) {
+                      ListItem(
+                        trailingContent = {
+                          RadioButton(selected = isSelected, onClick = null)
+                        },
+                        colors = androidx.compose.material3.ListItemDefaults.colors(
+                          containerColor = androidx.compose.ui.graphics.Color.Transparent,
+                        ),
+                        modifier = Modifier.selectable(
+                          selected = isSelected,
+                          role = Role.RadioButton,
+                          onClick = { appearancePrefs.seekbarStyle.set(style) },
+                        ),
+                      ) {
+                        Text(style.name)
+                      }
                     }
                   }
                 }
@@ -257,78 +304,86 @@ object PlayerControlsPreferencesScreen : Screen {
           item {
             val hidePlayerButtonsBackground by appearancePrefs.hidePlayerButtonsBackground.collectAsState()
             val forceDarkPlayerButtonsBackground by appearancePrefs.forceDarkPlayerButtonsBackground.collectAsState()
-            val portraitPlaybackControlsPosition by
-              appearancePrefs.portraitPlaybackControlsPosition.collectAsState()
-            val playerTimeToDisappear by playerPrefs.playerTimeToDisappear.collectAsState()
+            val playerButtonsBackgroundOpacity by appearancePrefs.playerButtonsBackgroundOpacity.collectAsState()
+            val storedPlayerTimeToDisappear by playerPrefs.playerTimeToDisappear.collectAsState()
+            val playerTimeToDisappear =
+              if (television) storedPlayerTimeToDisappear.coerceAtLeast(4000) else storedPlayerTimeToDisappear
             val clockFormat by playerPrefs.clockFormat.collectAsState()
-            val predefinedTimeValues = listOf(500, 1000, 1500, 2000, 2500, 3000, 3500, 4000, 4500, 5000)
+            val predefinedTimeValues =
+              if (television) listOf(4000, 4500, 5000, 7500, 10000)
+              else listOf(500, 1000, 1500, 2000, 2500, 3000, 3500, 4000, 4500, 5000)
             val isCustomTimeValue = !predefinedTimeValues.contains(playerTimeToDisappear)
 
             var showCustomTimeDialog by remember { mutableStateOf(false) }
             var customTimeValue by remember { mutableStateOf("") }
 
             PreferenceCard {
-              ExpressivePreferenceItem(standalone = true) {
-              ListPreference(
-                modifier = Modifier.settingsSearchTarget(R.string.ui_portrait_playback_buttons),
-                value = portraitPlaybackControlsPosition,
-                onValueChange = { appearancePrefs.portraitPlaybackControlsPosition.set(it) },
-                values = PortraitPlaybackControlsPosition.entries,
-                valueToText = { AnnotatedString(it.displayName) },
-                title = {
-                  Text(
-                    androidx.compose.ui.res
-                      .stringResource(app.gyrolet.mpvrx.R.string.ui_portrait_playback_buttons),
+              DevicePreference(R.string.pref_player_buttons_opacity) {
+                ExpressivePreferenceItem(standalone = true) {
+                  AppSliderPreference(
+                    modifier = Modifier.settingsSearchTarget(R.string.pref_player_buttons_opacity),
+                    value = playerButtonsBackgroundOpacity,
+                    onValueChange = { appearancePrefs.playerButtonsBackgroundOpacity.set(it) },
+                    sliderValue = playerButtonsBackgroundOpacity,
+                    onSliderValueChange = { appearancePrefs.playerButtonsBackgroundOpacity.set(it) },
+                    valueRange = 0f..1f,
+                    // 5% increments, so the 55% default is reachable again.
+                    valueSteps = 19,
+                    title = { Text(stringResource(R.string.pref_player_buttons_opacity)) },
+                    summary = {
+                      Text(
+                        text = "${(playerButtonsBackgroundOpacity.coerceIn(0f, 1f) * 100).roundToInt()}%",
+                        color = MaterialTheme.colorScheme.outline,
+                      )
+                    },
                   )
-                },
-                summary = { Text(portraitPlaybackControlsPosition.displayName) },
-              )
+                }
+
+                PreferenceDivider()
+
+                SwitchPreference(
+                  groupIndex = 0,
+                  groupSize = 1,
+                  modifier = Modifier.settingsSearchTarget(R.string.pref_appearance_hide_player_buttons_background_title),
+                  value = hidePlayerButtonsBackground,
+                  onValueChange = { appearancePrefs.hidePlayerButtonsBackground.set(it) },
+                  title = {
+                    Text(
+                      text = stringResource(id = R.string.pref_appearance_hide_player_buttons_background_title),
+                    )
+                  },
+                  summary = {
+                    Text(
+                      text = stringResource(id = R.string.pref_appearance_hide_player_buttons_background_summary),
+                    )
+                  },
+                )
+
+                PreferenceDivider()
+
+                SwitchPreference(
+                  groupIndex = 0,
+                  groupSize = 1,
+                  modifier =
+                    Modifier.settingsSearchTarget(
+                      R.string.pref_appearance_force_dark_player_buttons_background_title,
+                    ),
+                  value = forceDarkPlayerButtonsBackground,
+                  onValueChange = { appearancePrefs.forceDarkPlayerButtonsBackground.set(it) },
+                  title = {
+                    Text(
+                      text = stringResource(R.string.pref_appearance_force_dark_player_buttons_background_title),
+                    )
+                  },
+                  summary = {
+                    Text(
+                      text = stringResource(R.string.pref_appearance_force_dark_player_buttons_background_summary),
+                    )
+                  },
+                )
+
+                PreferenceDivider()
               }
-
-              PreferenceDivider()
-
-              SwitchPreference(
-                groupIndex = 0,
-                groupSize = 1,
-                modifier = Modifier.settingsSearchTarget(R.string.pref_appearance_hide_player_buttons_background_title),
-                value = hidePlayerButtonsBackground,
-                onValueChange = { appearancePrefs.hidePlayerButtonsBackground.set(it) },
-                title = {
-                  Text(
-                    text = stringResource(id = R.string.pref_appearance_hide_player_buttons_background_title),
-                  )
-                },
-                summary = {
-                  Text(
-                    text = stringResource(id = R.string.pref_appearance_hide_player_buttons_background_summary),
-                  )
-                },
-              )
-
-              PreferenceDivider()
-
-              SwitchPreference(
-                groupIndex = 0,
-                groupSize = 1,
-                modifier =
-                  Modifier.settingsSearchTarget(
-                    R.string.pref_appearance_force_dark_player_buttons_background_title,
-                  ),
-                value = forceDarkPlayerButtonsBackground,
-                onValueChange = { appearancePrefs.forceDarkPlayerButtonsBackground.set(it) },
-                title = {
-                  Text(
-                    text = stringResource(R.string.pref_appearance_force_dark_player_buttons_background_title),
-                  )
-                },
-                summary = {
-                  Text(
-                    text = stringResource(R.string.pref_appearance_force_dark_player_buttons_background_summary),
-                  )
-                },
-              )
-
-              PreferenceDivider()
 
               ExpressivePreferenceItem(standalone = true) {
               ListPreference(
@@ -414,7 +469,7 @@ object PlayerControlsPreferencesScreen : Screen {
                     onClick = {
                       val value = customTimeValue.toIntOrNull()
                       if (value != null && value in 100..1000000000000) {
-                        playerPrefs.playerTimeToDisappear.set(value)
+                        playerPrefs.playerTimeToDisappear.set(if (television) value.coerceAtLeast(4000) else value)
                         showCustomTimeDialog = false
                       }
                     },
@@ -432,6 +487,39 @@ object PlayerControlsPreferencesScreen : Screen {
           }
         }
       }
+    }
+  }
+
+  @Composable
+  private fun BottomLayoutPreferences(
+    seekbarPlacement: Preference<SeekbarPlacement>,
+    @StringRes seekbarTitleRes: Int,
+    playbackPosition: Preference<PlaybackControlsPosition>,
+    @StringRes playbackTitleRes: Int,
+  ) {
+    val placement by seekbarPlacement.collectAsState()
+    val position by playbackPosition.collectAsState()
+    ExpressivePreferenceItem(standalone = true) {
+      ListPreference(
+        modifier = Modifier.settingsSearchTarget(seekbarTitleRes),
+        value = placement,
+        onValueChange = { seekbarPlacement.set(it) },
+        values = SeekbarPlacement.entries,
+        valueToText = { AnnotatedString(it.displayName) },
+        title = { Text(stringResource(seekbarTitleRes)) },
+        summary = { Text(placement.displayName) },
+      )
+    }
+    ExpressivePreferenceItem(standalone = true) {
+      ListPreference(
+        modifier = Modifier.settingsSearchTarget(playbackTitleRes),
+        value = position,
+        onValueChange = { playbackPosition.set(it) },
+        values = PlaybackControlsPosition.entries,
+        valueToText = { AnnotatedString(it.displayName) },
+        title = { Text(stringResource(playbackTitleRes)) },
+        summary = { Text(position.displayName) },
+      )
     }
   }
 

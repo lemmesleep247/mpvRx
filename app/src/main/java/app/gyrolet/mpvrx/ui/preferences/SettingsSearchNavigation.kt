@@ -32,6 +32,12 @@ import androidx.compose.ui.graphics.Color
 import app.gyrolet.mpvrx.R
 import app.gyrolet.mpvrx.presentation.Screen
 import app.gyrolet.mpvrx.ui.utils.LocalCurrentScreen
+import app.gyrolet.mpvrx.ui.tv.tvContentFocus
+import app.gyrolet.mpvrx.ui.tv.tvFocusMemory
+import app.gyrolet.mpvrx.ui.tv.isTelevision
+import app.gyrolet.mpvrx.ui.tv.tryRequestFocus
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -238,17 +244,17 @@ private val settingsSearchListAnchors: Map<Screen, List<SettingsSearchListAnchor
       ),
     AdvancedPreferencesScreen to
       listOf(
-        SettingsSearchListAnchor(titleRes = R.string.pref_advanced, itemIndex = 0),
-        SettingsSearchListAnchor(titleRes = R.string.pref_app_language_title, itemIndex = 1),
-        SettingsSearchListAnchor(titleRes = R.string.pref_advanced_notification_style, itemIndex = 1),
-        SettingsSearchListAnchor(titleRes = R.string.pref_export_settings_title, itemIndex = 3),
-        SettingsSearchListAnchor(titleRes = R.string.pref_import_settings_title, itemIndex = 3),
-        SettingsSearchListAnchor(titleRes = R.string.pref_advanced_mpv_conf_storage_location, itemIndex = 5),
-        SettingsSearchListAnchor(titleRes = R.string.pref_advanced_mpv_conf, itemIndex = 7),
-        SettingsSearchListAnchor(titleRes = R.string.pref_advanced_input_conf, itemIndex = 7),
-        SettingsSearchListAnchor(titleRes = R.string.pref_auto_backup_title, itemIndex = 3),
-        SettingsSearchListAnchor(titleRes = R.string.pref_enable_lua_scripts_title, itemIndex = 9),
-        SettingsSearchListAnchor(titleRes = R.string.pref_manage_lua_scripts_title, itemIndex = 9),
+        SettingsSearchListAnchor(titleRes = R.string.pref_advanced, itemIndex = 8),
+        SettingsSearchListAnchor(titleRes = R.string.pref_app_language_title, itemIndex = 9),
+        SettingsSearchListAnchor(titleRes = R.string.pref_advanced_notification_style, itemIndex = 9),
+        SettingsSearchListAnchor(titleRes = R.string.pref_export_settings_title, itemIndex = 1),
+        SettingsSearchListAnchor(titleRes = R.string.pref_import_settings_title, itemIndex = 1),
+        SettingsSearchListAnchor(titleRes = R.string.pref_advanced_mpv_conf_storage_location, itemIndex = 3),
+        SettingsSearchListAnchor(titleRes = R.string.pref_advanced_mpv_conf, itemIndex = 5),
+        SettingsSearchListAnchor(titleRes = R.string.pref_advanced_input_conf, itemIndex = 5),
+        SettingsSearchListAnchor(titleRes = R.string.pref_auto_backup_title, itemIndex = 1),
+        SettingsSearchListAnchor(titleRes = R.string.pref_enable_lua_scripts_title, itemIndex = 7),
+        SettingsSearchListAnchor(titleRes = R.string.pref_manage_lua_scripts_title, itemIndex = 7),
         SettingsSearchListAnchor(titleRes = R.string.pref_advanced_enable_recently_played_title, itemIndex = 11),
         SettingsSearchListAnchor(titleRes = R.string.pref_advanced_clear_playback_history, itemIndex = 11),
         SettingsSearchListAnchor(titleRes = R.string.pref_clear_config_cache_title, itemIndex = 11),
@@ -317,18 +323,23 @@ fun Modifier.settingsSearchTarget(
     val isTarget = requestedTarget != null && requestedTarget?.screen == currentScreen &&
       (requestedTarget?.key == key || fallback)
     val requester = remember { BringIntoViewRequester() }
+    val television = isTelevision()
+    val focusRequester = remember { FocusRequester() }
 
     LaunchedEffect(isTarget, requestedTarget) {
       if (isTarget) {
         requestedTarget?.let(SettingsSearchNavigation::located)
         delay(300)
         requester.bringIntoView()
+        if (television) focusRequester.tryRequestFocus()
         delay(3200)
         requestedTarget?.let { SettingsSearchNavigation.clear(it) }
       }
     }
 
     this
+      .tvFocusMemory(key)
+      .then(if (television) Modifier.focusRequester(focusRequester) else Modifier)
       .bringIntoViewRequester(requester)
       .highlightBackground(isTarget)
   }
@@ -422,7 +433,7 @@ fun rememberSettingsSearchList(
     scrollToSettingsSearchTarget(screen, listState, target)
   }
 
-  return listState to Modifier
+  return listState to Modifier.tvContentFocus()
 }
 
 @Composable
@@ -437,5 +448,5 @@ fun rememberSettingsSearchHighlight(
     val target = requestedTarget?.takeIf { it.screen == screen } ?: return@LaunchedEffect
     scrollToSettingsSearchTarget(screen, listState, target)
   }
-  return Modifier
+  return Modifier.tvContentFocus()
 }

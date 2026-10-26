@@ -73,7 +73,7 @@ object UnindexedVideoDiscovery {
       mediaPathKey(folderPath)?.let { current.byFolder[it] }.orEmpty()
     }
     return candidates.filter {
-      !options.pathFilter.shouldExcludeFile(File(it.path)) && File(it.path).isFile
+      !options.pathFilter.shouldExcludeFile(File(it.path)) && File(it.path).isFile && options.includesVideo(it)
     }
   }
 

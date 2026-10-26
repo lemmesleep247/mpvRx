@@ -67,6 +67,7 @@ class MediaLibraryViewModel(
   private enum class DeletionState { Pending, Confirmed }
 
   private val hiddenVideoPaths = MutableStateFlow<Map<String, DeletionState>>(emptyMap())
+  private val whitelistFlow = foldersPreferences.whitelistChanges()
   private val loadRequests = Channel<Boolean>(Channel.CONFLATED)
   private var enrichmentJob: Job? = null
   private val _videos = MutableStateFlow<List<Video>>(emptyList())
@@ -76,8 +77,9 @@ class MediaLibraryViewModel(
       hiddenVideoPaths,
       foldersPreferences.blacklistedFolders.changes(),
       foldersPreferences.blacklistedAudioFolders.changes(),
-    ) { items, hidden, videoBlacklist, audioBlacklist ->
-      items.filter { isVisible(it, hidden, videoBlacklist, audioBlacklist) }
+      whitelistFlow,
+    ) { items, hidden, videoBlacklist, audioBlacklist, allowed ->
+      items.filter { isVisible(it, hidden, videoBlacklist, audioBlacklist, allowed) }
     }.stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
   private val _videosWithPlaybackInfo = MutableStateFlow<List<VideoWithPlaybackInfo>>(emptyList())
@@ -87,8 +89,9 @@ class MediaLibraryViewModel(
       hiddenVideoPaths,
       foldersPreferences.blacklistedFolders.changes(),
       foldersPreferences.blacklistedAudioFolders.changes(),
-    ) { items, hidden, videoBlacklist, audioBlacklist ->
-      items.filter { isVisible(it.video, hidden, videoBlacklist, audioBlacklist) }
+      whitelistFlow,
+    ) { items, hidden, videoBlacklist, audioBlacklist, allowed ->
+      items.filter { isVisible(it.video, hidden, videoBlacklist, audioBlacklist, allowed) }
     }.stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
   private val _isLoading = MutableStateFlow(true)
@@ -102,8 +105,13 @@ class MediaLibraryViewModel(
     hidden: Map<String, DeletionState>,
     videoBlacklist: Set<String>,
     audioBlacklist: Set<String>,
+    whitelistState: Pair<Boolean, Set<String>>,
   ): Boolean {
     if (video.path in hidden) return false
+    val (whitelistEnabled, whitelist) = whitelistState
+    if (!app.gyrolet.mpvrx.utils.storage.isWhitelistedMediaPath(video.bucketId, whitelistEnabled, whitelist) &&
+      !app.gyrolet.mpvrx.utils.storage.isWhitelistedMediaPath(video.path, whitelistEnabled, whitelist)
+    ) return false
     val blacklist = if (video.isAudio) audioBlacklist else videoBlacklist
     return blacklist.none { folder ->
       app.gyrolet.mpvrx.utils.storage.isMediaPathInFolder(video.bucketId, folder) ||
@@ -164,7 +172,8 @@ class MediaLibraryViewModel(
       "|markers=${foldersPreferences.hiddenFolderMarkerNames.get().sorted().joinToString(",")}" +
       "|ignored=${foldersPreferences.sharedIgnoredMarkers.get().sorted().joinToString(",")}" +
       "|uris=${foldersPreferences.scopedHiddenFolderUris.get().sorted().joinToString(",")}" +
-      "|audioMin=${browserPreferences.minimumAudioDurationSeconds.get()}"
+      "|audioMin=${browserPreferences.minimumAudioDurationSeconds.get()}" +
+      "|${MediaFileRepository.currentScanOptions().mediaFilterKey}"
 
   /** Show a validated saved list immediately; background work must never blank it out. */
   private fun loadCachedVideos(): Boolean {
@@ -253,20 +262,24 @@ class MediaLibraryViewModel(
     metadataEnriched: Boolean,
   ) {
     currentCoroutineContext().ensureActive()
-    _videos.value = videos
-    val scannedPaths = videos.mapTo(hashSetOf()) { it.path }
+    // MediaStore can report an unknown duration until cached metadata is restored or enriched.
+    // Reapply thresholds after enrichment so newly discovered short videos are excluded too.
+    val scanOptions = MediaFileRepository.currentScanOptions(includeAudioOverride = true)
+    val eligible = videos.filter { scanOptions.includesMedia(it.size, it.duration, it.isAudio) }
+    _videos.value = eligible
+    val scannedPaths = eligible.mapTo(hashSetOf()) { it.path }
     hiddenVideoPaths.update { states ->
       states.filter { (path, state) -> state == DeletionState.Pending || path in scannedPaths }
     }
     MediaLibraryCache.save(
       getApplication(),
-      videos.filterNot { hiddenVideoPaths.value[it.path] == DeletionState.Confirmed },
+      eligible.filterNot { hiddenVideoPaths.value[it.path] == DeletionState.Confirmed },
       scanOptionsKey = scanCacheKey,
       observedGeneration = observedGeneration,
       metadataEnriched = metadataEnriched,
     )
     MediaStoreGenerationGuard.remember(getApplication(), observedGeneration)
-    loadPlaybackInfo(videos)
+    loadPlaybackInfo(eligible)
     _isLoading.value = false
   }
 

@@ -37,6 +37,7 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.focusGroup
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -121,12 +122,13 @@ import app.gyrolet.mpvrx.ui.player.PlayerActivity
 import app.gyrolet.mpvrx.ui.player.PlayerSheetDestination
 import app.gyrolet.mpvrx.ui.player.PlayerSheetTransitions
 import app.gyrolet.mpvrx.ui.player.TrackNode
-import app.gyrolet.mpvrx.ui.player.VideoDisplayGeometry
 import app.gyrolet.mpvrx.ui.player.declaredMediaKind
 import app.gyrolet.mpvrx.ui.player.inAppMusicSheetDrag
 import app.gyrolet.mpvrx.ui.player.playerSheetAnchor
 import app.gyrolet.mpvrx.ui.player.swipeUpToFullPlayer
 import app.gyrolet.mpvrx.ui.player.toObject
+import app.gyrolet.mpvrx.ui.player.controls.components.tvFocusHighlight
+import app.gyrolet.mpvrx.utils.device.DeviceFormFactor
 import app.gyrolet.mpvrx.ui.theme.AppMotion
 import app.gyrolet.mpvrx.ui.theme.AppShapeScale
 import app.gyrolet.mpvrx.ui.utils.LocalBackStack
@@ -172,7 +174,8 @@ fun MiniPlayer(modifier: Modifier = Modifier) {
       DeclaredPlaybackMediaKind.UNKNOWN -> !hasRealVideo && (hasAlbumArt || tracks.any { it.isAudio })
     }
 
-  val isMiniPlayerAllowed = isAudioOnlyItem || enableVideoMiniPlayer
+  val isMiniPlayerAllowed = isAudioOnlyItem ||
+    (enableVideoMiniPlayer && !app.gyrolet.mpvrx.ui.tv.isTelevision())
 
   // A full-player collapse lands here before the service flips to foreground; showing the mini
   // player only after that would make it pop out and slide back in under the finished morph.
@@ -366,6 +369,7 @@ private fun MiniPlayerContent(
   val currentOnDismiss by rememberUpdatedState(onDismiss)
   val musicSheet = LocalInAppMusicSheet.current
   val useInAppSheet = isAudioOnlyItem && musicSheet?.isAvailable == true
+  val isTelevision = DeviceFormFactor.isTelevision(context)
 
   val launchPlayer = remember(context, isAudioOnlyItem, reduceMotion, musicSheet) {
     launch@{
@@ -472,6 +476,17 @@ private fun MiniPlayerContent(
     }
   }
 
+  // TV: the title area is the "open player" button, a focus stop beside the playback buttons.
+  val tvOpenPlayer =
+    if (isTelevision) {
+      Modifier
+        .tvFocusHighlight(RoundedCornerShape(12.dp))
+        .clickable { if (!tossed) launchPlayer() }
+        .padding(horizontal = 8.dp, vertical = 4.dp)
+    } else {
+      Modifier
+    }
+
   LiquidGlassSurface(
     modifier = Modifier
       .onGloballyPositioned { coordinates ->
@@ -503,23 +518,27 @@ private fun MiniPlayerContent(
       )
       .clip(miniPlayerShape)
       .then(
-        if (useInAppSheet && musicSheet != null) {
-          // The live sheet follows the finger from the first pixel; touching down starts warming it.
-          Modifier.inAppMusicSheetDrag(
-            state = musicSheet,
-            collapsing = false,
-            enabled = !tossed,
-            onDown = musicSheet::prewarm,
-          )
-        } else {
-          Modifier.swipeUpToFullPlayer(
-            mediaId = currentItem?.stableId,
-            animateSheet = isAudioOnlyItem,
-            onExpand = { !tossed && launchPlayer() },
-          )
+        when {
+          // A remote cannot drag; the title and the buttons cover expanding and dismissing.
+          isTelevision -> Modifier
+          useInAppSheet && musicSheet != null ->
+            // The live sheet follows the finger from the first pixel; touching down starts warming it.
+            Modifier.inAppMusicSheetDrag(
+              state = musicSheet,
+              collapsing = false,
+              enabled = !tossed,
+              onDown = musicSheet::prewarm,
+            )
+          else ->
+            Modifier.swipeUpToFullPlayer(
+              mediaId = currentItem?.stableId,
+              animateSheet = isAudioOnlyItem,
+              onExpand = { !tossed && launchPlayer() },
+            )
         },
       )
-      .pointerInput(dismissThresholdPx, dismissFlingVelocityPx, reduceMotion) {
+      .pointerInput(dismissThresholdPx, dismissFlingVelocityPx, reduceMotion, isTelevision) {
+        if (isTelevision) return@pointerInput
         val velocityTracker = VelocityTracker()
         var armed = false
         detectHorizontalDragGestures(
@@ -547,7 +566,14 @@ private fun MiniPlayerContent(
           },
         )
       }
-      .clickable { if (!tossed) launchPlayer() },
+      .then(
+        if (isTelevision) {
+          // A clickable card is a single focus stop that hides its own buttons from the D-pad.
+          Modifier.tvFocusHighlight(miniPlayerShape, clipToShape = false).focusGroup()
+        } else {
+          Modifier.clickable { if (!tossed) launchPlayer() }
+        },
+      ),
     shape = miniPlayerShape,
     style = LiquidGlassStyle.MiniPlayer,
     glassColor = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.30f),
@@ -556,15 +582,15 @@ private fun MiniPlayerContent(
     val progressColor = MaterialTheme.colorScheme.primary
 
     if (isVideoMode) {
-      // Calculate aspect ratio for video surface container. mpv reports the pre-rotation shape, so
-      // a quarter-turned phone recording must be inverted to match what the surface shows.
+      // mpv reports the pre-rotation shape; quarter-turned phone recordings are shown inverted,
+      // matching the PiP aspect calculation.
       val sourceAspect = videoAspectRaw?.toFloat()?.takeIf { it.isFinite() && it > 0f }
         ?: if ((videoWidth ?: 0L) > 0L && (videoHeight ?: 0L) > 0L) {
           videoWidth!!.toFloat() / videoHeight!!.toFloat()
         } else {
           16f / 9f
         }
-      val rotation = videoRotate?.let { VideoDisplayGeometry.normalizeQuarterTurn(it) } ?: 0
+      val rotation = ((videoRotate ?: 0) % 360 + 360) % 360
       val aspect = if (rotation == 90 || rotation == 270) 1f / sourceAspect else sourceAspect
 
       // Constrain aspect ratio between 0.5 (portrait) and 2.4 (ultrawide)
@@ -602,7 +628,7 @@ private fun MiniPlayerContent(
 
         // Title and Status
         Column(
-          modifier = Modifier.weight(1f),
+          modifier = Modifier.weight(1f).then(tvOpenPlayer),
           verticalArrangement = Arrangement.Center,
         ) {
           key(currentItem?.stableId ?: currentItem?.originalUri) {
@@ -729,7 +755,7 @@ private fun MiniPlayerContent(
 
         // Title & Track Status
         Column(
-          modifier = Modifier.weight(1f),
+          modifier = Modifier.weight(1f).then(tvOpenPlayer),
           verticalArrangement = Arrangement.Center,
         ) {
           key(currentItem?.stableId ?: currentItem?.originalUri ?: audiobook?.book?.id) {

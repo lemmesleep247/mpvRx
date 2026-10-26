@@ -29,30 +29,37 @@ import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import app.gyrolet.mpvrx.ui.components.AppRangeSlider as RangeSlider
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -66,8 +73,10 @@ import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.ViewCompositionStrategy
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.input.ImeAction
@@ -78,6 +87,9 @@ import androidx.core.view.WindowInsetsCompat
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.findViewTreeViewModelStoreOwner
 import app.gyrolet.mpvrx.R
+import app.gyrolet.mpvrx.presentation.components.AppComboBox
+import app.gyrolet.mpvrx.presentation.components.RepeatingIconButton
+import app.gyrolet.mpvrx.ui.components.IconSwitch
 import app.gyrolet.mpvrx.ui.icons.Icon as AppIcon
 import app.gyrolet.mpvrx.ui.icons.Icons
 import app.gyrolet.mpvrx.ui.player.Panels
@@ -86,7 +98,9 @@ import app.gyrolet.mpvrx.ui.player.PlayerActivity
 import app.gyrolet.mpvrx.ui.player.PlayerViewModel
 import app.gyrolet.mpvrx.ui.player.controls.components.panels.DraggablePanel
 import app.gyrolet.mpvrx.ui.player.controls.components.panels.DraggablePanelHeader
+import app.gyrolet.mpvrx.ui.player.controls.components.panels.PanelConnectedTile
 import app.gyrolet.mpvrx.ui.theme.AppConnectedControlShapeTokens
+import app.gyrolet.mpvrx.ui.theme.AppConnectedShapeTokens
 import app.gyrolet.mpvrx.ui.theme.ConnectedLayout
 import app.gyrolet.mpvrx.ui.theme.rememberConnectedShape
 import app.gyrolet.mpvrx.ui.theme.MpvrxTheme
@@ -112,6 +126,11 @@ private data class ClipPanelState(
   val cancelling: Boolean = false,
   val progress: Int = 0,
   val cropActive: Boolean = false,
+  val audioTracks: List<ClipTrackOption> = emptyList(),
+  val subtitleTracks: List<ClipTrackOption> = emptyList(),
+  val selectedAudioId: Int? = null,
+  val selectedSubtitleId: Int? = null,
+  val includeSubtitles: Boolean = false,
 )
 
 /**
@@ -129,6 +148,11 @@ class ClipOverlayView @JvmOverloads constructor(
     var startSeconds: Double,
     var endSeconds: Double? = null,
     var crop: ClipCrop? = null,
+    val audioTracks: List<ClipTrackOption> = emptyList(),
+    val subtitleTracks: List<ClipTrackOption> = emptyList(),
+    var audioId: Int? = null,
+    var subtitleId: Int? = null,
+    var includeSubtitles: Boolean = false,
   )
 
   private var panelState by mutableStateOf(ClipPanelState())
@@ -139,12 +163,17 @@ class ClipOverlayView @JvmOverloads constructor(
   private var pausedBeforeCrop = true
   private var lastTerminalState: ClipExportState? = null
   private var bottomInset = 0
+  // End of the clip while Preview is playing it; playback pauses there.
+  private var previewEndSeconds: Double? = null
+  // Set once playback is seen inside the clip, so the old position before the seek never counts.
+  private var previewReachedClip = false
 
   private val pollState =
     object : Runnable {
       override fun run() {
         clearDraftIfMediaChanged()
         updateExportState()
+        stopPreviewAtClipEnd()
         postDelayed(this, STATE_POLL_MS)
       }
     }
@@ -204,7 +233,12 @@ class ClipOverlayView @JvmOverloads constructor(
       onEndTimeChange = ::updateClipEnd,
       onMarkStart = ::markClipStart,
       onMarkEnd = ::markClipEnd,
+      onPreview = ::previewClip,
       onCrop = ::enterCropMode,
+      onClearCrop = ::clearClipCrop,
+      onAudioTrackChange = ::selectClipAudio,
+      onSubtitleTrackChange = ::selectClipSubtitle,
+      onIncludeSubtitlesChange = ::setClipIncludeSubtitles,
       onCancel = {
         if (cancelOrClose()) onDismissRequest()
       },
@@ -249,12 +283,68 @@ class ClipOverlayView @JvmOverloads constructor(
         start + DEFAULT_CLIP_SECONDS
       }
 
+    val tracks = readClipTracks()
+    val selectedAudio = PlaybackSession.getPropertyString("aid")?.toIntOrNull()
     return ClipDraft(
       itemId = itemId,
       startSeconds = start,
       endSeconds = end.coerceAtLeast(start + MIN_CLIP_SECONDS),
+      audioTracks = tracks.filter { it.type == "audio" },
+      subtitleTracks = tracks.filter { it.type == "sub" },
+      audioId = selectedAudio,
+      subtitleId = PlaybackSession.getPropertyString("sid")?.toIntOrNull()
+        ?.takeIf { id -> tracks.any { it.type == "sub" && it.id == id } },
     ).also {
       draft = it
+      refreshDraftUi()
+    }
+  }
+
+  private fun readClipTracks(): List<ClipTrackOption> {
+    val count = (PlaybackSession.getPropertyInt("track-list/count") ?: 0).coerceIn(0, 128)
+    val viewModel = playerViewModel()
+    var audioOrdinal = 0
+    var subtitleOrdinal = 0
+    return (0 until count).mapNotNull { index ->
+      val type = PlaybackSession.getPropertyString("track-list/$index/type") ?: return@mapNotNull null
+      if (type != "audio" && type != "sub") return@mapNotNull null
+      val id = PlaybackSession.getPropertyInt("track-list/$index/id") ?: return@mapNotNull null
+      val title = PlaybackSession.getPropertyString("track-list/$index/title").orEmpty()
+      val language = PlaybackSession.getPropertyString("track-list/$index/lang").orEmpty()
+      val external = PlaybackSession.getPropertyString("track-list/$index/external-filename")
+        ?.takeIf { it.isNotBlank() }
+      val isExternal = external != null || PlaybackSession.getPropertyBoolean("track-list/$index/external") == true
+      // External files are separate inputs; never shift the embedded track's container ordinal.
+      val ordinal = when {
+        isExternal -> -1
+        type == "audio" -> audioOrdinal++
+        else -> subtitleOrdinal++
+      }
+      ClipTrackOption(
+        id = id, type = type, ordinal = ordinal, title = title, language = language,
+        externalFile = external?.let { viewModel?.clipSubtitleSource(it) ?: it },
+        isExternal = isExternal,
+        codec = PlaybackSession.getPropertyString("track-list/$index/codec").orEmpty().lowercase(),
+        demuxId = PlaybackSession.getPropertyInt("track-list/$index/demux-id"),
+      )
+    }
+  }
+
+  private fun selectClipAudio(id: Int?) {
+    ensureDraft()?.let { it.audioId = id; refreshDraftUi() }
+  }
+
+  private fun selectClipSubtitle(id: Int?) {
+    ensureDraft()?.let {
+      it.subtitleId = id
+      it.includeSubtitles = id != null
+      refreshDraftUi()
+    }
+  }
+
+  private fun setClipIncludeSubtitles(enabled: Boolean) {
+    ensureDraft()?.let {
+      it.includeSubtitles = enabled && it.subtitleId != null
       refreshDraftUi()
     }
   }
@@ -312,6 +402,39 @@ class ClipOverlayView @JvmOverloads constructor(
     playerViewModel()?.autoHideControls()
   }
 
+  /** Plays just the selection, from its start; [stopPreviewAtClipEnd] pauses at its end. */
+  private fun previewClip() {
+    val active = ensureDraft() ?: return
+    val end = active.endSeconds ?: return
+    PlaybackSession.setPropertyDouble("time-pos", active.startSeconds)
+    PlaybackSession.setPropertyBoolean("pause", false)
+    previewEndSeconds = end
+    previewReachedClip = false
+    playerViewModel()?.autoHideControls()
+  }
+
+  private fun stopPreviewAtClipEnd() {
+    val end = previewEndSeconds ?: return
+    // Pausing by hand ends the preview, so a later resume never stops on its own.
+    if (PlaybackSession.getPropertyBoolean("pause") == true) {
+      previewEndSeconds = null
+      return
+    }
+    val position = currentPosition() ?: return
+    if (position < end) {
+      previewReachedClip = true
+    } else if (previewReachedClip) {
+      previewEndSeconds = null
+      PlaybackSession.setPropertyBoolean("pause", true)
+    }
+  }
+
+  private fun clearClipCrop() {
+    val active = ensureDraft() ?: return
+    active.crop = null
+    refreshDraftUi()
+  }
+
   private fun saveOrCancelExport() {
     val exportState = ClipExportManager.state.value
     if (exportState is ClipExportState.Exporting) {
@@ -341,6 +464,9 @@ class ClipOverlayView @JvmOverloads constructor(
           startSeconds = active.startSeconds,
           endSeconds = end,
           crop = active.crop,
+          audioTrack = active.audioTracks.firstOrNull { it.id == active.audioId },
+          subtitleTrack = if (active.includeSubtitles) active.subtitleTracks.firstOrNull { it.id == active.subtitleId } else null,
+          subtitleDelaySeconds = PlaybackSession.getPropertyDouble("sub-delay") ?: 0.0,
         ),
       )
     if (!accepted) toast(R.string.clip_export_busy)
@@ -507,6 +633,8 @@ class ClipOverlayView @JvmOverloads constructor(
   }
 
   private fun refreshDraftUi() {
+    // Any edit to the clip ends a running preview instead of pausing at a stale end point.
+    previewEndSeconds = null
     val active = draft
     if (active == null) {
       ClipEditorUiState.clear()
@@ -517,6 +645,11 @@ class ClipOverlayView @JvmOverloads constructor(
           endSeconds = null,
           durationSeconds = 0f,
           crop = null,
+          audioTracks = emptyList(),
+          subtitleTracks = emptyList(),
+          selectedAudioId = null,
+          selectedSubtitleId = null,
+          includeSubtitles = false,
           canSave = false,
         )
       return
@@ -531,6 +664,11 @@ class ClipOverlayView @JvmOverloads constructor(
         endSeconds = active.endSeconds?.toFloat(),
         durationSeconds = duration,
         crop = active.crop,
+        audioTracks = active.audioTracks,
+        subtitleTracks = active.subtitleTracks,
+        selectedAudioId = active.audioId,
+        selectedSubtitleId = active.subtitleId,
+        includeSubtitles = active.includeSubtitles,
         canSave =
           active.endSeconds?.let { it > active.startSeconds + MIN_CLIP_SECONDS } == true &&
             ClipExportManager.state.value !is ClipExportState.Exporting,
@@ -632,7 +770,12 @@ private fun ClipEditorPanel(
   onEndTimeChange: (Float) -> Unit,
   onMarkStart: () -> Unit,
   onMarkEnd: () -> Unit,
+  onPreview: () -> Unit,
   onCrop: () -> Unit,
+  onClearCrop: () -> Unit,
+  onAudioTrackChange: (Int?) -> Unit,
+  onSubtitleTrackChange: (Int?) -> Unit,
+  onIncludeSubtitlesChange: (Boolean) -> Unit,
   onCancel: () -> Unit,
   onSave: () -> Unit,
 ) {
@@ -656,198 +799,529 @@ private fun ClipEditorPanel(
       )
     },
   ) {
-    ClipEditorPanelContent(
-      state = state,
-      startTimeValid = startTimeValid,
-      endTimeValid = endTimeValid,
-      onStartTimeValidityChange = { startTimeValid = it },
-      onEndTimeValidityChange = { endTimeValid = it },
-      onRangeChange = onRangeChange,
-      onStartTimeChange = onStartTimeChange,
-      onEndTimeChange = onEndTimeChange,
-      onMarkStart = onMarkStart,
-      onMarkEnd = onMarkEnd,
-      onCrop = onCrop,
-      onCancel = onCancel,
-      onSave = onSave,
-    )
-  }
-}
-
-@Composable
-private fun ClipEditorPanelContent(
-  state: ClipPanelState,
-  startTimeValid: Boolean,
-  endTimeValid: Boolean,
-  onStartTimeValidityChange: (Boolean) -> Unit,
-  onEndTimeValidityChange: (Boolean) -> Unit,
-  onRangeChange: (Float, Float, Float) -> Unit,
-  onStartTimeChange: (Float) -> Unit,
-  onEndTimeChange: (Float) -> Unit,
-  onMarkStart: () -> Unit,
-  onMarkEnd: () -> Unit,
-  onCrop: () -> Unit,
-  onCancel: () -> Unit,
-  onSave: () -> Unit,
-) {
-  Column(
-    modifier = Modifier.padding(MaterialTheme.spacing.medium),
-    verticalArrangement = Arrangement.spacedBy(MaterialTheme.spacing.medium),
-  ) {
+    val editable = !state.exporting
     val end = state.endSeconds
     val duration = state.durationSeconds
     val maxTime = duration.takeIf { it > MIN_CLIP_SECONDS.toFloat() } ?: Float.MAX_VALUE
     val maxStart = ((end ?: maxTime) - MIN_CLIP_SECONDS.toFloat()).coerceAtLeast(0f)
     val minEnd = (state.startSeconds + MIN_CLIP_SECONDS.toFloat()).coerceAtMost(maxTime)
+    val showSlider = end != null && duration > MIN_CLIP_SECONDS.toFloat()
+    val startRow = if (showSlider) 1 else 0
+    val rangeRows = startRow + 3
+    val hasAudio = state.audioTracks.isNotEmpty()
+    val hasSubtitles = state.subtitleTracks.isNotEmpty()
+    val subtitleRow = if (hasAudio) 2 else 1
+    val outputRows = 1 + (if (hasAudio) 1 else 0) + (if (hasSubtitles) 2 else 0)
 
+    Column(
+      modifier = Modifier.padding(MaterialTheme.spacing.medium),
+      verticalArrangement = Arrangement.spacedBy(MaterialTheme.spacing.medium),
+    ) {
+      ClipSummaryCard(
+        length = state.clipDuration,
+        start = state.startSeconds,
+        end = end,
+        canPreview = editable && end != null,
+        onPreview = onPreview,
+      )
+
+      ClipSection(title = stringResource(R.string.clip_section_range)) {
+        if (showSlider && end != null) {
+          PanelConnectedTile(index = 0, itemCount = rangeRows) {
+            val start = state.startSeconds.coerceIn(0f, duration)
+            val safeEnd = end.coerceIn(start + MIN_CLIP_SECONDS.toFloat(), duration)
+            val rangeDescription = stringResource(R.string.clip_options)
+            RangeSlider(
+              value = start..safeEnd,
+              onValueChange = { range ->
+                // Preview whichever handle moved, so the frame under the finger is the one shown.
+                val startDelta = abs(range.start - start)
+                val endDelta = abs(range.endInclusive - safeEnd)
+                val preview = if (startDelta >= endDelta) range.start else range.endInclusive
+                onRangeChange(range.start, range.endInclusive, preview)
+              },
+              valueRange = 0f..duration,
+              enabled = editable,
+              modifier =
+                Modifier
+                  .fillMaxWidth()
+                  .padding(horizontal = 12.dp, vertical = 8.dp)
+                  .semantics { contentDescription = rangeDescription },
+            )
+          }
+        }
+        PanelConnectedTile(index = startRow, itemCount = rangeRows) {
+          ClipPointRow(
+            label = stringResource(R.string.clip_start_short),
+            seconds = state.startSeconds,
+            minSeconds = 0f,
+            maxSeconds = maxStart,
+            enabled = editable,
+            onCommit = onStartTimeChange,
+            onValidityChange = { startTimeValid = it },
+            markIcon = Icons.RoundedFilled.SkipPrevious,
+            markDescription = stringResource(R.string.clip_set_start_here),
+            onMark = onMarkStart,
+          )
+        }
+        PanelConnectedTile(index = startRow + 1, itemCount = rangeRows) {
+          ClipPointRow(
+            label = stringResource(R.string.clip_end_short),
+            seconds = end,
+            minSeconds = minEnd,
+            maxSeconds = maxTime,
+            enabled = editable,
+            onCommit = onEndTimeChange,
+            onValidityChange = { endTimeValid = it },
+            markIcon = Icons.RoundedFilled.SkipNext,
+            markDescription = stringResource(R.string.clip_set_end_here),
+            onMark = onMarkEnd,
+          )
+        }
+        PanelConnectedTile(index = startRow + 2, itemCount = rangeRows) {
+          ClipLengthPresets(
+            currentLength = end?.let { it - state.startSeconds },
+            enabled = editable,
+            onSelect = { length ->
+              // Keep the requested length near the end of the video by moving the start back.
+              var newStart = state.startSeconds
+              var newEnd = newStart + length
+              if (newEnd > maxTime) {
+                newEnd = maxTime
+                newStart = (maxTime - length).coerceAtLeast(0f)
+              }
+              onRangeChange(newStart, newEnd, newStart)
+            },
+          )
+        }
+      }
+
+      ClipSection(title = stringResource(R.string.clip_section_output)) {
+        PanelConnectedTile(index = 0, itemCount = outputRows) {
+          ClipCropRow(
+            crop = state.crop,
+            enabled = editable,
+            onCrop = onCrop,
+            onClearCrop = onClearCrop,
+          )
+        }
+        if (hasAudio) {
+          PanelConnectedTile(index = 1, itemCount = outputRows) {
+            ClipTrackPicker(
+              title = stringResource(R.string.clip_audio_track),
+              icon = Icons.RoundedFilled.Audiotrack,
+              tracks = state.audioTracks,
+              selectedId = state.selectedAudioId,
+              onSelect = onAudioTrackChange,
+              enabled = editable,
+            )
+          }
+        }
+        if (hasSubtitles) {
+          PanelConnectedTile(index = subtitleRow, itemCount = outputRows) {
+            ClipTrackPicker(
+              title = stringResource(R.string.clip_subtitle_track),
+              icon = Icons.RoundedFilled.Subtitles,
+              tracks = state.subtitleTracks,
+              selectedId = state.selectedSubtitleId,
+              onSelect = onSubtitleTrackChange,
+              enabled = editable,
+            )
+          }
+          PanelConnectedTile(index = subtitleRow + 1, itemCount = outputRows) {
+            ClipSwitchRow(
+              title = stringResource(R.string.clip_include_subtitles),
+              checked = state.includeSubtitles,
+              enabled = editable && state.selectedSubtitleId != null,
+              onCheckedChange = onIncludeSubtitlesChange,
+            )
+          }
+        }
+      }
+
+      if (state.exporting) {
+        Column(verticalArrangement = Arrangement.spacedBy(AppConnectedShapeTokens.spacing)) {
+          PanelConnectedTile(index = 0, itemCount = 2) {
+            Column(
+              modifier = Modifier.fillMaxWidth().padding(16.dp),
+              verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+              LinearProgressIndicator(
+                progress = { state.progress / 100f },
+                modifier = Modifier.fillMaxWidth(),
+              )
+              Text(
+                text =
+                  if (state.cancelling) {
+                    stringResource(R.string.clip_cancelling)
+                  } else {
+                    stringResource(R.string.clip_exporting, state.progress)
+                  },
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+              )
+            }
+          }
+          // While exporting, Save is the cancel action of ClipOverlayView.
+          FilledTonalButton(
+            onClick = onSave,
+            enabled = !state.cancelling,
+            shape = rememberConnectedShape(1, 2, ConnectedLayout.Vertical),
+            modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp),
+          ) {
+            AppIcon(Icons.RoundedFilled.Close, contentDescription = null, modifier = Modifier.size(18.dp))
+            Spacer(Modifier.width(8.dp))
+            Text(stringResource(R.string.clip_cancel))
+          }
+        }
+      } else {
+        Row(
+          modifier = Modifier.fillMaxWidth(),
+          horizontalArrangement = Arrangement.spacedBy(AppConnectedControlShapeTokens.spacing),
+          verticalAlignment = Alignment.CenterVertically,
+        ) {
+          FilledTonalButton(
+            onClick = onCancel,
+            modifier = Modifier.weight(1f).heightIn(min = 52.dp),
+            shape = rememberConnectedShape(0, 2, ConnectedLayout.Horizontal, tokens = AppConnectedControlShapeTokens),
+          ) {
+            Text(stringResource(R.string.clip_cancel), maxLines = 1)
+          }
+          Button(
+            onClick = onSave,
+            enabled = state.canSave && startTimeValid && endTimeValid,
+            modifier = Modifier.weight(1.4f).heightIn(min = 52.dp),
+            shape = rememberConnectedShape(1, 2, ConnectedLayout.Horizontal, tokens = AppConnectedControlShapeTokens),
+          ) {
+            AppIcon(Icons.RoundedFilled.ContentCut, contentDescription = null, modifier = Modifier.size(18.dp))
+            Spacer(Modifier.width(8.dp))
+            Text(stringResource(R.string.clip_save), maxLines = 1)
+          }
+        }
+      }
+    }
+  }
+}
+
+/** Clip length at a glance, the selected span, and a button that plays the clip from its start. */
+@Composable
+private fun ClipSummaryCard(
+  length: String?,
+  start: Float,
+  end: Float?,
+  canPreview: Boolean,
+  onPreview: () -> Unit,
+) {
+  Surface(
+    modifier = Modifier.fillMaxWidth(),
+    shape = MaterialTheme.shapes.extraLarge,
+    color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.78f),
+    contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+  ) {
     Row(
-      modifier = Modifier.fillMaxWidth(),
-      horizontalArrangement = Arrangement.spacedBy(12.dp),
+      modifier = Modifier.fillMaxWidth().padding(start = 16.dp, end = 12.dp, top = 12.dp, bottom = 12.dp),
       verticalAlignment = Alignment.CenterVertically,
     ) {
-      ClipTimeField(
-        label = stringResource(R.string.clip_start_short),
-        seconds = state.startSeconds,
-        minSeconds = 0f,
-        maxSeconds = maxStart,
-        enabled = !state.exporting,
-        onCommit = onStartTimeChange,
-        onValidityChange = onStartTimeValidityChange,
-        modifier = Modifier.weight(1f),
-      )
-      ClipTimeField(
-        label = stringResource(R.string.clip_end_short),
-        seconds = state.endSeconds,
-        minSeconds = minEnd,
-        maxSeconds = maxTime,
-        enabled = !state.exporting,
-        onCommit = onEndTimeChange,
-        onValidityChange = onEndTimeValidityChange,
-        modifier = Modifier.weight(1f),
-      )
+      AppIcon(Icons.RoundedFilled.Timer, contentDescription = null, modifier = Modifier.size(28.dp))
+      Spacer(Modifier.width(14.dp))
+      Column(modifier = Modifier.weight(1f)) {
+        Text(
+          text = stringResource(R.string.clip_length),
+          style = MaterialTheme.typography.labelMedium,
+          color = LocalContentColor.current.copy(alpha = 0.8f),
+        )
+        Text(
+          text = length ?: "--:--",
+          style = MaterialTheme.typography.headlineSmall,
+          fontWeight = FontWeight.SemiBold,
+          maxLines = 1,
+        )
+        Text(
+          text = formatClipPoint(start) + " – " + (end?.let(::formatClipPoint) ?: "--:--"),
+          style = MaterialTheme.typography.bodySmall,
+          color = LocalContentColor.current.copy(alpha = 0.8f),
+          maxLines = 1,
+          overflow = TextOverflow.Ellipsis,
+        )
+      }
+      FilledIconButton(
+        onClick = onPreview,
+        enabled = canPreview,
+        modifier = Modifier.size(48.dp),
+      ) {
+        AppIcon(
+          Icons.RoundedFilled.PlayArrow,
+          contentDescription = stringResource(R.string.clip_preview),
+          modifier = Modifier.size(24.dp),
+        )
+      }
     }
+  }
+}
 
-    if (end != null && duration > 0.05f) {
-      val start = state.startSeconds.coerceIn(0f, duration)
-      val safeEnd = end.coerceIn(start + 0.05f, duration)
-      val rangeDescription = stringResource(R.string.clip_options)
-      RangeSlider(
-        value = start..safeEnd,
-        onValueChange = { range ->
-          val startDelta = abs(range.start - start)
-          val endDelta = abs(range.endInclusive - safeEnd)
-          val preview = if (startDelta >= endDelta) range.start else range.endInclusive
-          onRangeChange(range.start, range.endInclusive, preview)
-        },
-        valueRange = 0f..duration,
-        enabled = !state.exporting,
-        modifier = Modifier.fillMaxWidth().semantics { contentDescription = rangeDescription },
-      )
-    }
+@Composable
+private fun ClipSection(
+  title: String,
+  content: @Composable ColumnScope.() -> Unit,
+) {
+  Column(verticalArrangement = Arrangement.spacedBy(AppConnectedShapeTokens.spacing)) {
+    Text(
+      text = title,
+      style = MaterialTheme.typography.labelLarge,
+      color = MaterialTheme.colorScheme.primary,
+      modifier = Modifier.padding(start = 4.dp, bottom = 4.dp),
+    )
+    content()
+  }
+}
 
-    Row(
-      modifier = Modifier.fillMaxWidth(),
-      horizontalArrangement = Arrangement.spacedBy(16.dp),
+/**
+ * A clip point: its time field, fine steps of [CLIP_NUDGE_SECONDS] that repeat while held, and a
+ * button that moves the point to the current playback position.
+ */
+@Composable
+private fun ClipPointRow(
+  label: String,
+  seconds: Float?,
+  minSeconds: Float,
+  maxSeconds: Float,
+  enabled: Boolean,
+  onCommit: (Float) -> Unit,
+  onValidityChange: (Boolean) -> Unit,
+  markIcon: app.gyrolet.mpvrx.ui.icons.AppIcon,
+  markDescription: String,
+  onMark: () -> Unit,
+) {
+  fun nudge(delta: Float) {
+    val current = seconds ?: return
+    onCommit((current + delta).coerceIn(minSeconds, maxSeconds))
+  }
+
+  Row(
+    modifier = Modifier.fillMaxWidth().padding(start = 12.dp, end = 8.dp, top = 8.dp, bottom = 8.dp),
+    verticalAlignment = Alignment.CenterVertically,
+    horizontalArrangement = Arrangement.spacedBy(6.dp),
+  ) {
+    ClipTimeField(
+      label = label,
+      seconds = seconds,
+      minSeconds = minSeconds,
+      maxSeconds = maxSeconds,
+      enabled = enabled,
+      onCommit = onCommit,
+      onValidityChange = onValidityChange,
+      modifier = Modifier.weight(1f),
+    )
+    RepeatingIconButton(
+      onClick = { nudge(-CLIP_NUDGE_SECONDS) },
+      enabled = enabled && seconds != null,
+      modifier = Modifier.size(40.dp),
     ) {
-      ClipMetadata(
-        icon = Icons.RoundedFilled.Timer,
-        text = state.clipDuration ?: "--:--",
-        modifier = Modifier.weight(0.7f),
-      )
-      ClipMetadata(
-        icon = Icons.RoundedFilled.AspectRatio,
-        text =
-          state.crop?.let { stringResource(R.string.clip_crop_size, it.width, it.height) }
-            ?: stringResource(R.string.clip_crop_full_frame),
-        modifier = Modifier.weight(1.3f),
+      AppIcon(
+        Icons.RoundedFilled.Remove,
+        contentDescription = stringResource(R.string.clip_nudge_back),
+        modifier = Modifier.size(18.dp),
       )
     }
+    RepeatingIconButton(
+      onClick = { nudge(CLIP_NUDGE_SECONDS) },
+      enabled = enabled && seconds != null,
+      modifier = Modifier.size(40.dp),
+    ) {
+      AppIcon(
+        Icons.RoundedFilled.Add,
+        contentDescription = stringResource(R.string.clip_nudge_forward),
+        modifier = Modifier.size(18.dp),
+      )
+    }
+    FilledTonalIconButton(
+      onClick = onMark,
+      enabled = enabled,
+      modifier = Modifier.size(40.dp),
+    ) {
+      AppIcon(markIcon, contentDescription = markDescription, modifier = Modifier.size(18.dp))
+    }
+  }
+}
 
+/** One-tap clip lengths from the current start; the active length is highlighted. */
+@Composable
+private fun ClipLengthPresets(
+  currentLength: Float?,
+  enabled: Boolean,
+  onSelect: (Float) -> Unit,
+) {
+  Column(
+    modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 10.dp),
+    verticalArrangement = Arrangement.spacedBy(8.dp),
+  ) {
+    Text(
+      text = stringResource(R.string.clip_quick_length),
+      style = MaterialTheme.typography.labelLarge,
+      color = MaterialTheme.colorScheme.onSurfaceVariant,
+    )
     Row(
       modifier = Modifier.fillMaxWidth(),
       horizontalArrangement = Arrangement.spacedBy(AppConnectedControlShapeTokens.spacing),
     ) {
-      FilledTonalButton(
-        onClick = onMarkStart,
-        enabled = !state.exporting,
-        modifier = Modifier.weight(1f).height(48.dp),
-        shape = rememberConnectedShape(0, 2, ConnectedLayout.Horizontal, tokens = AppConnectedControlShapeTokens),
-      ) {
-        AppIcon(Icons.RoundedFilled.SkipPrevious, contentDescription = null, modifier = Modifier.size(18.dp))
-        Spacer(Modifier.width(8.dp))
-        Text(stringResource(R.string.clip_start_short), maxLines = 1)
-      }
-      FilledTonalButton(
-        onClick = onMarkEnd,
-        enabled = !state.exporting,
-        modifier = Modifier.weight(1f).height(48.dp),
-        shape = rememberConnectedShape(1, 2, ConnectedLayout.Horizontal, tokens = AppConnectedControlShapeTokens),
-      ) {
-        AppIcon(Icons.RoundedFilled.SkipNext, contentDescription = null, modifier = Modifier.size(18.dp))
-        Spacer(Modifier.width(8.dp))
-        Text(stringResource(R.string.clip_end_short), maxLines = 1)
-      }
-    }
-
-    OutlinedButton(
-      onClick = onCrop,
-      enabled = !state.exporting,
-      modifier = Modifier.fillMaxWidth().height(48.dp),
-    ) {
-      AppIcon(Icons.RoundedFilled.AspectRatio, contentDescription = null, modifier = Modifier.size(19.dp))
-      Spacer(Modifier.width(8.dp))
-      Text(stringResource(R.string.clip_crop))
-    }
-
-    if (state.exporting) {
-      Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-        LinearProgressIndicator(
-          progress = { state.progress / 100f },
-          modifier = Modifier.fillMaxWidth(),
-        )
-        Text(
-          text =
-            if (state.cancelling) {
-              stringResource(R.string.clip_cancelling)
-            } else {
-              stringResource(R.string.clip_exporting, state.progress)
-            },
-          style = MaterialTheme.typography.bodySmall,
-          color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-      }
-      OutlinedButton(
-        onClick = onSave,
-        enabled = !state.cancelling,
-        modifier = Modifier.fillMaxWidth().height(48.dp),
-      ) {
-        AppIcon(Icons.RoundedFilled.Close, contentDescription = null, modifier = Modifier.size(18.dp))
-        Spacer(Modifier.width(8.dp))
-        Text(stringResource(R.string.clip_cancel))
-      }
-    } else {
-      Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-        verticalAlignment = Alignment.CenterVertically,
-      ) {
-        TextButton(
-          onClick = onCancel,
-          modifier = Modifier.weight(1f).height(48.dp),
-        ) {
-          Text(stringResource(R.string.clip_cancel))
-        }
+      ClipLengthPresetSeconds.forEachIndexed { index, length ->
+        val selected = currentLength != null && abs(currentLength - length) < 0.05f
         Button(
-          onClick = onSave,
-          enabled = state.canSave && startTimeValid && endTimeValid,
-          modifier = Modifier.weight(1.4f).height(48.dp),
+          onClick = { onSelect(length.toFloat()) },
+          enabled = enabled,
+          colors = if (selected) ButtonDefaults.buttonColors() else ButtonDefaults.filledTonalButtonColors(),
+          shape =
+            rememberConnectedShape(
+              index,
+              ClipLengthPresetSeconds.size,
+              ConnectedLayout.Horizontal,
+              tokens = AppConnectedControlShapeTokens,
+            ),
+          contentPadding = PaddingValues(horizontal = 4.dp),
+          modifier = Modifier.weight(1f).heightIn(min = 40.dp),
         ) {
-          AppIcon(Icons.RoundedFilled.ContentCut, contentDescription = null, modifier = Modifier.size(18.dp))
-          Spacer(Modifier.width(8.dp))
-          Text(stringResource(R.string.clip_save), maxLines = 1)
+          Text(
+            text = stringResource(R.string.clip_length_seconds, length),
+            style = MaterialTheme.typography.labelLarge,
+            maxLines = 1,
+          )
         }
       }
     }
+  }
+}
+
+/** Crop summary; opens the crop editor, and resets to the full frame when a crop is set. */
+@Composable
+private fun ClipCropRow(
+  crop: ClipCrop?,
+  enabled: Boolean,
+  onCrop: () -> Unit,
+  onClearCrop: () -> Unit,
+) {
+  Row(
+    modifier =
+      Modifier
+        .fillMaxWidth()
+        .clickable(enabled = enabled, role = Role.Button, onClick = onCrop)
+        .padding(start = 12.dp, end = 4.dp, top = 8.dp, bottom = 8.dp),
+    verticalAlignment = Alignment.CenterVertically,
+  ) {
+    Surface(
+      shape = MaterialTheme.shapes.large,
+      color = MaterialTheme.colorScheme.secondaryContainer,
+      contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+    ) {
+      Box(modifier = Modifier.size(40.dp), contentAlignment = Alignment.Center) {
+        AppIcon(Icons.RoundedFilled.AspectRatio, contentDescription = null, modifier = Modifier.size(22.dp))
+      }
+    }
+    Spacer(Modifier.width(12.dp))
+    Column(
+      modifier = Modifier.weight(1f),
+      verticalArrangement = Arrangement.spacedBy(2.dp),
+    ) {
+      Text(
+        text =
+          crop?.let { stringResource(R.string.clip_crop_size, it.width, it.height) }
+            ?: stringResource(R.string.clip_crop_full_frame),
+        style = MaterialTheme.typography.titleSmall,
+        fontWeight = FontWeight.SemiBold,
+        maxLines = 1,
+        overflow = TextOverflow.Ellipsis,
+      )
+      Text(
+        text = stringResource(R.string.clip_select_crop),
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        maxLines = 1,
+        overflow = TextOverflow.Ellipsis,
+      )
+    }
+    if (crop != null) {
+      IconButton(onClick = onClearCrop, enabled = enabled) {
+        AppIcon(
+          Icons.RoundedFilled.Close,
+          contentDescription = stringResource(R.string.clip_crop_reset),
+          modifier = Modifier.size(20.dp),
+        )
+      }
+    }
+    AppIcon(
+      Icons.RoundedFilled.ChevronRight,
+      contentDescription = null,
+      tint = MaterialTheme.colorScheme.onSurfaceVariant,
+      modifier = Modifier.padding(end = 8.dp).size(24.dp),
+    )
+  }
+}
+
+/** Track choice as the shared combobox; the first option keeps mpv's automatic choice. */
+@Composable
+private fun ClipTrackPicker(
+  title: String,
+  icon: app.gyrolet.mpvrx.ui.icons.AppIcon,
+  tracks: List<ClipTrackOption>,
+  selectedId: Int?,
+  onSelect: (Int?) -> Unit,
+  enabled: Boolean,
+) {
+  val automatic = stringResource(R.string.clip_track_auto_off)
+  val options = remember(tracks) { listOf<ClipTrackOption?>(null) + tracks }
+  val selected = tracks.firstOrNull { it.id == selectedId }
+  AppComboBox(
+    options = options,
+    selected = selected,
+    onSelect = { onSelect(it?.id) },
+    optionLabel = { it?.displayLabel ?: automatic },
+    label = title,
+    valueText = selected?.displayLabel ?: automatic,
+    enabled = enabled,
+    leadingIcon = { AppIcon(icon, contentDescription = null, modifier = Modifier.size(20.dp)) },
+    modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 10.dp),
+  )
+}
+
+@Composable
+private fun ClipSwitchRow(
+  title: String,
+  checked: Boolean,
+  enabled: Boolean,
+  onCheckedChange: (Boolean) -> Unit,
+) {
+  Row(
+    modifier =
+      Modifier
+        .fillMaxWidth()
+        .toggleable(value = checked, enabled = enabled, role = Role.Switch, onValueChange = onCheckedChange)
+        .heightIn(min = 56.dp)
+        .padding(start = 16.dp, end = 12.dp),
+    verticalAlignment = Alignment.CenterVertically,
+  ) {
+    Text(
+      text = title,
+      style = MaterialTheme.typography.bodyLarge,
+      color =
+        if (enabled) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f),
+      modifier = Modifier.weight(1f),
+    )
+    IconSwitch(checked = checked, onCheckedChange = null, enabled = enabled)
+  }
+}
+
+private const val CLIP_NUDGE_SECONDS = 0.1f
+private val ClipLengthPresetSeconds = listOf(5, 10, 15, 30, 60)
+
+private fun formatClipPoint(seconds: Float): String {
+  val totalTenths = (seconds.coerceAtLeast(0f) * 10f).roundToInt()
+  val hours = totalTenths / 36_000
+  val minutes = (totalTenths / 600) % 60
+  val secs = (totalTenths / 10) % 60
+  val tenths = totalTenths % 10
+  return if (hours > 0) {
+    "%d:%02d:%02d.%d".format(Locale.US, hours, minutes, secs, tenths)
+  } else {
+    "%02d:%02d.%d".format(Locale.US, minutes, secs, tenths)
   }
 }
 
@@ -951,33 +1425,6 @@ private fun formatEditableTime(seconds: Float): String {
     "%d:%02d:%02d.%03d".format(Locale.US, hours, minutes, wholeSeconds, millis)
   } else {
     "%02d:%02d.%03d".format(Locale.US, minutes, wholeSeconds, millis)
-  }
-}
-
-@Composable
-private fun ClipMetadata(
-  icon: app.gyrolet.mpvrx.ui.icons.AppIcon,
-  text: String,
-  modifier: Modifier = Modifier,
-) {
-  Row(
-    modifier = modifier,
-    verticalAlignment = Alignment.CenterVertically,
-  ) {
-    AppIcon(
-      imageVector = icon,
-      contentDescription = null,
-      tint = MaterialTheme.colorScheme.onSurfaceVariant,
-      modifier = Modifier.size(17.dp),
-    )
-    Text(
-      text = text,
-      style = MaterialTheme.typography.bodySmall,
-      color = MaterialTheme.colorScheme.onSurfaceVariant,
-      maxLines = 1,
-      overflow = TextOverflow.Ellipsis,
-      modifier = Modifier.padding(start = 6.dp),
-    )
   }
 }
 

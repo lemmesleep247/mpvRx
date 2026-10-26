@@ -9,7 +9,11 @@
 
 package app.gyrolet.mpvrx.ui.browser.jellyfin.seerr
 
-import androidx.compose.foundation.BorderStroke
+import app.gyrolet.mpvrx.ui.player.controls.components.rememberTvInitialFocusRequester
+import app.gyrolet.mpvrx.ui.player.controls.components.tvInitialFocus
+import app.gyrolet.mpvrx.ui.player.controls.components.tvFocusGroup
+import app.gyrolet.mpvrx.ui.tv.tvScrollWhenFocusCannotMove
+import app.gyrolet.mpvrx.ui.player.controls.components.tvFocusHighlight
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
@@ -38,8 +42,7 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
-import app.gyrolet.mpvrx.presentation.components.AppDropdownMenu as DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
+import app.gyrolet.mpvrx.presentation.components.AppComboBox
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
@@ -115,6 +118,8 @@ fun SeerrDetailSheet(
     ),
 ) {
   if (searchItem == null && details == null) return
+  val scrollState = rememberScrollState()
+  val initialFocus = rememberTvInitialFocusRequester(enabled = !isLoading, requestKey = details?.id ?: searchItem?.id)
 
   val mediaType = details?.let {
     if (it.numberOfSeason != null || it.seasons != null) MediaType.TV else MediaType.MOVIE
@@ -233,7 +238,10 @@ fun SeerrDetailSheet(
     Column(
       modifier = Modifier
         .fillMaxWidth()
-        .verticalScroll(rememberScrollState()),
+        .tvInitialFocus(initialFocus)
+        .tvFocusGroup()
+        .tvScrollWhenFocusCannotMove(scrollState)
+        .verticalScroll(scrollState),
     ) {
       // Top Backdrop Header
       Box(
@@ -279,7 +287,8 @@ fun SeerrDetailSheet(
           modifier = Modifier
             .align(Alignment.TopEnd)
             .padding(12.dp)
-            .size(36.dp),
+            .size(36.dp)
+            .tvFocusHighlight(CircleShape, clipToShape = false),
         ) {
           Icon(
             Icons.RoundedFilled.Close,
@@ -439,7 +448,7 @@ fun SeerrDetailSheet(
               contentColor = MaterialTheme.colorScheme.onPrimary,
             ),
             shape = RoundedCornerShape(12.dp),
-            modifier = Modifier.fillMaxWidth().height(48.dp),
+            modifier = Modifier.fillMaxWidth().height(48.dp).tvFocusHighlight(RoundedCornerShape(12.dp), clipToShape = false),
           ) {
             Icon(
               Icons.RoundedFilled.PlayArrow,
@@ -467,7 +476,7 @@ fun SeerrDetailSheet(
                   disabledContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
                 ),
                 shape = RoundedCornerShape(12.dp),
-                modifier = Modifier.fillMaxWidth().height(48.dp),
+                modifier = Modifier.fillMaxWidth().height(48.dp).tvFocusHighlight(RoundedCornerShape(12.dp), clipToShape = false),
               ) {
                 Icon(Icons.RoundedFilled.CheckCircle, contentDescription = null, modifier = Modifier.size(18.dp))
                 Spacer(modifier = Modifier.width(8.dp))
@@ -489,7 +498,7 @@ fun SeerrDetailSheet(
                 disabledContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
               ),
               shape = RoundedCornerShape(12.dp),
-              modifier = Modifier.fillMaxWidth().height(48.dp),
+              modifier = Modifier.fillMaxWidth().height(48.dp).tvFocusHighlight(RoundedCornerShape(12.dp), clipToShape = false),
             ) {
               Icon(Icons.RoundedFilled.CloudDownload, contentDescription = null, modifier = Modifier.size(18.dp))
               Spacer(modifier = Modifier.width(8.dp))
@@ -510,7 +519,7 @@ fun SeerrDetailSheet(
                 disabledContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
               ),
               shape = RoundedCornerShape(12.dp),
-              modifier = Modifier.fillMaxWidth().height(48.dp),
+              modifier = Modifier.fillMaxWidth().height(48.dp).tvFocusHighlight(RoundedCornerShape(12.dp), clipToShape = false),
             ) {
               Icon(Icons.RoundedFilled.History, contentDescription = null, modifier = Modifier.size(18.dp))
               Spacer(modifier = Modifier.width(8.dp))
@@ -549,7 +558,7 @@ fun SeerrDetailSheet(
                 contentColor = MaterialTheme.colorScheme.onPrimary,
               ),
               shape = RoundedCornerShape(12.dp),
-              modifier = Modifier.fillMaxWidth().height(48.dp),
+              modifier = Modifier.fillMaxWidth().height(48.dp).tvFocusHighlight(RoundedCornerShape(12.dp), clipToShape = false),
             ) {
               if (isRequesting) {
                 CircularProgressIndicator(
@@ -642,6 +651,7 @@ fun SeerrDetailSheet(
               }
 
               FilterChip(
+                modifier = Modifier.tvFocusHighlight(RoundedCornerShape(10.dp), clipToShape = false),
                 selected = isSelected,
                 onClick = {
                   if (!isRequested) {
@@ -683,7 +693,7 @@ fun SeerrDetailSheet(
                 contentColor = MaterialTheme.colorScheme.onPrimary,
               ),
               shape = RoundedCornerShape(10.dp),
-              modifier = Modifier.weight(1f),
+              modifier = Modifier.weight(1f).tvFocusHighlight(RoundedCornerShape(10.dp), clipToShape = false),
             ) {
               Icon(Icons.RoundedFilled.Check, contentDescription = null, modifier = Modifier.size(16.dp))
               Spacer(modifier = Modifier.width(6.dp))
@@ -693,7 +703,7 @@ fun SeerrDetailSheet(
             OutlinedButton(
               onClick = { onDecline(pendingRequest.id) },
               shape = RoundedCornerShape(10.dp),
-              modifier = Modifier.weight(1f),
+              modifier = Modifier.weight(1f).tvFocusHighlight(RoundedCornerShape(10.dp), clipToShape = false),
             ) {
               Icon(Icons.RoundedFilled.Close, contentDescription = null, modifier = Modifier.size(16.dp))
               Spacer(modifier = Modifier.width(6.dp))
@@ -710,7 +720,7 @@ fun SeerrDetailSheet(
             onClick = { showDeleteDialog = true },
             colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error),
             shape = RoundedCornerShape(12.dp),
-            modifier = Modifier.fillMaxWidth().height(44.dp),
+            modifier = Modifier.fillMaxWidth().height(44.dp).tvFocusHighlight(RoundedCornerShape(12.dp), clipToShape = false),
           ) {
             Icon(Icons.RoundedFilled.Delete, contentDescription = null, modifier = Modifier.size(16.dp))
             Spacer(modifier = Modifier.width(6.dp))
@@ -724,6 +734,7 @@ fun SeerrDetailSheet(
               text = { Text("Are you sure you want to delete and cancel the request for \"$title\"?") },
               confirmButton = {
                 Button(
+                  modifier = Modifier.tvFocusHighlight(CircleShape, clipToShape = false),
                   onClick = {
                     showDeleteDialog = false
                     onDeleteRequest(activeRequest.id)
@@ -737,7 +748,7 @@ fun SeerrDetailSheet(
                 }
               },
               dismissButton = {
-                TextButton(onClick = { showDeleteDialog = false }) {
+                TextButton(modifier = Modifier.tvFocusHighlight(CircleShape, clipToShape = false), onClick = { showDeleteDialog = false }) {
                   Text("Cancel")
                 }
               },
@@ -773,7 +784,8 @@ fun SeerrDetailSheet(
                 canExpandOverview = textLayoutResult.hasVisualOverflow
               }
             },
-            modifier = Modifier.clickable(enabled = canExpandOverview) { isOverviewExpanded = !isOverviewExpanded },
+            modifier = Modifier.tvFocusHighlight(MaterialTheme.shapes.medium, clipToShape = false)
+                .clickable(enabled = canExpandOverview) { isOverviewExpanded = !isOverviewExpanded },
           )
           if (canExpandOverview) {
             Text(
@@ -891,92 +903,18 @@ private fun ResolutionProfileDropdown(
   isLoading: Boolean,
   modifier: Modifier = Modifier,
 ) {
-  var expanded by remember { mutableStateOf(false) }
-
-  Column(
+  AppComboBox(
+    options = resolutionOptions,
+    selected = selectedResolution,
+    onSelect = onSelectResolution,
+    optionLabel = { it.label },
+    label = "Resolution Profile",
+    leadingIcon =
+      if (isLoading) {
+        { CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp) }
+      } else {
+        null
+      },
     modifier = modifier.fillMaxWidth(),
-    verticalArrangement = Arrangement.spacedBy(6.dp),
-  ) {
-    Text(
-      text = "Resolution Profile",
-      style = MaterialTheme.typography.labelLarge,
-      fontWeight = FontWeight.SemiBold,
-      color = MaterialTheme.colorScheme.onSurface,
-    )
-
-    Box(modifier = Modifier.fillMaxWidth()) {
-      Surface(
-        onClick = { expanded = true },
-        shape = RoundedCornerShape(12.dp),
-        color = MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = 0.7f),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
-        modifier = Modifier.fillMaxWidth(),
-      ) {
-        Row(
-          modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 14.dp, vertical = 12.dp),
-          horizontalArrangement = Arrangement.SpaceBetween,
-          verticalAlignment = Alignment.CenterVertically,
-        ) {
-          Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-          ) {
-            if (isLoading) {
-              CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
-            }
-            Text(
-              text = selectedResolution.label,
-              style = MaterialTheme.typography.bodyMedium,
-              fontWeight = FontWeight.SemiBold,
-              color = MaterialTheme.colorScheme.onSurface,
-            )
-          }
-          Icon(
-            Icons.RoundedFilled.ArrowDropDown,
-            contentDescription = "Select Resolution",
-            modifier = Modifier.size(20.dp),
-            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-          )
-        }
-      }
-
-      DropdownMenu(
-        expanded = expanded,
-        onDismissRequest = { expanded = false },
-      ) {
-        resolutionOptions.forEach { option ->
-          val isSelected = option == selectedResolution
-          DropdownMenuItem(
-            text = {
-              Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-              ) {
-                Text(
-                  text = option.label,
-                  fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                  color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
-                )
-                if (isSelected) {
-                  Icon(
-                    Icons.RoundedFilled.Check,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(18.dp),
-                  )
-                }
-              }
-            },
-            onClick = {
-              onSelectResolution(option)
-              expanded = false
-            },
-          )
-        }
-      }
-    }
-  }
+  )
 }

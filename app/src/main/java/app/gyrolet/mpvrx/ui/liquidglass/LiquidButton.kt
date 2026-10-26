@@ -10,8 +10,10 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
@@ -22,19 +24,21 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.GraphicsLayerScope
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.CompositingStrategy
 import androidx.compose.ui.graphics.isSpecified
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.util.fastCoerceAtMost
 import androidx.compose.ui.util.lerp
+import app.gyrolet.mpvrx.ui.player.controls.PlayerButtonAlpha
+import app.gyrolet.mpvrx.ui.player.controls.components.LocalPlayerButtonsOpacity
 import app.gyrolet.mpvrx.ui.theme.AppMotion
 import com.kyant.backdrop.Backdrop
 import com.kyant.backdrop.drawBackdrop
@@ -68,6 +72,7 @@ fun LiquidButton(
   horizontalPadding: Dp = 16.dp,
   spacing: Dp = 8.dp,
   onLongClickLabel: String? = null,
+  backgroundAlpha: Float = 1f,
   content: @Composable RowScope.() -> Unit,
 ) {
   val glassSettings = rememberLiquidGlassSettings()
@@ -152,10 +157,12 @@ fun LiquidButton(
         tint.isSpecified -> tint
         else -> MaterialTheme.colorScheme.surfaceContainerHigh
       }
+      // Thickens toward opaque above the default background level; fading below it is backgroundAlpha's job.
+      val fillLevel = maxOf(LocalPlayerButtonsOpacity.current, PlayerButtonAlpha.DEFAULT_BACKGROUND_LEVEL)
       val fill = Brush.verticalGradient(
-        0f to baseColor.copy(alpha = 0.68f),
-        0.45f to baseColor.copy(alpha = 0.42f),
-        1f to baseColor.copy(alpha = 0.58f),
+        0f to baseColor.copy(alpha = PlayerButtonAlpha.background(0.68f, fillLevel)),
+        0.45f to baseColor.copy(alpha = PlayerButtonAlpha.background(0.42f, fillLevel)),
+        1f to baseColor.copy(alpha = PlayerButtonAlpha.background(0.58f, fillLevel)),
       )
       val rim = Brush.linearGradient(
         listOf(
@@ -166,7 +173,7 @@ fun LiquidButton(
       )
       Modifier
         .graphicsLayer(pressTransform)
-        .shadow(elevation = 6.dp, shape = Capsule(), clip = false)
+        .outsideShadow(Capsule(), radius = 6.dp)
         .clip(Capsule())
         .background(fill, Capsule())
         .then(
@@ -175,30 +182,62 @@ fun LiquidButton(
         )
     }
 
-  Row(
-    modifier =
-      modifier
-        .then(glassModifier)
-        .combinedClickable(
-          enabled = enabled,
-          interactionSource = interactionSource,
-          indication = if (animatePress) null else ripple(),
-          role = Role.Button,
-          onClick = onClick,
-          onLongClick = onLongClick,
-          onLongClickLabel = onLongClickLabel,
-        ).then(
-          if (animatePress) {
-            Modifier
-              .then(interactiveHighlight.modifier)
-              .then(interactiveHighlight.gestureModifier)
-          } else {
-            Modifier
-          },
-        ).height(height)
-        .padding(horizontal = horizontalPadding),
-    horizontalArrangement = Arrangement.spacedBy(spacing, Alignment.CenterHorizontally),
-    verticalAlignment = Alignment.CenterVertically,
-    content = content,
-  )
+  val interactionModifier =
+    Modifier
+      .combinedClickable(
+        enabled = enabled,
+        interactionSource = interactionSource,
+        indication = if (animatePress) null else ripple(),
+        role = Role.Button,
+        onClick = onClick,
+        onLongClick = onLongClick,
+        onLongClickLabel = onLongClickLabel,
+      ).then(
+        if (animatePress) {
+          Modifier
+            .then(interactiveHighlight.modifier)
+            .then(interactiveHighlight.gestureModifier)
+        } else {
+          Modifier
+        },
+      )
+
+  if (backgroundAlpha >= 1f) {
+    Row(
+      modifier =
+        modifier
+          .then(glassModifier)
+          .then(interactionModifier)
+          .height(height)
+          .padding(horizontal = horizontalPadding),
+      horizontalArrangement = Arrangement.spacedBy(spacing, Alignment.CenterHorizontally),
+      verticalAlignment = Alignment.CenterVertically,
+      content = content,
+    )
+  } else {
+    // Only the glass fades: it gets its own layer behind the content, so icons stay fully opaque.
+    // ModulateAlpha avoids an offscreen buffer that would cut the glass shadow off at the bounds.
+    Box(
+      modifier = modifier.then(interactionModifier).height(height),
+      contentAlignment = Alignment.Center,
+      propagateMinConstraints = true,
+    ) {
+      Spacer(
+        Modifier
+          .matchParentSize()
+          .graphicsLayer {
+            alpha = backgroundAlpha.coerceIn(0f, 1f)
+            compositingStrategy = CompositingStrategy.ModulateAlpha
+          }.then(glassModifier),
+      )
+      Row(
+        modifier =
+          (if (animatePress) Modifier.graphicsLayer(pressTransform) else Modifier)
+            .padding(horizontal = horizontalPadding),
+        horizontalArrangement = Arrangement.spacedBy(spacing, Alignment.CenterHorizontally),
+        verticalAlignment = Alignment.CenterVertically,
+        content = content,
+      )
+    }
+  }
 }

@@ -50,6 +50,7 @@ data class UpdateTaskState(
   val sessionId: Int = -1,
   val sessionToken: String = "",
   val sessionStartedAt: Long = 0L,
+  val useSystemInstaller: Boolean = false,
 ) {
   val busy: Boolean get() = stage in setOf(UpdateStage.QUEUED, UpdateStage.DOWNLOADING, UpdateStage.INSTALLING)
 }
@@ -71,6 +72,10 @@ object UpdateWork {
       val saved = storage(context).getString("state", null)
       mutableState.value = saved?.let { runCatching { json.decodeFromString<UpdateTaskState>(it) }.getOrNull() }
         ?: UpdateTaskState()
+      if (mutableState.value.release?.let { UpdateManager(context).isInstalledRelease(it) } == true) {
+        mutableState.value = UpdateTaskState(stage = UpdateStage.COMPLETE)
+        check(storage(context).edit().putString("state", json.encodeToString(mutableState.value)).commit())
+      }
       initialized = true
     }
     return mutableState.asStateFlow()

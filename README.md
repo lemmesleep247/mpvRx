@@ -92,7 +92,7 @@ mpvRx pushes the mpv-android experience further with deep customization, thermal
 
 | Feature | Description |
 |---|---|
-| **Shader-Based HDR Pipeline** | Powered by [hdr-toys](https://github.com/natural-harmonia-gropius/hdr-toys) — 77 bundled GLSL shaders |
+| **Shader-Based HDR Pipeline** | Powered by [hdr-toys](https://github.com/natural-harmonia-gropius/hdr-toys) — 83 bundled GLSL shaders |
 | **Four HDR Modes** | BT.2100 PQ (HDR10), BT.2100 HLG, BT.2020 gamut mapping, Linear HDR |
 | **SDR-to-HDR Boost** | Boost SDR content into HDR range when using Linear HDR pipeline |
 | **GPU Deband** | CPU (gradfun) or GPU deband with configurable iterations, threshold, range, grain |
@@ -477,8 +477,8 @@ Thank you to the player projects, music apps, libraries, and individual contribu
 
 | Explore the credits | Includes |
 |---|---|
-| [Playback & player projects](CITATION.md#playback--player-projects) | mpv-android, mpvExtended, mpvKt, MpvRex, Next Player |
-| [Music & media apps](CITATION.md#music--media-apps) | PixelPlayer, Gramophone, AFinity, Chora |
+| [Playback & player projects](CITATION.md#playback--player-projects) | mpv-android, mpvExtended, mpvKt, MpvRex, Next Player, Neo Player |
+| [Music & media apps](CITATION.md#music--media-apps) | PixelPlayer, Gramophone, AFinity, Chora, BitChord |
 | [Video processing & streaming](CITATION.md#video-processing--streaming) | hdr-toys, anacrolix/torrent |
 
 > Special thanks to [SunnyVishnu3](https://github.com/SunnyVishnu3) for the `yt-dlp` native integration and SDK 29+ bypass logic.

@@ -70,6 +70,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.viewmodel.compose.viewModel
 import app.gyrolet.mpvrx.R
+import app.gyrolet.mpvrx.utils.storage.FileTypeUtils
 import app.gyrolet.mpvrx.database.repository.SecureFolderRepository
 import app.gyrolet.mpvrx.domain.media.model.Video
 import app.gyrolet.mpvrx.preferences.BrowserPreferences
@@ -101,6 +102,7 @@ import app.gyrolet.mpvrx.ui.browser.videolist.VideoListContent
 import app.gyrolet.mpvrx.ui.browser.videolist.VideoWithPlaybackInfo
 import app.gyrolet.mpvrx.ui.icons.Icon
 import app.gyrolet.mpvrx.ui.icons.Icons
+import app.gyrolet.mpvrx.ui.player.ContainerGeometryProbe
 import app.gyrolet.mpvrx.ui.player.PlaybackIdentity
 import app.gyrolet.mpvrx.ui.player.PlaybackItem
 import app.gyrolet.mpvrx.ui.player.PreparedPlaybackLaunchStore
@@ -108,6 +110,7 @@ import app.gyrolet.mpvrx.ui.player.PlayerActivity
 import app.gyrolet.mpvrx.ui.securefolder.SecureFolderGateScreen
 import app.gyrolet.mpvrx.ui.utils.LocalBackStack
 import app.gyrolet.mpvrx.ui.utils.navigateTo
+import app.gyrolet.mpvrx.ui.tv.focusableWhen
 import app.gyrolet.mpvrx.utils.history.RecentlyPlayedOps
 import app.gyrolet.mpvrx.utils.media.CopyPasteOps
 import app.gyrolet.mpvrx.utils.media.MediaUtils
@@ -371,8 +374,9 @@ fun MediaLibraryContent(forceAudio: Boolean = false) {
         putExtra("local_media_path", video.path)
         putExtra(PlayerActivity.EXTRA_VIDEO_WIDTH, video.width)
         putExtra(PlayerActivity.EXTRA_VIDEO_HEIGHT, video.height)
-        video.rotation?.let { putExtra(PlayerActivity.EXTRA_VIDEO_ROTATION, it) }
+        putExtra(PlayerActivity.EXTRA_VIDEO_ROTATION, video.rotation)
       }
+    ContainerGeometryProbe.prefetch(video.path, video.width, video.height, video.rotation, isAudio)
     context.startActivity(intent)
   }
 
@@ -518,7 +522,7 @@ fun MediaLibraryContent(forceAudio: Boolean = false) {
                 Modifier.animateFloatingActionButton(
                   visible = isFabShouldBeVisible,
                   alignment = Alignment.BottomEnd,
-                ),
+                ).focusableWhen(isFabShouldBeVisible),
               checked = isFabExpanded.value && !quickPlayFabDirect,
                 onCheckedChange = {
                   if (quickPlayFabDirect) {
@@ -557,7 +561,9 @@ fun MediaLibraryContent(forceAudio: Boolean = false) {
             FloatingActionButtonMenuItem(
               onClick = {
                 isFabExpanded.value = false
-                filePicker.launch(arrayOf(if (mediaType == MediaLibraryType.Audio) "audio/*" else "video/*"))
+                filePicker.launch(
+                  if (mediaType == MediaLibraryType.Audio) arrayOf("audio/*") else FileTypeUtils.videoPickerMimeTypes(),
+                )
               },
               icon = { Icon(Icons.RoundedFilled.FileOpen, contentDescription = null) },
               text = {
