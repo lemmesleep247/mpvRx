@@ -82,6 +82,7 @@ import app.gyrolet.mpvrx.ui.browser.NavigationBarState
 import app.gyrolet.mpvrx.ui.browser.rememberMiniPlayerShape
 import app.gyrolet.mpvrx.ui.browser.TvSideNavigationDefaults
 import app.gyrolet.mpvrx.ui.tv.TvSafeArea
+import app.gyrolet.mpvrx.ui.tv.startForResultOrToast
 import app.gyrolet.mpvrx.ui.browser.components.MiniPlayer
 import app.gyrolet.mpvrx.ui.theme.AppMotion
 import app.gyrolet.mpvrx.ui.theme.DarkMode
@@ -166,6 +167,10 @@ open class MainActivity : AppCompatActivity() {
   // Re-asks for revoked runtime grants; the outcome is read back on the next resume.
   private val runtimePermissionLauncher =
     registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { }
+
+  @Suppress("OVERRIDE_DEPRECATION", "DEPRECATION")
+  override fun startActivityForResult(intent: Intent, requestCode: Int, options: Bundle?) =
+    startForResultOrToast(requestCode) { super.startActivityForResult(intent, requestCode, options) }
 
   override fun onCreate(savedInstanceState: Bundle?) {
     // Match REX Player's splash handoff: use only Android's system SplashScreen and hand

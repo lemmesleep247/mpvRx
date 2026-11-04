@@ -48,6 +48,17 @@
         android:name="android.software.leanback"
         android:required="false" />
 
+    <!-- Lets pickers check for a system document picker first; many TVs (Fire TV) ship none. -->
+    <queries>
+        <intent>
+            <action android:name="android.intent.action.OPEN_DOCUMENT" />
+            <data android:mimeType="*/*" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.OPEN_DOCUMENT_TREE" />
+        </intent>
+    </queries>
+
     <application
         android:name=".App"
         android:appCategory="video"

@@ -9,6 +9,10 @@
 
 package app.gyrolet.mpvrx.ui.tv
 
+import android.app.Activity
+import android.content.ActivityNotFoundException
+import android.content.Context
+import androidx.activity.result.ActivityResultLauncher
 import androidx.compose.foundation.gestures.BringIntoViewSpec
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.padding
@@ -19,6 +23,8 @@ import androidx.compose.ui.composed
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import app.gyrolet.mpvrx.R
+import app.gyrolet.mpvrx.ui.components.AppToast
 import app.gyrolet.mpvrx.utils.device.DeviceFormFactor
 import kotlin.math.abs
 
@@ -26,6 +32,40 @@ import kotlin.math.abs
 @Composable
 @ReadOnlyComposable
 internal fun isTelevision(): Boolean = DeviceFormFactor.isTelevision(LocalContext.current)
+
+/** Whether the device has an app for the picker [input] would open; many TVs (Fire TV) ship none. */
+internal fun <I> ActivityResultLauncher<I>.canLaunch(
+  context: Context,
+  input: I,
+): Boolean = contract.createIntent(context, input).resolveActivity(context.packageManager) != null
+
+/** TVs open the system picker when they have one; phones, and TVs without one, use mpvRx's own. */
+internal fun <I> ActivityResultLauncher<I>.launchOrInApp(
+  context: Context,
+  input: I,
+  isTelevision: Boolean,
+  inAppAvailable: Boolean,
+  inApp: () -> Unit,
+) {
+  if (inAppAvailable && (!isTelevision || !canLaunch(context, input))) return inApp()
+  launch(input)
+}
+
+/**
+ * Body for an Activity's startActivityForResult override: a result launch nothing can handle, like a
+ * file picker on a TV without one, shows a toast instead of crashing. startActivity (code -1) still throws.
+ */
+internal inline fun Activity.startForResultOrToast(
+  requestCode: Int,
+  start: () -> Unit,
+) {
+  try {
+    start()
+  } catch (error: ActivityNotFoundException) {
+    if (requestCode < 0) throw error
+    AppToast.warning(this, getString(R.string.no_app_for_action))
+  }
+}
 
 /**
  * Overscan-safe margins from the Android TV design guidelines: 5% of the 960x540dp frame every TV

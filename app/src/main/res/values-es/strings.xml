@@ -2758,6 +2758,7 @@ Reinicia la aplicación para que se apliquen todos los cambios.</string>
   <string name="jellyfin_details">Detalles</string>
   <string name="jellyfin_trailer">Tráiler</string>
   <string name="jellyfin_open_trailer_error">No hay ninguna aplicación disponible para abrir tráileres.</string>
+  <string name="no_app_for_action">Ninguna aplicación de este dispositivo puede abrir esto.</string>
   <string name="jellyfin_libraries">Bibliotecas</string>
   <string name="jellyfin_continue_watching">Seguir viendo</string>
   <string name="jellyfin_latest_movies">Películas recientes</string>
