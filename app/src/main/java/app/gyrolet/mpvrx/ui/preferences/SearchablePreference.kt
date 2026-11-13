@@ -951,6 +951,17 @@ object SearchablePreferences {
           screen = DecoderPreferencesScreen,
         ),
       )
+      if (app.gyrolet.mpvrx.BuildConfig.MPV_SUPPORTS_DOLBY_VISION_DIRECT) {
+        add(
+          SearchablePreference(
+            titleRes = R.string.pref_decoder_dolby_vision_direct_title,
+            summaryRes = R.string.pref_decoder_dolby_vision_direct_summary,
+            keywords = listOf("dolby vision", "dv", "dovi", "hdr", "passthrough", "direct", "mediacodec"),
+            category = "Decoder",
+            screen = DecoderPreferencesScreen,
+          ),
+        )
+      }
       add(
         SearchablePreference(
           titleRes = R.string.pref_anime4k_title,
@@ -1231,6 +1242,23 @@ object SearchablePreferences {
         SearchablePreference(
           titleRes = R.string.pref_audio_volume_boost_cap,
           keywords = listOf("volume", "boost", "cap", "maximum", "amplify"),
+          category = "Audio",
+          screen = AudioPreferencesScreen,
+        ),
+      )
+      add(
+        SearchablePreference(
+          titleRes = R.string.pref_audio_output_title,
+          keywords = listOf("output", "driver", "aaudio", "audiotrack", "opensl", "latency", "audio"),
+          category = "Audio",
+          screen = AudioPreferencesScreen,
+        ),
+      )
+      add(
+        SearchablePreference(
+          titleRes = R.string.pref_audio_passthrough_title,
+          summaryRes = R.string.pref_audio_passthrough_summary,
+          keywords = listOf("passthrough", "spdif", "hdmi", "receiver", "soundbar", "dolby", "dts", "truehd", "ac3"),
           category = "Audio",
           screen = AudioPreferencesScreen,
         ),
@@ -1762,9 +1790,7 @@ object SearchablePreferences {
           screen = DecoderPreferencesScreen,
           anchorItemIndex = 3,
           SearchEntrySpec(R.string.motion_title, listOf("motion", "interpolation", "memc", "smooth", "fps", "60fps", "frame")),
-          SearchEntrySpec(R.string.motion_target_title, listOf("target", "fps", "auto", "refresh rate", "motion"), R.string.motion_title),
-          SearchEntrySpec(R.string.motion_target_fps_title, listOf("target", "fps", "custom", "motion"), R.string.motion_title),
-          SearchEntrySpec(R.string.motion_switch_display_title, listOf("refresh rate", "display", "hz", "motion"), R.string.motion_title),
+          SearchEntrySpec(R.string.motion_target_title, listOf("target", "fps", "auto", "60", "30", "24", "refresh rate", "motion"), R.string.motion_title),
         )
       }
 

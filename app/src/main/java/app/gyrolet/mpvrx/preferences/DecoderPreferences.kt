@@ -28,6 +28,9 @@ class DecoderPreferences(
   val hdrScreenMode = preferenceStore.getEnum("hdr_screen_mode", HdrScreenMode.OFF)
   val lastHdrMode = preferenceStore.getEnum("hdr_last_selected_mode", HdrScreenMode.BT_2020)
 
+  /** FongMi build: let MediaCodec render Dolby Vision directly, with subtitles on an overlay. */
+  val dolbyVisionDirect = preferenceStore.getBoolean("dolby_vision_direct", false)
+
   /** Boost SDR content into the HDR range when using the Linear HDR pipeline. */
   val boostSdrToHdr = preferenceStore.getBoolean("boost_sdr_to_hdr", true)
   val useYUV420P = preferenceStore.getBoolean("use_yuv420p", false)
@@ -68,7 +71,4 @@ class DecoderPreferences(
   val motionInterpolationMode = preferenceStore.getEnum("motion_interpolation_mode", MotionTargetMode.AUTO)
   val motionInterpolationTargetFps =
     preferenceStore.getInt("motion_interpolation_target_fps", MotionInterpolation.DEFAULT_TARGET_FPS)
-
-  /** Ask Android to run the display at the interpolation target while it runs. */
-  val motionInterpolationSwitchDisplayRate = preferenceStore.getBoolean("motion_interpolation_switch_display_rate", true)
 }

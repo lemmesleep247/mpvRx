@@ -345,6 +345,9 @@
   <string name="renderer_build_notice_unsupported_device">Using OpenGL; this device lacks Vulkan 1.3.</string>
   <string name="pref_decoder_yuv420p_title">Use YUV420P pixel format</string>
   <string name="pref_decoder_yuv420p_summary">May fix black screens on some video codecs, can also improve performance at the cost of quality</string>
+  <string name="pref_decoder_dolby_vision_direct_title">Dolby Vision passthrough</string>
+  <string name="pref_decoder_dolby_vision_direct_summary">The phone decodes Dolby Vision itself</string>
+  <string name="pref_decoder_dolby_vision_direct_needs_surface">Unavailable while Liquid Glass draws the video</string>
   <string name="pref_subtitles">Subtitles</string>
   <string name="pref_subtitles_summary">Preferred languages, fonts and search</string>
   <string name="pref_subtitle_search_title">Online Subtitle Search</string>
@@ -403,6 +406,17 @@
   <string name="pref_audio_channels_stereo_reversed">Reversed Stereo</string>
   <string name="pref_audio_preferred_language">Audio language(s) to be selected by default on a video with multiple audio streams, Two- or three-letter languages codes work. Multiple values can be delimited by comma.</string>
   <string name="pref_audio_volume_boost_cap">Volume boost cap</string>
+  <string name="pref_audio_output_title">Audio output</string>
+  <string name="pref_audio_output_auto">Auto</string>
+  <string name="pref_audio_output_audiotrack">AudioTrack</string>
+  <string name="pref_audio_output_aaudio">AAudio (low latency)</string>
+  <string name="pref_audio_output_opensles">OpenSL ES</string>
+  <string name="pref_audio_passthrough_title">Passthrough</string>
+  <string name="pref_audio_passthrough_summary">Sends surround audio undecoded to a receiver or soundbar. Audio effects do not apply to it.</string>
+  <string name="pref_audio_passthrough_off">Off</string>
+  <string name="pref_audio_passthrough_dolby">Dolby Digital (AC3, E-AC3)</string>
+  <string name="pref_audio_passthrough_dolby_dts">Dolby Digital and DTS</string>
+  <string name="pref_audio_passthrough_all">All, including TrueHD and DTS-HD</string>
   <string name="pref_advanced">Advanced</string>
   <string name="pref_advanced_summary">Configuration location, mpv.conf</string>
   <string name="pref_codecs_title">Supported Codecs</string>
@@ -1070,8 +1084,6 @@
   <string name="motion_title">Motion interpolation</string>
   <string name="motion_configure">Motion settings</string>
   <string name="motion_summary">Smoother motion with GPU frame interpolation. Needs GPU Next + Vulkan.</string>
-  <string name="motion_hdr_required">FongMi frame generation keeps HDR on to preserve its color-output pipeline. Turn frame generation off before disabling HDR.</string>
-  <string name="motion_status_hdr_config_owned">Frame generation requires app-controlled HDR. Return HDR options to app control in mpv.conf ownership.</string>
   <string name="motion_toast_on">Motion interpolation: %1$s</string>
   <string name="motion_toast_off">Motion interpolation off</string>
   <string name="motion_renderer_enabled">GPU Next + Vulkan on. Reopen the video.</string>
@@ -1080,13 +1092,8 @@
   <string name="motion_target_auto">Auto</string>
   <string name="motion_target_auto_summary">Up to the display\'s max refresh rate</string>
   <string name="motion_target_auto_value">Auto (%1$d fps)</string>
-  <string name="motion_target_fixed">Custom</string>
   <string name="motion_target_fixed_summary">Up to the rate you pick</string>
-  <string name="motion_target_fps_title">Custom FPS</string>
   <string name="motion_fps_value">%1$d fps</string>
-  <string name="motion_switch_display_title">Match display refresh rate</string>
-  <string name="motion_switch_display_summary">Switch the display to the target rate</string>
-  <string name="motion_requirements_note">SDR only. HDR, Dolby Vision and interlaced video play unchanged.</string>
   <string name="motion_status_off">Off</string>
   <string name="motion_status_waiting">Waiting for requirements</string>
   <string name="motion_rate_unknown">–</string>
@@ -1099,8 +1106,6 @@
   <string name="motion_status_renderer_restart">Reopen the video to apply</string>
   <string name="motion_status_needs_display_sync">mpv.conf video-sync must be display-*</string>
   <string name="motion_status_unsupported_gpu">Not supported on this GPU</string>
-  <string name="motion_live_title">Live</string>
-  <string name="motion_state_unknown">Starting…</string>
   <string name="motion_state_disabled">Off</string>
   <string name="motion_state_ready">Ready</string>
   <string name="motion_state_active">Interpolating</string>
@@ -1109,11 +1114,6 @@
   <string name="motion_state_paused">Paused</string>
   <string name="motion_state_unsupported">Unsupported</string>
   <string name="motion_state_error">Error</string>
-  <string name="motion_stat_synthesized">Generated</string>
-  <string name="motion_stat_presented">Shown</string>
-  <string name="motion_stat_per_second">%1$s/s</string>
-  <string name="motion_stat_gpu">GPU time</string>
-  <string name="motion_stat_resolution">Resolution</string>
   <!-- ═══════════════════════════════════════════════════════════ -->
   <!-- Dialogs & Common                                           -->
   <!-- ═══════════════════════════════════════════════════════════ -->
@@ -2830,6 +2830,13 @@
   <string name="lyrics_provider_row_missing">Lyrics not found</string>
   <string name="lyrics_provider_row_failed">Failed, tap to retry</string>
   <string name="lyrics_provider_row_unfetched">Tap to fetch</string>
+  <string name="lyrics_provider_auto_best_timing">Best match: %1$s · %2$s</string>
+  <string name="lyrics_provider_row_current_timing">Current · %1$s</string>
+  <string name="lyrics_provider_row_found_timing">%1$s, tap to switch</string>
+  <string name="lyrics_timing_word">Word-synced</string>
+  <string name="lyrics_timing_partial_word">Partly word-synced</string>
+  <string name="lyrics_timing_line">Line-synced</string>
+  <string name="lyrics_timing_plain">Plain text</string>
   <string name="lyrics_loading_line_1">Digging through the songbook</string>
   <string name="lyrics_loading_line_2">Hunting down the words</string>
   <string name="lyrics_loading_line_3">Asking around for the verses</string>
