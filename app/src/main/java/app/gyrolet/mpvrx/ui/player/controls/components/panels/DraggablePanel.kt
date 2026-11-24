@@ -11,7 +11,7 @@
 
 package app.gyrolet.mpvrx.ui.player.controls.components.panels
 
-import app.gyrolet.mpvrx.ui.liquidglass.liquidGlassActive
+import app.gyrolet.mpvrx.ui.liquidglass.playerGlassSurfaceEnabled
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.Arrangement
@@ -61,6 +61,7 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import app.gyrolet.mpvrx.R
+import app.gyrolet.mpvrx.presentation.components.PlayerSheetDragHandle
 import app.gyrolet.mpvrx.ui.icons.Icon
 import app.gyrolet.mpvrx.ui.icons.Icons
 import app.gyrolet.mpvrx.ui.liquidglass.LocalKyantPlayerBackdrop
@@ -95,7 +96,7 @@ fun DraggablePanel(
 ) {
   var offsetX by rememberSaveable { mutableFloatStateOf(0f) }
   var panelWidth by remember { mutableIntStateOf(0) }
-  val liquidGlassEnabled = liquidGlassActive()
+  val liquidGlassEnabled = playerGlassSurfaceEnabled()
   val television = isTelevision()
 
   val panelAlignment = alignment
@@ -117,6 +118,14 @@ fun DraggablePanel(
     val maxOffset = (freeSpace - initialLeft).toFloat()
     val canDrag = !television && freeSpace > 0
     val panelHeight = if (isPortrait) maxHeight * portraitHeightFraction.coerceIn(0.4f, 1f) else maxHeight
+    val dragModifier = if (canDrag) {
+      Modifier.pointerInput(minOffset, maxOffset) {
+        detectHorizontalDragGestures { change, delta ->
+          change.consume()
+          offsetX = (offsetX.coerceIn(minOffset, maxOffset) + delta).coerceIn(minOffset, maxOffset)
+        }
+      }
+    } else Modifier
 
     val colors = panelCardsColors()
     val backdrop = LocalKyantPlayerBackdrop.current
@@ -157,16 +166,12 @@ fun DraggablePanel(
         },
     ) {
       Column(Modifier.fillMaxWidth()) {
+        if (canDrag) {
+          Box(Modifier.fillMaxWidth().then(dragModifier)) {
+            PlayerSheetDragHandle()
+          }
+        }
         if (header != null) {
-          // Drag the header itself, so a separate handle row doesn't take space from settings.
-          val dragModifier = if (canDrag) {
-            Modifier.pointerInput(minOffset, maxOffset) {
-              detectHorizontalDragGestures { change, delta ->
-                change.consume()
-                offsetX = (offsetX.coerceIn(minOffset, maxOffset) + delta).coerceIn(minOffset, maxOffset)
-              }
-            }
-          } else Modifier
           Row(
             modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp).then(dragModifier),
             verticalAlignment = Alignment.CenterVertically,
