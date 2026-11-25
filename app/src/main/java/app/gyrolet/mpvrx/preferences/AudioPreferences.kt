@@ -31,7 +31,7 @@ class AudioPreferences(
   val backgroundPlaybackBehavior = preferenceStore.getEnum("background_playback_behavior", BackgroundPlaybackBehavior.Remember)
   private val videoBackgroundPlaybackIds = preferenceStore.getStringSet("background_playback_video_ids", emptySet())
   private val videoBackgroundPlaybackLock = Any()
-  /** Audio-player-only background playback; video retains [backgroundPlayback]. */
+  /** Enabled by default and configurable in Audio settings; video retains [backgroundPlayback]. */
   val audioBackgroundPlayback = preferenceStore.getBoolean("audio_player_background_playback", true)
   val volumeNormalization = preferenceStore.getBoolean("audio_volume_normalization", false)
   val spatialAudio = preferenceStore.getBoolean("audio_spatial_audio", false)
@@ -65,8 +65,9 @@ class AudioPreferences(
   val animatedAlbumArtwork = preferenceStore.getBoolean("audio_animated_album_artwork", false)
   val animatedArtworkAppleMusic = preferenceStore.getBoolean("audio_animated_artwork_apple_music", true)
   val animatedArtworkTidal = preferenceStore.getBoolean("audio_animated_artwork_tidal", true)
-  val tidalClientId = preferenceStore.getString("tidal_client_id", "")
-  val tidalClientSecret = preferenceStore.getString("tidal_client_secret", "")
+  val animatedArtworkSpotify = preferenceStore.getBoolean("audio_animated_artwork_spotify", true)
+  val spotifySpDcCookie = preferenceStore.getString("spotify_sp_dc_cookie", "")
+  val highQualityArtwork = preferenceStore.getBoolean("audio_high_quality_artwork", true)
   val audioWavySeekbar = preferenceStore.getBoolean("audio_wavy_seekbar", true)
   val enabledMusicTabs = preferenceStore.getStringSet(
     "enabled_music_tabs",

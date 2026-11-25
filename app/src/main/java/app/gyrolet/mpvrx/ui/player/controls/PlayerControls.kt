@@ -167,7 +167,7 @@ import app.gyrolet.mpvrx.ui.player.controls.components.MultipleSpeedPlayerUpdate
 import app.gyrolet.mpvrx.ui.player.controls.components.PlaybackFormatBadgeRow
 import app.gyrolet.mpvrx.ui.player.controls.components.ResumeAvailablePlayerUpdate
 import app.gyrolet.mpvrx.ui.player.controls.components.ResumedFromPlayerUpdate
-import app.gyrolet.mpvrx.ui.player.controls.components.SeekPlayerUpdate
+import app.gyrolet.mpvrx.ui.player.controls.components.HorizontalSeekPlayerUpdate
 import app.gyrolet.mpvrx.ui.player.controls.components.SeekbarWithTimers
 import app.gyrolet.mpvrx.ui.player.controls.components.TextPlayerUpdate
 import app.gyrolet.mpvrx.ui.player.controls.components.VolumeSlider
@@ -233,12 +233,11 @@ internal fun AudioPlayerScreen(
   val decoder = remember(activeDecoder, configuredDecoder) {
     getDecoderFromValue(activeDecoder?.takeIf { it.isNotBlank() } ?: configuredDecoder ?: "auto")
   }
+  // Closing a sheet or panel leaves the controls hidden; only a tap brings them back.
   val onOpenSheet: (Sheets) -> Unit = remember(viewModel) {
     {
       viewModel.sheetShown.update { _ -> it }
-      if (it == Sheets.None) {
-        viewModel.showControls()
-      } else {
+      if (it != Sheets.None) {
         viewModel.hideControls()
         viewModel.panelShown.update { Panels.None }
       }
@@ -247,9 +246,7 @@ internal fun AudioPlayerScreen(
   val onOpenPanel: (Panels) -> Unit = remember(viewModel) {
     {
       viewModel.panelShown.update { _ -> it }
-      if (it == Panels.None) {
-        viewModel.showControls()
-      } else {
+      if (it != Panels.None) {
         viewModel.hideControls()
         viewModel.sheetShown.update { Sheets.None }
       }
@@ -454,6 +451,12 @@ fun PlayerControls(
   val showLoadingCircle by playerPreferences.showLoadingCircle.collectAsState()
 
   var isSeeking by remember { mutableStateOf(false) }
+  // Only whether a swipe-seek runs matters at this level. Reading the update itself here re-ran the
+  // whole controls tree for every player update.
+  val playerUpdateState = viewModel.playerUpdate.collectAsState()
+  val isHorizontalSeekGesture by remember {
+    derivedStateOf { playerUpdateState.value is PlayerUpdates.HorizontalSeek }
+  }
   // Opening a network item (including link resolution before mpv starts) waits on the network too.
   val openingNetworkStream =
     videoOpenAnimState.isWaitingForVideo &&
@@ -466,7 +469,8 @@ fun PlayerControls(
       } == true
   val bufferingState =
     rememberBufferingState(
-      enabled = showLoadingCircle && !isSeeking,
+      // A swipe-seek scrubs like the seekbar does, so its seeks do not flash the spinner either.
+      enabled = showLoadingCircle && !isSeeking && !isHorizontalSeekGesture,
       sessionState = playbackSessionState,
       openingNetworkStream = openingNetworkStream,
     )
@@ -484,8 +488,8 @@ fun PlayerControls(
     } else {
       Modifier
     }
-  val mpvSeeking by PlaybackSession.propBoolean["seeking"].collectAsStateWithLifecycle()
-  val isPlayerSeeking = isSeeking || (mpvSeeking ?: false)
+  // mpv toggles `seeking` for every seek of a scrub, so only the seekbar that needs it reads it.
+  val mpvSeekingState = PlaybackSession.propBoolean["seeking"].collectAsStateWithLifecycle()
   // mpv can remain "seeking" until its cache refills. Only active scrubbing suppresses the spinner;
   // a real cache wait stays visible even when the controls have faded out.
   val showBufferingIndicator = bufferingState.visible
@@ -528,11 +532,13 @@ fun PlayerControls(
     initial = PlaybackSession.isVideoBackgroundPlaybackEnabled(),
   )
 
-  val onOpenSheet: (Sheets) -> Unit = remember(viewModel) {
+  // Closing a sheet or panel leaves the controls hidden on touch devices; a TV remote needs
+  // them back to keep a focus target.
+  val onOpenSheet: (Sheets) -> Unit = remember(viewModel, isTelevision) {
     {
       viewModel.sheetShown.update { _ -> it }
       if (it == Sheets.None) {
-        viewModel.showControls()
+        if (isTelevision) viewModel.showControls()
       } else {
         viewModel.hideControls()
         viewModel.panelShown.update { Panels.None }
@@ -540,11 +546,11 @@ fun PlayerControls(
     }
   }
 
-  val onOpenPanel: (Panels) -> Unit = remember(viewModel) {
+  val onOpenPanel: (Panels) -> Unit = remember(viewModel, isTelevision) {
     {
       viewModel.panelShown.update { _ -> it }
       if (it == Panels.None) {
-        viewModel.showControls()
+        if (isTelevision) viewModel.showControls()
       } else {
         viewModel.hideControls()
         viewModel.sheetShown.update { Sheets.None }
@@ -681,7 +687,7 @@ fun PlayerControls(
       viewModel.hideControls()
     } else if (!visible && isPlayerDrawerShown) {
       isPlayerDrawerShown = false
-      if (viewModel.sheetShown.value == Sheets.None && viewModel.panelShown.value == Panels.None) {
+      if (isTelevision && viewModel.sheetShown.value == Sheets.None && viewModel.panelShown.value == Panels.None) {
         viewModel.showControls()
       }
     }
@@ -705,9 +711,8 @@ fun PlayerControls(
       null
     }
   val mediaTitle = configuredTitle ?: defaultMediaTitle
-  val gestureSeekUpdate by viewModel.playerUpdate.collectAsState()
   // The auto-hide timer keeps running through a swipe-seek, even while paused.
-  val isPlayingForAutoHide = paused == false || gestureSeekUpdate is PlayerUpdates.HorizontalSeek
+  val isPlayingForAutoHide = paused == false || isHorizontalSeekGesture
 
   LaunchedEffect(
     controlsShown,
@@ -1428,8 +1433,11 @@ fun PlayerControls(
           var updateInteracting by remember(currentPlayerUpdate) { mutableStateOf(false) }
           LaunchedEffect(currentPlayerUpdate, aspectRatio, videoZoom, updateInteracting) {
             if (updateInteracting) return@LaunchedEffect
+            // Held gestures own their chips. A swipe-seek chip lasts as long as the swipe; its
+            // GestureHandler dismisses it shortly after the finger lifts.
             if (currentPlayerUpdate is PlayerUpdates.MultipleSpeed ||
               currentPlayerUpdate is PlayerUpdates.DynamicSpeedControl ||
+              currentPlayerUpdate is PlayerUpdates.HorizontalSeek ||
               currentPlayerUpdate is PlayerUpdates.None
             ) {
               return@LaunchedEffect
@@ -1553,9 +1561,9 @@ fun PlayerControls(
 
                   is PlayerUpdates.HorizontalSeek -> {
                     val seekUpdate = currentPlayerUpdate as PlayerUpdates.HorizontalSeek
-                    SeekPlayerUpdate(
-                      currentTime = seekUpdate.currentTime,
-                      seekDelta = "[${seekUpdate.seekDelta}]",
+                    HorizontalSeekPlayerUpdate(
+                      startPosition = seekUpdate.startPosition,
+                      position = viewModel.precisePosition,
                     )
                   }
 
@@ -2150,13 +2158,13 @@ fun PlayerControls(
                   end.linkTo(parent.end, spacing.large)
                 },
           ) {
-            val position by PlaybackSession.propInt["time-pos"].collectAsStateWithLifecycle()
             val precisePosition by viewModel.precisePosition.collectAsStateWithLifecycle()
             val invertDuration by playerPreferences.invertDuration.collectAsState()
             val remaining  by PlaybackSession.propFloat["playtime-remaining"].collectAsStateWithLifecycle()
             val seekbarStyle by appearancePreferences.seekbarStyle.collectAsState()
             val useWavySeekbar by playerPreferences.useWavySeekbar.collectAsState()
             val displayedSeekbarPosition = precisePosition
+            val isPlayerSeeking = isSeeking || (mpvSeekingState.value ?: false)
             // Memoize the immutable copies so they are not reallocated on every position
             // tick (this scope recomposes ~20x/sec while scrubbing).
             val seekbarChapters =

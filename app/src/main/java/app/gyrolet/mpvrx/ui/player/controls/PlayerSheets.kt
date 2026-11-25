@@ -49,6 +49,7 @@ import app.gyrolet.mpvrx.ui.player.controls.components.MpvConfigOwnedSheet
 import app.gyrolet.mpvrx.ui.player.controls.components.sheets.AmbientSheet
 import app.gyrolet.mpvrx.ui.player.controls.components.sheets.PostProcessingSheet
 import app.gyrolet.mpvrx.ui.player.controls.components.sheets.AspectRatioSheet
+import app.gyrolet.mpvrx.ui.player.controls.components.sheets.AudioOutputSheet
 import app.gyrolet.mpvrx.ui.player.controls.components.sheets.AudioTracksSheet
 import app.gyrolet.mpvrx.ui.player.controls.components.sheets.AudioPropertiesSheet
 import app.gyrolet.mpvrx.ui.player.controls.components.sheets.AudioPropertyItem
@@ -501,7 +502,6 @@ fun PlayerSheets(
     Sheets.AspectRatios -> {
       val playerPreferences = koinInject<app.gyrolet.mpvrx.preferences.PlayerPreferences>()
       val customRatiosSet by playerPreferences.customAspectRatios.collectAsState()
-      val autoCropEnabled by playerPreferences.autoCropBlackBars.collectAsState()
       val currentRatio by viewModel.currentAspectRatio.composeCollectAsState()
       val currentMode by viewModel.videoAspect.composeCollectAsState()
       val customRatios =
@@ -522,8 +522,6 @@ fun PlayerSheets(
         currentMode = currentMode,
         currentRatio = currentRatio,
         customRatios = customRatios,
-        autoCropEnabled = autoCropEnabled,
-        onAutoCropChanged = viewModel::setAutoCropBlackBars,
         onSelectMode = { viewModel.changeVideoAspect(it) },
         onSelectRatio = { viewModel.setCustomAspectRatio(it) },
         onAddCustomRatio = { label, ratio ->
@@ -643,6 +641,11 @@ fun PlayerSheets(
         onDismissRequest = onDismissRequest,
       )
     }
+
+    Sheets.AudioOutput -> AudioOutputSheet(
+      onDismissRequest = onDismissRequest,
+      onOpenAudioInfo = { onShowSheet(Sheets.AudioProperties) },
+    )
 
     Sheets.AudioProperties -> {
       val playback by app.gyrolet.mpvrx.ui.player.PlaybackSession.state.collectAsState()

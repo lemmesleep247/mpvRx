@@ -211,7 +211,6 @@ import app.gyrolet.mpvrx.ui.theme.DarkMode
 import app.gyrolet.mpvrx.ui.theme.appPressFeedback
 import app.gyrolet.mpvrx.ui.icons.Icons
 import app.gyrolet.mpvrx.ui.player.Panels
-import app.gyrolet.mpvrx.ui.player.PlayerActivity
 import app.gyrolet.mpvrx.ui.player.PlayerViewModel
 import app.gyrolet.mpvrx.ui.player.PlaybackPhase
 import app.gyrolet.mpvrx.ui.player.AudioQuality
@@ -219,6 +218,7 @@ import app.gyrolet.mpvrx.ui.player.resolveAudioFormatInfo
 import app.gyrolet.mpvrx.ui.player.RepeatMode
 import app.gyrolet.mpvrx.ui.player.Sheets
 import app.gyrolet.mpvrx.ui.player.controls.components.AbLoopIcon
+import app.gyrolet.mpvrx.ui.player.controls.components.sheets.AudioOutputGlyph
 import app.gyrolet.mpvrx.ui.player.controls.components.SeekbarWithTimers
 import app.gyrolet.mpvrx.ui.player.controls.components.rememberTvInitialFocusRequester
 import app.gyrolet.mpvrx.ui.player.controls.components.tvFocusHighlight
@@ -302,6 +302,17 @@ private object AudioPresentationMetadataCache {
     withContext(Dispatchers.IO) {
       val key = "${cacheKey(pathOrUri, artworkUri)}|$generator|$revision"
       synchronized(cache) { cache.get(key) }?.let { return@withContext it }
+
+      val networkSource = app.gyrolet.mpvrx.domain.network.NetworkPlaybackUri.parse(pathOrUri)
+      if (networkSource != null) {
+        val loaded = AudioPresentationMetadata(
+          artwork = EmbeddedArtworkResolver.decodeArtworkUri(context, artworkUri)
+            ?: repository.getThumbnailForNetworkSource(networkSource.connectionId, networkSource.path.value, 512, 512),
+          artist = null,
+        )
+        synchronized(cache) { if (activeRevision == revision) cache.put(key, loaded) }
+        return@withContext loaded
+      }
 
       // An old native retriever may still be unwinding; Android artwork must not wait for it.
       val localFolderMotion = app.gyrolet.mpvrx.domain.thumbnail.EmbeddedArtworkCandidates
@@ -700,6 +711,7 @@ private fun CoverArtCardImage(
   localMotionArtworkUri: String? = null,
   isPlaying: Boolean = false,
   remoteMotionQuery: MotionArtworkQuery? = null,
+  portraitMotion: Boolean = false,
   modifier: Modifier = Modifier,
 ) {
   val context = LocalContext.current
@@ -768,6 +780,7 @@ private fun CoverArtCardImage(
       RemoteMotionArtwork(
         query = remoteMotionQuery,
         isPlaying = isPlaying,
+        portraitLayout = portraitMotion,
         modifier = Modifier.fillMaxSize(),
       )
     }
@@ -879,6 +892,8 @@ private fun ImmersiveArtworkBackground(
           motionArtwork = motionArtwork.takeUnless { reducedMotion },
           localMotionArtworkUri = localMotionArtworkUri.takeUnless { reducedMotion },
           remoteMotionQuery = remoteMotionQuery.takeUnless { reducedMotion },
+          // The full-window background takes the provider's tall cut, as BitChord's player does.
+          portraitMotion = !landscape,
           isPlaying = isPlaying && !reducedMotion,
         )
       }
@@ -1001,7 +1016,9 @@ fun AudioPlayerControls(
 
   val currentAudioPresentation =
     rememberAudioPresentationMetadata(
-      pathOrUri = currentMediaSource?.takeIf { isAudiobook || isLocalArtworkSource(it) } ?: mediaPath?.takeIf { it.isNotBlank() } ?: currentMediaSource,
+      pathOrUri = currentMediaSource?.takeIf {
+        isAudiobook || isLocalArtworkSource(it) || app.gyrolet.mpvrx.domain.network.NetworkPlaybackUri.parse(it) != null
+      } ?: mediaPath?.takeIf { it.isNotBlank() } ?: currentMediaSource,
       artworkUri = currentArtworkUri,
     )
   // Android's retriever cannot read covers from streams; FongMi's mpv already parsed the file's own.
@@ -1011,7 +1028,7 @@ fun AudioPlayerControls(
       enabled = currentAudioPresentation != null && currentAudioPresentation.artwork == null && hasMpvAlbumArt,
       key = currentItem?.stableId,
     )
-  val albumArtBitmap = currentAudioPresentation?.artwork ?: mpvAlbumArt
+  val embeddedAlbumArt = currentAudioPresentation?.artwork ?: mpvAlbumArt
 
   fun cleanSongTitle(
     title: String,
@@ -1073,12 +1090,13 @@ fun AudioPlayerControls(
   val audioPreferences = koinInject<AudioPreferences>()
   val immersiveArtworkEnabled by audioPreferences.immersiveArtwork.collectAsState()
   val animatedAlbumArtwork by audioPreferences.animatedAlbumArtwork.collectAsState()
-  val motionQuery =
-    if (animatedAlbumArtwork && !isAudiobook &&
+  val highQualityArtwork by audioPreferences.highQualityArtwork.collectAsState()
+  val artworkQuery =
+    if ((animatedAlbumArtwork || highQualityArtwork) && !isAudiobook &&
       (playbackState.phase == PlaybackPhase.READY || playbackState.phase == PlaybackPhase.BACKGROUND)
     ) {
-      // One metadata observer, only while opted in. Tag names vary in case across containers;
-      // metadata/album is not the by-key lookup, and queue titles may still be raw filenames.
+      // One metadata observer, only while an online artwork feature is on. Tag names vary in case
+      // across containers; metadata/album is not the by-key lookup, and queue titles may still be raw filenames.
       val nativeMetadata by PlaybackSession.propNode["metadata"].collectAsState()
       remember(nativeMetadata, playbackState.generation, currentItem?.title, mediaTitle, displayArtist) {
         // Use the event as a trigger, then take one generation-checked native snapshot.
@@ -1101,10 +1119,14 @@ fun AudioPlayerControls(
     } else {
       null
     }
+  val motionQuery = artworkQuery?.takeIf { animatedAlbumArtwork }
+  // The catalogue's own cover replaces the embedded one whatever its resolution; until it is
+  // cached the embedded art shows, and it stays when no catalogue knows the song.
+  val highQualityCover = rememberHighQualityArtwork(artworkQuery?.takeIf { highQualityArtwork })
+  val albumArtBitmap = highQualityCover ?: embeddedAlbumArt
   val appearancePreferences = koinInject<AppearancePreferences>()
   val audioVisualizerStyle by audioPreferences.audioVisualizerStyle.collectAsState()
   val audioWavySeekbar by audioPreferences.audioWavySeekbar.collectAsState()
-  val backgroundPlaybackEnabled by audioPreferences.audioBackgroundPlayback.collectAsState()
   val colorScheme = MaterialTheme.colorScheme
   val palette =
     remember(colorScheme) {
@@ -2570,9 +2592,16 @@ fun AudioPlayerControls(
       val playbackControlsRow = @Composable {
         val seekable by PlaybackSession.propBoolean["seekable"].collectAsStateWithLifecycle()
         val canSeek = seekable == true && playbackState.phase in setOf(PlaybackPhase.READY, PlaybackPhase.BACKGROUND)
-        val prevEnabled = if (isAudiobook) bookChapterIndex >= 0 else playlistModeEnabled
+        // The first track has no previous and the last no next, unless Repeat All wraps the queue
+        // (in shuffle, first and last follow the shuffle order). Matches the artwork swipe and the
+        // video player, which already stop at the ends.
+        val prevEnabled = if (isAudiobook) bookChapterIndex >= 0 else playlistModeEnabled && prevItem != null
         val nextEnabled =
-          if (isAudiobook) bookChapterIndex >= 0 && bookChapterIndex < chapters.lastIndex else playlistModeEnabled
+          if (isAudiobook) {
+            bookChapterIndex >= 0 && bookChapterIndex < chapters.lastIndex
+          } else {
+            playlistModeEnabled && nextItem != null
+          }
         val sideSize =
           when {
             isShortLandscape -> 42.dp
@@ -2800,27 +2829,14 @@ fun AudioPlayerControls(
               }
               if (!isAudiobook) {
                 ExpressiveConnectedBarButton(
-                  index = 3, itemCount = centerCount, height = barHeight, selected = backgroundPlaybackEnabled,
+                  index = 3, itemCount = centerCount, height = barHeight, selected = sheetShown == Sheets.AudioOutput,
                   onClick = {
-                    val enabled = !audioPreferences.audioBackgroundPlayback.get()
-                    val activity = context as? PlayerActivity
-                    if (activity != null) {
-                      activity.toggleAudioBackgroundPlayback()
-                    } else {
-                      audioPreferences.audioBackgroundPlayback.set(enabled)
-                      viewModel.showToast(
-                        context.getString(
-                          if (enabled) R.string.toast_audio_background_playback_on
-                          else R.string.toast_audio_background_playback_off,
-                        ),
-                      )
-                    }
-                    actionHaptics.selection(enabled)
+                    onOpenSheet(Sheets.AudioOutput)
+                    actionHaptics.confirm()
                   },
                 ) { tint ->
-                  Icon(
-                    Icons.RoundedFilled.Headset,
-                    contentDescription = stringResource(R.string.btn_label_background_playback),
+                  AudioOutputGlyph(
+                    label = stringResource(R.string.pref_audio_output_title),
                     tint = tint,
                     modifier = Modifier.size(iconSize),
                   )
@@ -3698,6 +3714,8 @@ private fun ExpressiveTransportSideButton(
   val containerColor by animateColorAsState(
     targetValue =
       when {
+        // A disabled button dims as a whole, not just its icon.
+        !enabled -> MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.38f)
         active -> MaterialTheme.colorScheme.primaryContainer
         pressed -> MaterialTheme.colorScheme.secondaryContainer
         else -> MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.85f)

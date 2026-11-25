@@ -101,8 +101,12 @@ class PlaybackProperty<T> internal constructor(
   private val reader: (String) -> T?,
 ) {
   private val states = ConcurrentHashMap<String, MutableStateFlow<T?>>()
+  // One read-only view per property. Compose keys collection on the flow instance, so handing out a
+  // new wrapper on every read restarted the collector each time the reading composable recomposed.
+  private val views = ConcurrentHashMap<String, StateFlow<T?>>()
 
   operator fun get(property: String): StateFlow<T?> {
+    views[property]?.let { return it }
     val candidate = MutableStateFlow<T?>(null)
     val existing = states.putIfAbsent(property, candidate)
     val state = existing ?: candidate
@@ -110,7 +114,7 @@ class PlaybackProperty<T> internal constructor(
       PlaybackSession.observeProperty(property, format)
       state.value = reader(property)
     }
-    return state.asStateFlow()
+    return views.getOrPut(property) { state.asStateFlow() }
   }
 
   internal fun emit(
@@ -320,7 +324,6 @@ object PlaybackSession : MPVLib.EventObserver {
   private val _videoZoom = MutableStateFlow(0f)
   private val _videoPanX = MutableStateFlow(0f)
   private val _videoPanY = MutableStateFlow(0f)
-  private var appliedBlackBarCrop: Pair<BlackBarSource, String>? = null
   private val streamSequence = AtomicLong()
   private val observedProperties = mutableSetOf<Pair<String, Int>>()
   private val playbackTransitionAudioGuardHandler = Handler(Looper.getMainLooper())
@@ -1769,9 +1772,19 @@ internal fun userScriptsNeedReload(currentKey: String): Boolean {
   fun commandForGeneration(
     expectedGeneration: Long,
     vararg command: String,
+  ): Boolean = commandForGenerationIf(expectedGeneration, { true }, *command)
+
+  /**
+   * [commandForGeneration] for a request that a newer one can replace. [isCurrent] runs under the
+   * native lock, so a command another thread issues after replacing the request always lands last.
+   */
+  fun commandForGenerationIf(
+    expectedGeneration: Long,
+    isCurrent: () -> Boolean,
+    vararg command: String,
   ): Boolean =
     nativeLock.withLock {
-      if (!initialized || _state.value.generation != expectedGeneration) return@withLock false
+      if (!initialized || _state.value.generation != expectedGeneration || !isCurrent()) return@withLock false
       if (MpvConfigOverridePolicy.shouldSuppress(command)) return@withLock true
       val preparedCommand = prepareSeekCommandLocked(command)
       if (!handleAmbientShaderCommandLocked(preparedCommand)) MPVLib.command(*preparedCommand)
@@ -2561,64 +2574,6 @@ internal fun userScriptsNeedReload(currentKey: String): Boolean {
   }
 
   fun grabThumbnail(dimension: Int): Bitmap? = withCore(null) { MPVLib.grabThumbnail(dimension) }
-
-  private fun matchesBlackBarSourceLocked(source: BlackBarSource): Boolean {
-    val current = _state.value
-    return loadedGeneration == source.generation && current.generation == source.generation &&
-      MPVLib.getPropertyString("vid")?.toIntOrNull() == source.trackId &&
-      MPVLib.getPropertyInt("video-out-params/w") == source.width &&
-      MPVLib.getPropertyInt("video-out-params/h") == source.height &&
-      (MPVLib.getPropertyInt("video-out-params/rotate") ?: 0) == source.rotation
-  }
-
-  internal fun captureBlackBarFrame(
-    source: BlackBarSource,
-    destination: File,
-    previousPosition: Double?,
-  ): Double? = withCore(null) {
-    if (!matchesBlackBarSourceLocked(source) || !_state.value.surfaceAttached || _state.value.paused ||
-      activeAmbientShaderPaths.isNotEmpty() ||
-      MPVLib.getPropertyBoolean("seeking") == true || MPVLib.getPropertyBoolean("paused-for-cache") == true ||
-      !MPVLib.getPropertyString("video-crop").isNullOrEmpty()
-    ) return@withCore null
-
-    // A container-cropped screenshot cannot be mapped onto the complete source frame.
-    if ((MPVLib.getPropertyInt("video-out-params/crop-w") ?: source.width) in 1 until source.width ||
-      (MPVLib.getPropertyInt("video-out-params/crop-h") ?: source.height) in 1 until source.height
-    ) return@withCore null
-    val position = MPVLib.getPropertyDouble("time-pos") ?: return@withCore null
-    if (previousPosition != null && kotlin.math.abs(position - previousPosition) < 0.05) return@withCore null
-
-    // grabThumbnail center-crops to a square. Request the whole video frame, without OSD or subtitles.
-    MPVLib.commandNode("screenshot-to-file", destination.absolutePath, "video") ?: return@withCore null
-    position
-  }
-
-  internal fun applyBlackBarCrop(source: BlackBarSource, bars: VideoBlackBars) = withCore(Unit) {
-    if (bars.isEmpty || !matchesBlackBarSourceLocked(source) ||
-      MpvConfigOverridePolicy.isOwnedByMpvConf("video-crop") ||
-      !MPVLib.getPropertyString("video-crop").isNullOrEmpty()
-    ) return@withCore
-    val geometry = bars.cropGeometry(source)
-    MPVLib.setPropertyString("file-local-options/video-crop", geometry)
-    if (MPVLib.getPropertyString("video-crop") == geometry) {
-      appliedBlackBarCrop = source to geometry
-    } else {
-      Log.w(TAG, "mpv did not apply black bar crop $geometry")
-    }
-  }
-
-  internal fun clearBlackBarCrop(unlessSource: BlackBarSource? = null) = withCore(Unit) {
-    val (source, geometry) = appliedBlackBarCrop ?: return@withCore
-    if (source == unlessSource) return@withCore
-    appliedBlackBarCrop = null
-    // mpv resets file-local options when the file ends. Never clear another script's crop.
-    if (loadedGeneration == source.generation && _state.value.generation == source.generation &&
-      MPVLib.getPropertyString("video-crop") == geometry
-    ) {
-      MPVLib.setPropertyString("file-local-options/video-crop", "")
-    }
-  }
 
   fun grabThumbnailFast(
     path: String,

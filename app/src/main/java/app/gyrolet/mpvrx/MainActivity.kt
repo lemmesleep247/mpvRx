@@ -53,7 +53,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
-import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation3.runtime.NavBackStack
 import androidx.navigation3.runtime.rememberNavBackStack
@@ -82,6 +81,7 @@ import app.gyrolet.mpvrx.presentation.components.captureLiquidGlassBackdrop
 import app.gyrolet.mpvrx.presentation.components.rememberLiquidGlassBackdrop
 import app.gyrolet.mpvrx.ui.browser.MainScreen
 import app.gyrolet.mpvrx.ui.browser.LocalNavigationBarHeight
+import app.gyrolet.mpvrx.ui.browser.recentlyplayed.RecentlyPlayedScreen
 import app.gyrolet.mpvrx.ui.browser.NavigationBarState
 import app.gyrolet.mpvrx.ui.browser.rememberMiniPlayerShape
 import app.gyrolet.mpvrx.ui.browser.TvSideNavigationDefaults
@@ -686,11 +686,7 @@ open class MainActivity : AppCompatActivity() {
     val typedBackstack = backstack as NavBackStack<Screen>
 
     val context = LocalContext.current
-    val currentVersion =
-      when {
-        BuildConfig.IS_PREVIEW_BUILD -> stringResource(R.string.update_beta_build_format, BuildConfig.GIT_COUNT)
-        else -> BuildConfig.VERSION_NAME.substringBefore('-')
-      }
+    val currentVersion = BuildConfig.VERSION_NAME.substringBefore('-')
 
     // Conditionally initialize update feature based on build config
     val updateViewModel: UpdateViewModel? =
@@ -782,7 +778,7 @@ open class MainActivity : AppCompatActivity() {
               opaqueFrom = app.gyrolet.mpvrx.ui.preferences.PreferencesScreen,
               tvSafeArea = true,
               bottomOverlayClearance = NavigationBarState.miniPlayerClearance,
-              bottomOverlayExempt = MainScreen,
+              bottomOverlayExempt = setOf(MainScreen, RecentlyPlayedScreen),
               onBack = {
                 if (typedBackstack.size <= 1 || !typedBackstack.popSafely()) {
                   this@MainActivity.finish()

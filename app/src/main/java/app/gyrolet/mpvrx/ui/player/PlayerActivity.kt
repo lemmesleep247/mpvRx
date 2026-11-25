@@ -1192,18 +1192,18 @@ class PlayerActivity :
 
   private fun handleBackPress() {
     returnToBrowserAfterMinimize = false
-    // Dismiss overlays first
+    // Dismiss overlays first; touch devices keep the controls hidden after closing one.
     if (viewModel.sheetShown.value != Sheets.None) {
       lastExitBackPressAtMs = null
       viewModel.sheetShown.update { Sheets.None }
-      viewModel.showControls()
+      if (isTelevision) viewModel.showControls()
       return
     }
 
     if (viewModel.panelShown.value != Panels.None) {
       lastExitBackPressAtMs = null
       viewModel.panelShown.update { Panels.None }
-      viewModel.showControls()
+      if (isTelevision) viewModel.showControls()
       return
     }
 
@@ -8147,49 +8147,6 @@ private suspend fun restorePlaybackPosition(state: PlaybackStateEntity?, loadGen
       BackgroundPlaybackStartResult.PendingPermission -> pendingBackgroundTransition = true
       BackgroundPlaybackStartResult.Blocked -> {
         PlaybackSession.setVideoBackgroundPlaybackEnabled(false)
-        isBackgroundPlaybackSessionActive = false
-        pendingBackgroundTransition = false
-      }
-    }
-  }
-
-  /** Toggles the audio-player-specific background playback setting. */
-  fun toggleAudioBackgroundPlayback() {
-    val enabled = !audioPreferences.audioBackgroundPlayback.get()
-
-    if (enabled && !shouldShowPlaybackNotification()) {
-      Toast
-        .makeText(
-          this,
-          getString(R.string.notification_disabled_in_advanced_settings),
-          Toast.LENGTH_LONG,
-        ).show()
-      return
-    }
-
-    audioPreferences.audioBackgroundPlayback.set(enabled)
-
-    if (enabled) ensureNotificationAccessForPlayback(allowUserPrompt = true)
-    if (!enabled) {
-      pendingBackgroundTransition = false
-      isBackgroundPlaybackSessionActive = false
-      endBackgroundPlayback()
-      enableVideoAfterBackground()
-      viewModel.showToast(getString(R.string.toast_audio_background_playback_off))
-      return
-    }
-    if (fileName.isBlank() || !isReady) {
-      viewModel.showToast(getString(R.string.toast_audio_background_playback_on))
-      return
-    }
-    when (startBackgroundPlayback()) {
-      BackgroundPlaybackStartResult.Started -> {
-        isBackgroundPlaybackSessionActive = true
-        viewModel.showToast(getString(R.string.toast_audio_background_playback_on))
-      }
-      BackgroundPlaybackStartResult.PendingPermission -> pendingBackgroundTransition = true
-      BackgroundPlaybackStartResult.Blocked -> {
-        audioPreferences.audioBackgroundPlayback.set(false)
         isBackgroundPlaybackSessionActive = false
         pendingBackgroundTransition = false
       }

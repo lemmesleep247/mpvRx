@@ -194,6 +194,9 @@
   <string name="pref_player_orientation_reverse_landscape">Horizontal invertida</string>
   <string name="pref_player_orientation_sensor_landscape">Horizontal por sensor</string>
   <string name="pref_player_save_position_on_quit">Guardar posición al salir</string>
+  <string name="pref_player_watched_threshold_title">Umbral de visto</string>
+  <string name="pref_player_watched_threshold_summary">Marcar el vídeo como visto cuando la reproducción alcance el %d%%</string>
+  <string name="pref_player_watched_threshold_summary_never">Nunca marcar como visto automáticamente</string>
   <string name="pref_player_double_tap_seek_duration">Duración del salto por toque</string>
   <string name="pref_player_custom_skip_duration_title">Duración de salto personalizada</string>
   <string name="pref_player_custom_skip_duration_summary">Duración del avance con el botón de salto personalizado</string>
@@ -1843,7 +1846,6 @@ Reinicia la aplicación para que se apliquen todos los cambios.</string>
   <string name="ui_yt_dlp_version">Versión %1$s</string>
   <string name="ui_yt_dlp_commit">Commit %1$s</string>
   <string name="ui_version_unavailable">Versión no disponible</string>
-  <string name="ui_update_channel">Canal de actualización</string>
   <string name="update_whats_new">Novedades</string>
   <string name="update_no_release_notes">No se proporcionaron notas de la versión.</string>
   <string name="update_ready_to_install">Listo para instalar</string>
@@ -1853,8 +1855,6 @@ Reinicia la aplicación para que se apliquen todos los cambios.</string>
   <string name="update_size">Tamaño</string>
   <string name="update_package">Paquete</string>
   <string name="update_unknown_size">Tamaño desconocido</string>
-  <string name="update_beta_build_format">Beta r%1$d</string>
-  <string name="ui_beta_badge_suffix">\u0020(Beta)</string>
   <string name="player_video_quality">Calidad de vídeo</string>
   <string name="player_video_quality_button">Calidad de vídeo</string>
   <string name="network_bookmark_add">Añadir carpeta a marcadores</string>
@@ -2714,7 +2714,6 @@ Reinicia la aplicación para que se apliquen todos los cambios.</string>
   <string name="pref_thumbnail_generator_mediastore">MediaStore</string>
   <string name="pref_thumbnail_generator_native_summary">Extrae miniaturas y carátulas de archivos locales. Cambiar borra la caché.</string>
   <string name="pref_thumbnail_generator_mediastore_summary">Usa miniaturas y portadas de Android. Cambiar borra la caché. Las vistas de red usan Nativo.</string>
-  <string name="ui_update_channels_summary">Versiones estables, versiones preliminares nocturnas o compilaciones experimentales de CI.</string>
   <string name="tv_nav_settings">Ajustes</string>
   <string name="tv_move_up">Mover arriba</string>
   <string name="tv_move_down">Mover abajo</string>

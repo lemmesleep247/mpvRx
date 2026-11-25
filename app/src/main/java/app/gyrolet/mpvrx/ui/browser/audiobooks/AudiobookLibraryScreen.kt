@@ -62,10 +62,8 @@ import androidx.compose.material3.MaterialTheme
 import app.gyrolet.mpvrx.presentation.components.AppTextField as OutlinedTextField
 import androidx.compose.material3.PlainTooltip
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SheetValue
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.rememberBottomSheetState
 import app.gyrolet.mpvrx.presentation.components.AppDialogTextButton as TextButton
 import androidx.compose.material3.ToggleFloatingActionButton
 import androidx.compose.material3.ToggleFloatingActionButtonDefaults.animateIcon
@@ -299,6 +297,7 @@ fun AudiobookLibraryContent(
     R.string.audiobook_not_started,
   )
   Scaffold(
+    contentWindowInsets = FabPlacement.scaffoldInsets(),
     containerColor = app.gyrolet.mpvrx.ui.theme.wallpaperAwareBackgroundColor(),
     topBar = {
       BrowserTopBar(
@@ -389,7 +388,7 @@ fun AudiobookLibraryContent(
       floatingActionButton = {
         if (!isAbsSource && importing == null) {
           FloatingActionButtonMenu(
-            modifier = Modifier.padding(bottom = FabPlacement.scaffoldBottomPadding()),
+            modifier = FabPlacement.scaffoldMenu(),
             expanded = importMenu,
             button = {
               TooltipBox(
@@ -847,13 +846,9 @@ private fun AudiobookDetailsBottomSheet(
   extraActions: (@Composable androidx.compose.foundation.layout.ColumnScope.() -> Unit)? = null,
   sourceUri: String? = null,
 ) {
-  val sheetState = rememberBottomSheetState(
-    initialValue = SheetValue.Expanded,
-    enabledValues = setOf(SheetValue.Hidden, SheetValue.Expanded),
-  )
   ResponsiveBottomSheet(
     onDismissRequest = onDismiss,
-    sheetState = sheetState,
+    animateEntrance = false,
     shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp),
     containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
   ) {

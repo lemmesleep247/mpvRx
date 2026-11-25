@@ -102,6 +102,7 @@ import kotlinx.collections.immutable.toImmutableList
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.ensureActive
@@ -2264,12 +2265,14 @@ fun restartFromBeginning() {
 
   fun seekToBookmark(bookmark: app.gyrolet.mpvrx.database.entities.PlaybackBookmarkEntity) {
     if (bookmark.mediaId != bookmarkMediaId(PlaybackSession.state.value.currentItem)) return
+    cancelScrubSeeks()
     if (bookmark.bookTrackId != null) AudiobookPlayback.seekToBookmark(bookmark.bookTrackId, bookmark.positionMs)
     else PlaybackSession.command("seek", (bookmark.positionMs / 1000.0).toString(), "absolute+exact")
   }
 
   fun seekToPlaybackChapter(chapter: dev.vivvvek.seeker.Segment) {
     if (!chapter.start.isFinite() || chapter.start < 0) return
+    cancelScrubSeeks()
     if (PlaybackSession.state.value.currentItem?.audiobook != null) AudiobookPlayback.seekInBook((chapter.start * 1000).toLong())
     else PlaybackSession.command("seek", chapter.start.toString(), "absolute+exact")
   }
@@ -2347,10 +2350,6 @@ fun restartFromBeginning() {
   // Current aspect ratio value (for custom ratios and tracking)
   private val _currentAspectRatio = MutableStateFlow(-1.0)
   val currentAspectRatio: StateFlow<Double> = _currentAspectRatio.asStateFlow()
-  private val blackBarScanRequestedFor = MutableStateFlow<Long?>(null)
-  private var blackBarSource: BlackBarSource? = null
-  private var detectedBlackBars: Pair<BlackBarSource, VideoBlackBars>? = null
-  @Volatile private var isBlackBarScanInProgress = false
 
   // Timer
   private var timerJob: Job? = null
@@ -2727,6 +2726,7 @@ fun restartFromBeginning() {
         viewModelScope.launch(Dispatchers.IO) {
           val currentPos = PlaybackSession.getPropertyDouble("time-pos") ?: 0.0
           if (kotlin.math.abs(currentPos - pos) > 0.75) {
+            cancelScrubSeeks()
             PlaybackSession.command("seek", pos.toString(), "absolute+exact")
           }
         }
@@ -2842,7 +2842,6 @@ fun restartFromBeginning() {
     }
 
     // Crop, aspect and ambient work belongs to the video player's surface, never to the in-app sheet.
-    if (!hostedInBrowser) viewModelScope.launch { watchBlackBars() }
 
     if (!hostedInBrowser) viewModelScope.launch {
       val activeGeneration =
@@ -3325,6 +3324,7 @@ fun restartFromBeginning() {
     }
     _seekState.value = SeekState()
     cancelFrameSeek()
+    cancelScrubSeeks()
     isGestureSeeking = false
     lastScrubTarget = Double.NaN
     lyricsLoadJob?.cancel()
@@ -3782,9 +3782,39 @@ fun restartFromBeginning() {
   private var lastScrubTarget = Double.NaN
   private var frameSeekJob: Job? = null
 
+  /**
+   * One seek of a scrub (seekbar drag or horizontal swipe). The thumb follows the finger on the UI
+   * thread, while its seeks run on one background worker: libmpv's seek command blocks its caller
+   * until the core thread takes it, which can take several frames while a decoder flushes or a
+   * stream refills. The queue keeps only the newest target, so a slow seek drops stale targets
+   * instead of queueing them behind it.
+   */
+  private class ScrubSeek(
+    val serial: Long,
+    val epoch: Long,
+    val generation: Long,
+    // NaN for a final request that only waits for the scrub's last seek.
+    val target: Double,
+    // Ends the scrub: the thumb stays on its target until mpv has landed there.
+    val isFinal: Boolean,
+  )
+
+  private val scrubSeeks = Channel<ScrubSeek>(Channel.CONFLATED)
+  // Every scrub request and every other seek takes a new serial; the worker skips all but the newest.
+  private val scrubSerial = AtomicLong()
+  // Bumped by seeks from other paths. A scrub seek from an older epoch must never reach mpv after them.
+  private val scrubEpoch = AtomicLong()
+  // Serial of the final request whose target the thumb holds until mpv lands there, or 0.
+  private val settlingScrubSerial = AtomicLong()
+  private val scrubSeekWorker: Job by lazy { launchScrubSeekWorker() }
+  private val mpvSeekingState by lazy { PlaybackSession.propBoolean["seeking"] }
+  private var horizontalSeekUpdateDismissJob: Job? = null
+
+  private fun isScrubHoldingPosition(): Boolean = isGestureSeeking || settlingScrubSerial.get() != 0L
+
   private fun publishPrecisePosition(time: Double) {
     val posFloat = time.toFloat()
-    if (isGestureSeeking || _precisePosition.value == posFloat) return
+    if (isScrubHoldingPosition() || _precisePosition.value == posFloat) return
     _precisePosition.value = posFloat
     updateLyricsActiveLine()
   }
@@ -3794,6 +3824,11 @@ fun restartFromBeginning() {
     const val AUTO_SHOW_SKIP_CHIP_DURATION = 10.0
     // mpv-android's seekbar step (SEEK_BAR_PRECISION = 2). Finer moves only re-decode the same frame.
     const val SCRUB_SEEK_STEP_SECONDS = 0.5
+    // mpv keeps `seeking` set while seeks queue up, so this much idle time means the last one landed.
+    const val SCRUB_SETTLE_IDLE_MS = 120L
+    const val SCRUB_SETTLE_POLL_MS = 16L
+    // Never hold the thumb longer than this on a stream that cannot finish its seek.
+    const val SCRUB_SETTLE_TIMEOUT_MS = 1_500L
     const val FRAME_SEEK_POLL_INTERVAL_MS = 10L
     const val FRAME_SEEK_MIN_SETTLE_POLLS = 8
     const val FRAME_SEEK_MAX_SETTLE_POLLS = 75
@@ -4645,7 +4680,8 @@ fun restartFromBeginning() {
       _showSkipChipAuto.value = showChip
     }
 
-    if (paused == true || activeSegment == null || !autoSkipEnabled) return
+    // A scrub passing through a segment is the user picking a position; skipping would fight the finger.
+    if (paused == true || activeSegment == null || !autoSkipEnabled || isScrubHoldingPosition()) return
 
     skippedSegments += activeSegment
     seekPastSkipSegment(activeSegment, auto = true)
@@ -4663,6 +4699,7 @@ fun restartFromBeginning() {
     auto: Boolean,
   ) {
     val seekTarget = SkipMarkerResolver.seekTarget(segment, currentDurationSeconds())
+    cancelScrubSeeks()
     PlaybackSession.setPropertyDouble("time-pos", seekTarget)
     syncplayManager.updatePlayerState(
       seekTarget,
@@ -5518,6 +5555,7 @@ fun restartFromBeginning() {
    */
   fun prepareForPlayerTeardown() {
     cancelFrameSeek()
+    cancelScrubSeeks()
 
     synchronized(ambientScheduleLock) {
       ambientUpdateGeneration.incrementAndGet()
@@ -5540,10 +5578,12 @@ fun restartFromBeginning() {
   }
 
   // ==================== Seeking ====================
-  // Mirrors mpv-android: every seek goes straight to mpv, which coalesces queued seeks itself.
+  // Taps and skips go straight to mpv, which coalesces queued seeks itself. Scrubs (seekbar drag and
+  // horizontal swipe) seek from a background worker instead, see [ScrubSeek].
 
   fun seekBy(offset: Int) {
     cancelFrameSeek()
+    cancelScrubSeeks()
     if (offset == 0) return
     if (PlaybackSession.state.value.currentItem?.audiobook != null) {
       AudiobookPlayback.seekBy(offset)
@@ -5590,32 +5630,31 @@ fun restartFromBeginning() {
     return if (loopA != null && loopB != null) target.coerceIn(minOf(loopA, loopB), maxOf(loopA, loopB)) else target
   }
 
-  /** Seekbar drag or tap: seeks follow the thumb at once, in 0.5 s steps. */
+  /** Seekbar drag or tap: seeks follow the thumb in 0.5 s steps, off the UI thread. */
   fun scrubTo(position: Float) {
     if (!position.isFinite()) return
     val target = clampSeekTarget(position.toDouble())
     if (abs(target - lastScrubTarget) < SCRUB_SEEK_STEP_SECONDS) return
     cancelFrameSeek()
     lastScrubTarget = target
-    // Unlike setting time-pos, `seek` lets mpv show a frame from each spot before taking the next one.
-    PlaybackSession.command("seek", target.toString(), "absolute")
+    queueScrubSeek(target, isFinal = false)
   }
 
-  /** Ends a seekbar drag or tap, which already seeked live. */
+  /** Ends a seekbar drag or tap. The thumb stays on [position] until mpv has landed there. */
   fun seekFromScrub(position: Float) {
     if (!position.isFinite()) return
     val target = clampSeekTarget(position.toDouble())
-    // Re-seeking within one step of the live seek would replay the decode and freeze the picture.
-    if (lastScrubTarget.isNaN() || abs(target - lastScrubTarget) >= SCRUB_SEEK_STEP_SECONDS) {
-      cancelFrameSeek()
-      PlaybackSession.command("seek", target.toString(), "absolute")
-    }
+    cancelFrameSeek()
     lastScrubTarget = Double.NaN
+    queueScrubSeek(target, isFinal = true)
     _precisePosition.value = target.toFloat()
     syncplayManager.updatePlayerState(target, paused ?: false, doSeek = true)
   }
 
-  /** Horizontal swipe, as mpv-android's seek gesture: seeks follow the finger at once, in 0.5 s steps. */
+  /**
+   * Horizontal swipe, as mpv-android's seek gesture: the thumb follows the finger on every move,
+   * seeks follow it in 0.5 s steps. This runs for each pointer event, so it never calls into mpv.
+   */
   fun gestureSeekTo(position: Float) {
     if (!position.isFinite()) return
     val target = clampSeekTarget(position.toDouble())
@@ -5624,16 +5663,146 @@ fun restartFromBeginning() {
     if (abs(target - lastScrubTarget) < SCRUB_SEEK_STEP_SECONDS) return
     cancelFrameSeek()
     lastScrubTarget = target
-    PlaybackSession.command("seek", target.toString(), "absolute")
+    queueScrubSeek(target, isFinal = false)
   }
 
-  /** Ends a swipe (null cancels it). Its live seeks already landed, so none is repeated here. */
+  /**
+   * Ends a swipe (null cancels it). Its live seeks already followed the finger, so mpv seeks again
+   * only if the last step never reached it. The thumb stays on the target until mpv lands there.
+   */
   fun finishGestureSeek(position: Float?) {
-    isGestureSeeking = false
+    // A swipe that never moved the thumb has nothing to seek to, nor a thumb to hold.
+    val moved = isGestureSeeking
+    val target = position?.takeIf { moved && it.isFinite() }?.let { clampSeekTarget(it.toDouble()) }
+    // The settle hold must start before the swipe hold ends, or a stale position could slip in between.
+    if (moved) queueScrubSeek(target ?: lastScrubTarget, isFinal = true)
     lastScrubTarget = Double.NaN
+    isGestureSeeking = false
+    if (target != null) syncplayManager.updatePlayerState(target, paused ?: false, doSeek = true)
+  }
+
+  /** Shows the swipe-seek chip, which follows the swipe's target in [precisePosition] by itself. */
+  fun showHorizontalSeekUpdate(startPosition: Float) {
+    horizontalSeekUpdateDismissJob?.cancel()
+    horizontalSeekUpdateDismissJob = null
+    playerUpdate.value = PlayerUpdates.HorizontalSeek(startPosition)
+  }
+
+  /**
+   * Hides the swipe-seek chip after [delayMillis], unless another update replaced it meanwhile.
+   * This runs in the ViewModel, so the chip also goes away when the gesture handler is disposed.
+   */
+  fun dismissHorizontalSeekUpdate(delayMillis: Long) {
+    val update = playerUpdate.value as? PlayerUpdates.HorizontalSeek ?: return
+    horizontalSeekUpdateDismissJob?.cancel()
+    horizontalSeekUpdateDismissJob =
+      viewModelScope.launch {
+        delay(delayMillis)
+        playerUpdate.compareAndSet(update, PlayerUpdates.None)
+      }
+  }
+
+  private fun queueScrubSeek(
+    target: Double,
+    isFinal: Boolean,
+  ) {
+    val serial = scrubSerial.incrementAndGet()
+    // A drag or swipe in progress owns the thumb itself; only the end of a scrub holds it on a target.
+    settlingScrubSerial.set(if (isFinal) serial else 0L)
+    scrubSeekWorker.start()
+    scrubSeeks.trySend(
+      ScrubSeek(
+        serial = serial,
+        epoch = scrubEpoch.get(),
+        generation = PlaybackSession.state.value.generation,
+        target = target,
+        isFinal = isFinal,
+      ),
+    )
+  }
+
+  /** Drops scrub seeks that have not reached mpv yet, so they can never land after a newer seek. */
+  private fun cancelScrubSeeks() {
+    scrubEpoch.incrementAndGet()
+    scrubSerial.incrementAndGet()
+    settlingScrubSerial.set(0L)
+  }
+
+  private fun launchScrubSeekWorker(): Job =
+    viewModelScope.launch(Dispatchers.IO.limitedParallelism(1)) {
+      // The target this scrub last sent to mpv. A new scrub, file or outside seek starts afresh.
+      var lastSent = Double.NaN
+      var sentEpoch = -1L
+      var sentGeneration = -1L
+      for (seek in scrubSeeks) {
+        try {
+          if (seek.epoch != sentEpoch || seek.generation != sentGeneration) {
+            lastSent = Double.NaN
+            sentEpoch = seek.epoch
+            sentGeneration = seek.generation
+          }
+          if (seek.serial != scrubSerial.get()) {
+            // A newer request replaced this one; a replaced final request still ends its scrub.
+            if (seek.isFinal) lastSent = Double.NaN
+            continue
+          }
+          // Releasing within one step of the last live seek would only replay its decode and freeze the picture.
+          val needsSeek =
+            seek.target.isFinite() &&
+              (!seek.isFinal || lastSent.isNaN() || abs(seek.target - lastSent) >= SCRUB_SEEK_STEP_SECONDS)
+          // Unlike setting time-pos, `seek` lets mpv show a frame from each spot before taking the next one.
+          // A seek from another path voids this one; that check runs under the native lock, so this
+          // seek can never land after it. A newer scrub target merely follows this one.
+          val sent =
+            needsSeek &&
+              PlaybackSession.commandForGenerationIf(
+                seek.generation,
+                { seek.epoch == scrubEpoch.get() },
+                "seek",
+                seek.target.toString(),
+                "absolute",
+              )
+          if (sent) lastSent = seek.target
+          if (seek.isFinal) {
+            lastSent = Double.NaN
+            if (sent || !needsSeek) awaitScrubSeekSettled(seek.serial)
+            releaseScrubHold(seek.serial)
+          }
+        } catch (error: kotlin.coroutines.cancellation.CancellationException) {
+          throw error
+        } catch (error: Exception) {
+          Log.w(TAG, "Scrub seek failed", error)
+          releaseScrubHold(seek.serial)
+        }
+      }
+    }
+
+  /**
+   * Returns once mpv has finished seeking for the scrub, or a newer request replaced it. mpv keeps
+   * `seeking` set while further seeks are queued, so a short idle stretch means the last one landed.
+   */
+  private suspend fun awaitScrubSeekSettled(serial: Long) {
+    val seeking = mpvSeekingState
+    val deadline = android.os.SystemClock.uptimeMillis() + SCRUB_SETTLE_TIMEOUT_MS
+    var idleSince = 0L
+    while (scrubSerial.get() == serial) {
+      val now = android.os.SystemClock.uptimeMillis()
+      if (now >= deadline) return
+      if (seeking.value == true) {
+        idleSince = 0L
+      } else if (idleSince == 0L) {
+        idleSince = now
+      } else if (now - idleSince >= SCRUB_SETTLE_IDLE_MS) {
+        return
+      }
+      delay(SCRUB_SETTLE_POLL_MS)
+    }
+  }
+
+  /** Hands the thumb back to playback, starting from where mpv actually landed. */
+  private fun releaseScrubHold(serial: Long) {
+    if (!settlingScrubSerial.compareAndSet(serial, 0L)) return
     PlaybackSession.getPropertyDouble("time-pos")?.let(::publishPrecisePosition)
-    val target = position?.takeIf { it.isFinite() }?.let { clampSeekTarget(it.toDouble()) } ?: return
-    syncplayManager.updatePlayerState(target, paused ?: false, doSeek = true)
   }
 
   fun seekTo(
@@ -5641,6 +5810,7 @@ fun restartFromBeginning() {
     fast: Boolean = false,
   ) {
     cancelFrameSeek()
+    cancelScrubSeeks()
     val target = clampSeekTarget(position.toDouble())
     PlaybackSession.command("seek", target.toString(), if (fast) "absolute+keyframes" else "absolute+exact")
     syncplayManager.updatePlayerState(target, paused ?: false, doSeek = true)
@@ -5971,107 +6141,15 @@ fun restartFromBeginning() {
 
   // ==================== Video Aspect ====================
 
-  private suspend fun watchBlackBars() {
-    val activeGeneration = PlaybackSession.state.map { state ->
-      state.generation.takeIf {
-        state.surfaceAttached && state.activeGeneration == it &&
-          state.phase in setOf(PlaybackPhase.READY, PlaybackPhase.BACKGROUND)
-      }
-    }.distinctUntilChanged()
-    val sources = combine(
-      activeGeneration,
-      PlaybackSession.propString["vid"],
-      PlaybackSession.propInt["video-out-params/w"],
-      PlaybackSession.propInt["video-out-params/h"],
-      PlaybackSession.propInt["video-out-params/rotate"],
-    ) { generation, vid, width, height, rotation ->
-      val id = vid?.toIntOrNull()
-      if (generation != null && id != null && width != null && width >= 8 && height != null && height >= 8) {
-        BlackBarSource(generation, id, width, height, rotation ?: 0)
-      } else {
-        null
-      }
-    }.distinctUntilChanged()
-    val cropWanted = combine(
-      _videoAspect,
-      _currentAspectRatio,
-      playerPreferences.autoCropBlackBars.changes(),
-    ) { aspect, customRatio, cropEnabled ->
-      customRatio <= 0 && wantsBlackBarCrop(aspect, cropEnabled)
-    }
-    val detectionWanted = combine(
-      blackBarScanRequestedFor,
-      cropWanted,
-      isAudioOnly,
-    ) { requestedGeneration, cropEnabled, audioOnly ->
-      val shouldCrop = !audioOnly && cropEnabled
-      requestedGeneration.takeUnless { audioOnly || shouldCrop } to shouldCrop
-    }
-
-    combine(sources, detectionWanted, PlaybackSession.propString["video-crop"]) { source, demand, crop ->
-      Triple(source, demand, crop.isNullOrEmpty())
-    }.distinctUntilChanged().collectLatest { (source, demand, uncropped) ->
-      val (requestedGeneration, shouldCrop) = demand
-      blackBarSource = source
-      if (!shouldCrop) PlaybackSession.clearBlackBarCrop()
-      if (source == null) return@collectLatest
-      if (shouldCrop) PlaybackSession.clearBlackBarCrop(unlessSource = source)
-      if (!uncropped || MpvConfigOverridePolicy.isOwnedByMpvConf("video-crop")) return@collectLatest
-      if (!shouldCrop && requestedGeneration != source.generation) return@collectLatest
-      if (detectedBlackBars?.first != source) {
-        val state = PlaybackSession.state.first { !it.paused || it.generation != source.generation }
-        if (state.generation != source.generation) return@collectLatest
-        // Shader Ambient composites its picture in the OUTPUT pass, including in video screenshots.
-        isBlackBarScanInProgress = true
-        try {
-          if (_isAmbientEnabled.value && _ambientStyle.value != AmbientStyle.YouTube) disableAmbientShader()
-          detectBlackBars(source, appContext.cacheDir)?.let { bars -> detectedBlackBars = source to bars }
-          if (shouldCrop) applyDetectedBlackBars()
-        } finally {
-          isBlackBarScanInProgress = false
-          scheduleAmbientUpdate(0)
-        }
-      } else if (shouldCrop) {
-        applyDetectedBlackBars()
-      }
-    }
-  }
-
-  private fun wantsBlackBarCrop(
-    aspect: VideoAspect,
-    cropEnabled: Boolean = playerPreferences.autoCropBlackBars.get(),
-  ): Boolean =
-    aspect == VideoAspect.Fit && cropEnabled &&
-      !MpvConfigOverridePolicy.ownsAny(MpvConfigControlledFeatures.VIDEO_ASPECT) &&
-      !MpvConfigOverridePolicy.isOwnedByMpvConf("video-crop")
-
-  fun setAutoCropBlackBars(enabled: Boolean) {
-    playerPreferences.autoCropBlackBars.set(enabled)
-    if (!enabled) {
-      PlaybackSession.clearBlackBarCrop()
-      detectedBlackBars = null
-    }
-  }
-
-  private fun applyDetectedBlackBars() {
-    if (isAudioOnly.value || _currentAspectRatio.value > 0 ||
-      !wantsBlackBarCrop(_videoAspect.value)
-    ) return
-    val (source, bars) = detectedBlackBars ?: return
-    if (blackBarSource == source) PlaybackSession.applyBlackBarCrop(source, bars)
-  }
-
   fun changeVideoAspect(
     aspect: VideoAspect,
     showUpdate: Boolean = true,
     resetZoom: Boolean = true,
   ) {
     if (MpvConfigOverridePolicy.ownsAny(MpvConfigControlledFeatures.VIDEO_ASPECT)) return
-    val shouldCrop = wantsBlackBarCrop(aspect)
-    if (!shouldCrop) PlaybackSession.clearBlackBarCrop()
     when (aspect) {
       VideoAspect.Fit -> {
-        // Fit the frame; a confirmed matte is removed from the source rectangle separately.
+        // Fit keeps the complete frame, including any encoded matte.
         PlaybackSession.setPropertyDouble("panscan", 0.0)
         PlaybackSession.setPropertyString("video-aspect-override", "no")
       }
@@ -6121,7 +6199,6 @@ fun restartFromBeginning() {
     _videoAspect.value = aspect
     _currentAspectRatio.value = -1.0 // Reset custom ratio when using standard modes
 
-    if (shouldCrop) applyDetectedBlackBars()
     onAmbientGeometryChanged()
     // Notify the UI
     if (showUpdate) {
@@ -6135,7 +6212,6 @@ fun restartFromBeginning() {
     resetZoom: Boolean = true,
   ) {
     if (MpvConfigOverridePolicy.ownsAny(MpvConfigControlledFeatures.VIDEO_ASPECT)) return
-    PlaybackSession.clearBlackBarCrop()
     PlaybackSession.setPropertyDouble("panscan", 0.0)
     PlaybackSession.setPropertyDouble("video-aspect-override", ratio)
     if (resetZoom) resetVideoZoom()
@@ -6370,13 +6446,8 @@ fun restartFromBeginning() {
     val videoHeight = PlaybackSession.getPropertyInt("video-out-params/h") ?: return emptyList()
     val aspect = VideoAspectGeometry.currentEffectiveDisplayAspect(videoWidth.toDouble(), videoHeight.toDouble())
       ?: return emptyList()
-    val uncropped = PlaybackSession.getPropertyString("video-crop").isNullOrEmpty()
-    if (uncropped) blackBarScanRequestedFor.value = PlaybackSession.state.value.generation
-    val bars = detectedBlackBars?.takeIf {
-      uncropped && it.first == blackBarSource && it.first.generation == PlaybackSession.state.value.generation
-    }?.second
     val panscan = PlaybackSession.getPropertyDouble("panscan") ?: 0.0
-    return videoZoomStops(width / height.toDouble(), aspect, panscan, bars)
+    return videoZoomStops(width / height.toDouble(), aspect, panscan)
   }
 
   internal fun snapVideoZoom(zoom: Float): Float {
@@ -6483,11 +6554,13 @@ fun restartFromBeginning() {
 
     if (!finished) {
       cancelFrameSeek()
+      cancelScrubSeeks()
       PlaybackSession.command("seek", targetPosition.toString(), "absolute+keyframes")
       return
     }
 
     cancelFrameSeek()
+    cancelScrubSeeks()
     frameSeekJob =
       viewModelScope.launch(Dispatchers.IO) {
         if (!PlaybackSession.isCurrentGeneration(generation)) return@launch
@@ -7112,6 +7185,11 @@ fun restartFromBeginning() {
             item.networkConnectionId == null || abs(item.index - currentIndex) <= PLAYLIST_NETWORK_METADATA_PREFETCH_RADIUS
           }
 
+          val pendingEntries = metadataItems.mapTo(mutableSetOf()) { it.queueEntryId }
+          _playlistItems.value = _playlistItems.value.map { item ->
+            item.copy(metadataLoading = item.queueEntryId in pendingEntries)
+          }
+
         // Limit concurrent metadata extraction to avoid overwhelming resources
         val batchSize = 5
         metadataItems.chunked(batchSize).forEach { batch ->
@@ -7138,14 +7216,17 @@ fun restartFromBeginning() {
           }
 
           // Apply all batched updates at once (single playlist update)
-          if (updates.isNotEmpty()) {
+          val completedEntries = batch.mapTo(mutableSetOf()) { it.queueEntryId }
+          if (completedEntries.isNotEmpty()) {
             _playlistItems.value =
               _playlistItems.value.map { currentItem ->
+                if (currentItem.queueEntryId !in completedEntries) return@map currentItem
                 val cacheKey = currentItem.uri.toString()
-                val (durationStr, resolutionStr) = updates[cacheKey] ?: return@map currentItem
+                val (durationStr, resolutionStr) = updates[cacheKey] ?: (currentItem.duration to currentItem.resolution)
                 currentItem.copy(
                   duration = durationStr.ifBlank { currentItem.duration },
                   resolution = resolutionStr.ifBlank { currentItem.resolution },
+                  metadataLoading = false,
                 )
               }
           }
@@ -7484,7 +7565,7 @@ fun restartFromBeginning() {
 
   /** All shader styles share the same renderer and lifecycle. YouTube retains its capture renderer. */
   private fun isAmbientShaderRuntimeActive(): Boolean =
-    !isBlackBarScanInProgress && isAmbientRuntimeActive() && _ambientStyle.value != AmbientStyle.YouTube
+    isAmbientRuntimeActive() && _ambientStyle.value != AmbientStyle.YouTube
 
   fun setAmbientPipActive(active: Boolean) {
     isAmbientPipActive = active

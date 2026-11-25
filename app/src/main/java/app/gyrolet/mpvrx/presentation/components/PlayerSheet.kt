@@ -65,7 +65,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
@@ -107,8 +106,9 @@ import app.gyrolet.mpvrx.ui.theme.AppMotion
 import app.gyrolet.mpvrx.ui.theme.LocalMotionPolicy
 import app.gyrolet.mpvrx.ui.theme.MotionPolicy
 import app.gyrolet.mpvrx.ui.tv.TvSafeArea
-import kotlinx.coroutines.flow.collectLatest
-import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.ensureActive
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 
@@ -129,7 +129,6 @@ fun PlayerSheet(
   confirmDismiss: () -> Boolean = { true },
   content: @Composable () -> Unit,
 ) {
-  val scope = rememberCoroutineScope()
   val window = sheetWindow()
   val television = window.television
   val liquidGlassEnabled = playerGlassSurfaceEnabled()
@@ -144,7 +143,7 @@ fun PlayerSheet(
   // which is what makes the sheet modal rather than a panel floating over a
   // still-live screen.
   val currentSheetSpec by rememberUpdatedState<FiniteAnimationSpec<Float>>(
-    if (reducedMotion) AppMotion.ReducedAlpha else AppMotion.Spatial.Expressive,
+    if (reducedMotion) AppMotion.ReducedAlpha else AppMotion.noBounce(380f),
   )
   val sheetAnimationSpec = remember {
     object : FiniteAnimationSpec<Float> {
@@ -156,7 +155,10 @@ fun PlayerSheet(
   val density = LocalDensity.current
   val latestOnDismissRequest by rememberUpdatedState(onDismissRequest)
   val latestConfirmDismiss by rememberUpdatedState(confirmDismiss)
+  var opened by remember { mutableStateOf(false) }
+  var closing by remember { mutableStateOf(false) }
   var dismissalDelivered by remember { mutableStateOf(false) }
+  var sheetHeightPx by remember { mutableStateOf(0) }
   val deliverDismissal: () -> Unit = {
     if (!dismissalDelivered) {
       dismissalDelivered = true
@@ -164,7 +166,6 @@ fun PlayerSheet(
     }
   }
   val isImeVisible = WindowInsets.ime.getBottom(density) > 0
-  val sheetTravelPx = with(density) { window.height.toPx() }
   val decayAnimationSpec = rememberSplineBasedDecay<Float>()
   val anchoredDraggableState =
     remember {
@@ -176,22 +177,23 @@ fun PlayerSheet(
         velocityThreshold = { with(density) { 125.dp.toPx() } },
       )
     }
+  // The bottom-aligned sheet has left the screen once it travelled its own height; the rest of
+  // the spring toward the closed anchor is invisible.
+  val sheetOffscreen: () -> Boolean = {
+    val offset = anchoredDraggableState.offset
+    sheetHeightPx > 0 && offset.isFinite() && offset >= sheetHeightPx - 1f
+  }
 
   val scaledSwipeOffset = swipeOffset * 2f
   val currentIsSwipeActive by rememberUpdatedState(isSwipeActive)
   val currentScaledSwipeOffset by rememberUpdatedState(scaledSwipeOffset)
-  val height =
-    if (anchoredDraggableState.anchors.size >
-      0
-    ) {
-      anchoredDraggableState.anchors.positionOf(1)
-    } else {
-      sheetTravelPx
-    }
+  val height = anchoredDraggableState.anchors.positionOf(1)
   val swipeProgress = if (height > 0) (-scaledSwipeOffset / height).coerceIn(0f, 1f) else 0f
   val targetAlpha =
-    if (isSwipeActive) {
-      if (anchoredDraggableState.anchors.size > 0) scrimAlpha * swipeProgress else 0f
+    if (closing) {
+      0f
+    } else if (isSwipeActive) {
+      scrimAlpha * swipeProgress
     } else if (anchoredDraggableState.targetValue == 0) {
       scrimAlpha
     } else {
@@ -205,23 +207,25 @@ fun PlayerSheet(
 
   // Ask before moving the sheet so an unsaved-changes prompt does not hide the form.
   val internalOnDismissRequest: () -> Unit = {
-    if (!dismissalDelivered && latestConfirmDismiss()) {
-      scope.launch {
-        anchoredDraggableState.animateTo(1)
-        deliverDismissal()
-      }
-    }
+    if (!closing && !dismissalDelivered && latestConfirmDismiss()) closing = true
   }
   val closeLabel = stringResource(R.string.ui_close)
+  // A leaving sheet must not keep an invisible full-screen scrim over the player's gestures.
+  val scrimBlocksTouches = !closing && !dismissalDelivered && !(opened && anchoredDraggableState.targetValue == 1)
+  val scrimInteractionSource = remember { MutableInteractionSource() }
   Box(Modifier.fillMaxSize().semantics { isTraversalGroup = true }) {
     Box(
       Modifier.matchParentSize().background(Color.Black.copy(alpha))
         .focusProperties { canFocus = false }
-        .clickable(
-          interactionSource = remember { MutableInteractionSource() },
-          indication = null,
-          onClickLabel = closeLabel,
-          onClick = internalOnDismissRequest,
+        .then(
+          if (scrimBlocksTouches) {
+            Modifier.clickable(
+              interactionSource = scrimInteractionSource,
+              indication = null,
+              onClickLabel = closeLabel,
+              onClick = internalOnDismissRequest,
+            )
+          } else Modifier,
         ),
     )
     Box(
@@ -233,12 +237,21 @@ fun PlayerSheet(
         )
         .then(if (television) Modifier.padding(TvSafeArea.Padding) else Modifier)
         .onSizeChanged {
+          if (it.height <= 0) return@onSizeChanged
           val anchors =
             DraggableAnchors {
               0 at 0f
-              1 at minOf(it.height.toFloat(), sheetTravelPx)
+              1 at it.height.toFloat()
             }
-          anchoredDraggableState.updateAnchors(anchors)
+          anchoredDraggableState.updateAnchors(
+            anchors,
+            // IME/inset changes must not choose the nearest anchor mid-transition.
+            newTarget = if (anchoredDraggableState.isAnimationRunning) {
+              anchoredDraggableState.targetValue
+            } else {
+              anchoredDraggableState.settledValue
+            },
+          )
         },
       contentAlignment = Alignment.BottomCenter,
     ) {
@@ -247,15 +260,17 @@ fun PlayerSheet(
         else MaterialTheme.shapes.extraLargeIncreased.copy(bottomEnd = ZeroCornerSize, bottomStart = ZeroCornerSize)
       val baseContainerColor = surfaceColor ?: MaterialTheme.colorScheme.surfaceContainerHigh
       val canDrag = !television && dragToDismiss
+      val dragEnabled = canDrag && opened && !closing
       Surface(
         modifier = Modifier
+          .onSizeChanged { sheetHeightPx = it.height }
           .sizeIn(maxWidth = window.maxWidth(customMaxWidth))
           .fillMaxWidth()
           .then(modifier)
           .tvFocusGroup()
           .tvInitialFocus(sheetInitialFocus)
           .offset {
-            val baseOffset = anchoredDraggableState.offset.takeIf { it.isFinite() } ?: sheetTravelPx
+            val baseOffset = anchoredDraggableState.offset.takeIf { it.isFinite() } ?: 0f
             IntOffset(0, baseOffset.roundToInt())
           }
           .graphicsLayer { this.alpha = if (anchoredDraggableState.anchors.size > 0) 1f else 0f }
@@ -269,7 +284,7 @@ fun PlayerSheet(
             }
           }
           .then(
-            if (canDrag) {
+            if (dragEnabled) {
               Modifier.nestedScroll(
                 remember(anchoredDraggableState) { anchoredDraggableState.preUpPostDownNestedScrollConnection() },
               )
@@ -278,7 +293,7 @@ fun PlayerSheet(
           .anchoredDraggable(
             state = anchoredDraggableState,
             orientation = Orientation.Vertical,
-            enabled = canDrag,
+            enabled = dragEnabled,
           )
           .playerGlassSurface(playerBackdrop, sheetShape, baseContainerColor, enabled = isFrosted),
         shape = sheetShape,
@@ -286,7 +301,7 @@ fun PlayerSheet(
         tonalElevation = if (isFrosted) 0.dp else tonalElevation,
         border = if (isFrosted) null else BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.28f)),
       ) {
-        BackHandler(enabled = anchoredDraggableState.targetValue == 0, onBack = internalOnDismissRequest)
+        BackHandler(enabled = !closing && !dismissalDelivered, onBack = internalOnDismissRequest)
         CompositionLocalProvider(
           LocalPlayerGlassSurfaceActive provides isFrosted,
           LocalMotionPolicy provides MotionPolicy(reduceMotion = reducedMotion),
@@ -300,7 +315,8 @@ fun PlayerSheet(
             SheetOpeningHandle(
               resize = resize,
               showDragHandle = canDrag || (!television && title != null),
-              gesturesEnabled = canDrag || resize != null,
+              gesturesEnabled = canDrag,
+              resizeEnabled = opened && !closing,
             )
             if (title != null) {
               PlayerSheetHeader(title = title, actions = actions)
@@ -313,78 +329,71 @@ fun PlayerSheet(
       }
     }
 
-    LaunchedEffect(anchoredDraggableState, sheetTravelPx) {
-      snapshotFlow {
-        Triple(
-          currentIsSwipeActive,
-          currentScaledSwipeOffset,
-          anchoredDraggableState.anchors.size,
-        )
-      }.collectLatest { (swipeActive, latestSwipeOffset, anchorCount) ->
-        if (swipeActive && anchorCount > 0) {
-          val closedOffset = anchoredDraggableState.anchors.positionOf(1)
-          val currentOffset = anchoredDraggableState.offset
-          if (closedOffset.isFinite() && currentOffset.isFinite()) {
-            val targetOffset = (closedOffset + latestSwipeOffset).coerceIn(0f, closedOffset)
-            anchoredDraggableState.dispatchRawDelta(targetOffset - currentOffset)
-          }
+    val openedWithSwipe = remember { isSwipeActive }
+    LaunchedEffect(anchoredDraggableState, closing) {
+      if (closing) {
+        snapshotFlow { anchoredDraggableState.offset.isFinite() }.first { it }
+        launch {
+          anchoredDraggableState.animateTo(1)
+          deliverDismissal()
         }
+        // Hand the player back as soon as the sheet is out of sight.
+        snapshotFlow { sheetOffscreen() }.first { it }
+        deliverDismissal()
+        return@LaunchedEffect
       }
-    }
-
-    var wasSwipeActive by remember { mutableStateOf(false) }
-    LaunchedEffect(anchoredDraggableState, isSwipeActive) {
-      if (isSwipeActive) {
-        wasSwipeActive = true
+      if (opened) return@LaunchedEffect
+      var swiped = openedWithSwipe
+      val (_, finalSwipeOffset, closedOffset) = snapshotFlow {
+        Triple(currentIsSwipeActive, currentScaledSwipeOffset, anchoredDraggableState.anchors.positionOf(1))
+      }.first { (swipeActive, dragOffset, closed) ->
+        swiped = swiped || swipeActive
+        val offset = anchoredDraggableState.offset
+        if (!closed.isFinite() || !offset.isFinite()) return@first false
+        if (swiped) {
+          anchoredDraggableState.dispatchRawDelta((closed + dragOffset).coerceIn(0f, closed) - offset)
+        }
+        !swipeActive
+      }
+      if (swiped && -finalSwipeOffset <= closedOffset * 0.1f && latestConfirmDismiss()) {
+        closing = true
       } else {
-        if (wasSwipeActive) {
-          val currentOffset = anchoredDraggableState.offset
-          // Settle to open (0) if the user dragged up by more than 10% of the sheet height
-          val target = if (currentOffset >= height * 0.9f) 1 else 0
-          if (target == 1 && !latestConfirmDismiss()) {
-            anchoredDraggableState.animateTo(0)
-          } else {
-            anchoredDraggableState.animateTo(target)
-            if (target == 1) deliverDismissal()
-          }
-          wasSwipeActive = false
-        } else {
-          // Title tap opening: wait for anchors to be measured before animating open (0)
-          snapshotFlow { anchoredDraggableState.anchors.size }
-            .filter { it > 0 }
-            .collectLatest {
-              anchoredDraggableState.animateTo(0)
-            }
-        }
+        anchoredDraggableState.animateTo(0)
+        opened = true
       }
     }
 
-    var wasOpened by remember { mutableStateOf(false) }
     LaunchedEffect(anchoredDraggableState) {
-      snapshotFlow { anchoredDraggableState.currentValue }
-        .collectLatest { value ->
-          if (value == 0) {
-            wasOpened = true
-          } else if (value == 1 && wasOpened && !dismissalDelivered) {
-            if (latestConfirmDismiss()) {
-              deliverDismissal()
-            } else {
-              anchoredDraggableState.animateTo(0)
-            }
-          }
+      while (true) {
+        // A swipe that settles closed is finished once the sheet is out of sight.
+        snapshotFlow {
+          opened && !closing && !dismissalDelivered && (
+            anchoredDraggableState.settledValue == 1 ||
+              (anchoredDraggableState.isAnimationRunning && anchoredDraggableState.targetValue == 1 && sheetOffscreen())
+            )
+        }.first { it }
+        if (latestConfirmDismiss()) {
+          deliverDismissal()
+          return@LaunchedEffect
         }
+        try {
+          anchoredDraggableState.animateTo(0)
+        } catch (e: CancellationException) {
+          // A new drag or a close may take the sheet over; only leaving composition ends this loop.
+          ensureActive()
+        }
+      }
     }
   }
 }
 
 @Composable
 fun PlayerSheetDragHandle(
-  onVerticalDrag: ((Boolean) -> Unit)? = null,
+  modifier: Modifier = Modifier,
   visible: Boolean = true,
 ) {
   Box(
-    Modifier.fillMaxWidth()
-      .then(if (visible && onVerticalDrag != null) Modifier.sheetExpandDrag(onVerticalDrag) else Modifier)
+    modifier.fillMaxWidth()
       .padding(top = 12.dp, bottom = 12.dp),
     contentAlignment = Alignment.Center,
   ) {

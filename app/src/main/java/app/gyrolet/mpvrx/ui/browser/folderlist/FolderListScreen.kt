@@ -52,7 +52,6 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.PlainTooltip
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.ScaffoldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.ToggleFloatingActionButton
 import androidx.compose.material3.ToggleFloatingActionButtonDefaults.animateIcon
@@ -669,7 +668,7 @@ object FolderListScreen : Screen {
         Scaffold(
           modifier = Modifier.captureLiquidGlassBackdrop(bottomBarBackdrop),
           containerColor = app.gyrolet.mpvrx.ui.theme.wallpaperAwareBackgroundColor(),
-          contentWindowInsets = if (embedded) WindowInsets(0, 0, 0, 0) else ScaffoldDefaults.contentWindowInsets,
+          contentWindowInsets = if (embedded) WindowInsets(0, 0, 0, 0) else FabPlacement.scaffoldInsets(),
           topBar = {
           if (embedded) {
             // Embedded inside another screen (e.g. Music tab) which already renders its own top bar.
@@ -735,12 +734,6 @@ object FolderListScreen : Screen {
               },
               onTitleDoubleTap = { backstack.navigateTo(SecureFolderGateScreen) },
               onTitleLongPress = { backstack.navigateTo(SecureFolderGateScreen) },
-              titleBadge =
-                when {
-                  BuildConfig.IS_PREVIEW_BUILD -> stringResource(R.string.ui_beta_badge_suffix)
-                  BuildConfig.IS_PLAY_STORE_BUILD -> stringResource(R.string.ui_tester_badge_suffix)
-                  else -> null
-                },
               onRenameClick = null,
               isSingleSelection = selectionManager.isSingleSelection,
               onInfoClick = showSelectionInfo,
@@ -813,7 +806,7 @@ object FolderListScreen : Screen {
               !(isDualPaneActive && selectedFolderBucketId != null)
 
           FloatingActionButtonMenu(
-            modifier = Modifier.padding(bottom = FabPlacement.scaffoldBottomPadding()),
+            modifier = FabPlacement.scaffoldMenu(),
             expanded = isFabExpanded.value && !quickPlayFabDirect,
             button = {
               TooltipBox(
