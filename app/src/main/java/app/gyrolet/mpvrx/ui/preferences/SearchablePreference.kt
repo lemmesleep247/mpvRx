@@ -448,6 +448,14 @@ object SearchablePreferences {
       )
       add(
         SearchablePreference(
+          titleRes = R.string.pref_tv_seek_duration_title,
+          keywords = listOf("seek", "duration", "remote", "dpad", "skip", "seconds", "custom", "tv"),
+          category = "Player",
+          screen = PlayerPreferencesScreen,
+        ),
+      )
+      add(
+        SearchablePreference(
           titleRes = R.string.pref_player_custom_skip_duration_title,
           summaryRes = R.string.pref_player_custom_skip_duration_summary,
           keywords = listOf("custom skip", "skip duration", "forward", "seek", "seconds", "jump"),
@@ -1252,6 +1260,15 @@ object SearchablePreferences {
           titleRes = R.string.pref_background_playback_behavior,
           summaryRes = R.string.pref_background_playback_per_video_summary,
           keywords = listOf("background", "remember", "per video", "individual", "save", "video"),
+          category = "Player",
+          screen = PlayerPreferencesScreen,
+        ),
+      )
+      add(
+        SearchablePreference(
+          titleRes = R.string.pref_video_background_screen_off_only_title,
+          summaryRes = R.string.pref_video_background_screen_off_only_summary,
+          keywords = listOf("background", "screen off", "lock", "back", "close", "exit", "home", "pause", "video"),
           category = "Player",
           screen = PlayerPreferencesScreen,
         ),

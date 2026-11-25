@@ -36,6 +36,8 @@ private val livePlayerSettings = setOf(
   R.string.pref_player_close_after_eof,
   R.string.pref_video_background_playback_title,
   R.string.pref_background_playback_behavior,
+  // Read on every Back, Home and screen-off.
+  R.string.pref_video_background_screen_off_only_title,
   R.string.pref_player_remember_brightness,
   R.string.pref_autoplay_next_video_title,
   // Applied when the next item loads.
@@ -48,6 +50,8 @@ private val livePlayerSettings = setOf(
   R.string.pref_player_keep_screen_on_when_paused_title,
   R.string.pref_player_external_display_projection_title,
   R.string.show_splash_ovals_on_double_tap_to_seek,
+  // Read on every D-pad seek.
+  R.string.pref_tv_seek_duration_title,
   R.string.show_time_on_double_tap_to_seek,
   R.string.pref_player_show_buffered_range_title,
   R.string.pref_player_show_chapter_indicators_title,

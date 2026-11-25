@@ -1253,7 +1253,7 @@ class PlayerActivity :
     if (
       isMiniPlayerEnabled() ||
       PlayerLifecyclePolicy.shouldStartBackgroundPlaybackOnBack(
-        backgroundPlaybackEnabled = isBackgroundPlaybackEnabled(),
+        backgroundPlaybackEnabled = isBackgroundPlaybackAllowedOnLeave(),
         mediaReady = isReady,
       )
     ) {
@@ -1274,6 +1274,10 @@ class PlayerActivity :
       return
     }
 
+    // A screen-off handoff can outlive an unlock that restored the player through window focus.
+    // Closing must end it; otherwise finish() treats the service as a live background session
+    // and leaves the video playing after the player is gone.
+    if (isBackgroundPlaybackSessionActive) endBackgroundPlayback()
     isUserFinishing = true
     finish()
   }
@@ -2462,9 +2466,15 @@ class PlayerActivity :
         return@runCatching
       }
 
+      // Limited to screen-off: Home or an app switch with the screen on leaves the player, so the
+      // video pauses there instead of continuing in the background.
+      val pauseOnLeave =
+        isVideoBackgroundLimitedToScreenOff() && !isDeviceScreenOffOrLocked() &&
+          externalDisplayManager?.isActive != true
+
       if (
         PlayerLifecyclePolicy.shouldStartBackgroundPlaybackOnStop(
-          backgroundPlaybackEnabled = isBackgroundPlaybackEnabled() || externalDisplayManager?.isActive == true,
+          backgroundPlaybackEnabled = isBackgroundPlaybackAllowedOnLeave() || externalDisplayManager?.isActive == true,
           backgroundPlaybackSessionActive = isBackgroundPlaybackSessionActive,
           isUserFinishing = isUserFinishing,
           isFinishing = isFinishing,
@@ -2486,6 +2496,13 @@ class PlayerActivity :
         rememberResumeAfterUnlockBeforeForcedPause()
         viewModel.pause()
       } else if (!isBackgroundPlaybackSessionActive && (isUserFinishing || isFinishing)) {
+        viewModel.pause()
+      } else if (
+        pauseOnLeave && !isUserFinishing && !isFinishing && !isInPictureInPictureMode &&
+        !pendingBackNavigationBackgroundTransition
+      ) {
+        // Also ends a screen-off handoff the player was restored over without onStart.
+        if (isBackgroundPlaybackSessionActive) endBackgroundPlayback()
         viewModel.pause()
       } else if (isBackgroundPlaybackSessionActive && !isInBackgroundPlayback) {
         if (externalDisplayManager?.isActive != true) markPlaybackInBackground()
@@ -2687,7 +2704,7 @@ class PlayerActivity :
       }
       if (!MediaPlaybackService.activityForeground &&
         isBackgroundPlaybackSessionActive &&
-        !isBackgroundPlaybackEnabled()
+        !isBackgroundPlaybackAllowedOnLeave()
       ) {
         isBackgroundPlaybackSessionActive = false
         viewModel.pause()
@@ -4065,6 +4082,19 @@ class PlayerActivity :
     else if (isCurrentPlaybackAudio()) audioPreferences.audioBackgroundPlayback.get()
     else PlaybackSession.isVideoBackgroundPlaybackEnabled()
 
+  /** The user limited video background playback to screen-off; audio and audiobooks keep their own rules. */
+  private fun isVideoBackgroundLimitedToScreenOff(): Boolean =
+    playerPreferences.videoBackgroundOnlyWhenScreenOff.get() &&
+      PlaybackSession.state.value.currentItem?.audiobook == null &&
+      !isCurrentPlaybackAudio()
+
+  private fun isBackgroundPlaybackAllowedOnLeave(): Boolean =
+    PlayerLifecyclePolicy.allowsBackgroundPlaybackOnLeave(
+      backgroundPlaybackEnabled = isBackgroundPlaybackEnabled(),
+      onlyWhenScreenOff = isVideoBackgroundLimitedToScreenOff(),
+      isScreenOffOrLocked = isDeviceScreenOffOrLocked(),
+    )
+
   private fun isCurrentPlaybackAudio(): Boolean =
     when (currentDeclaredMediaKind()) {
       DeclaredPlaybackMediaKind.AUDIO -> true
@@ -4820,8 +4850,10 @@ class PlayerActivity :
     if (!MediaPlaybackService.activityForeground) return
     // A dropped network stream can drain the demuxer and flip eof-reached mid-file. Only a
     // position at (or within a couple of seconds of) the known duration is a real end.
+    // The ViewModel copy of time-pos lags a seek that lands straight on EOF; eof-reached will not
+    // fire again, so also read the session value mpv's event thread has already published.
     val durationSecs = viewModel.duration ?: 0
-    val positionSecs = viewModel.pos ?: 0
+    val positionSecs = maxOf(viewModel.pos ?: 0, PlaybackSession.propInt["time-pos"].value ?: 0)
     if (durationSecs > 0 && positionSecs < durationSecs - 2) return
     if (fileName.isNotBlank()) saveVideoPlaybackState(fileName, immediate = true)
 
@@ -5297,6 +5329,16 @@ class PlayerActivity :
         if (!restored.hasState) viewModel.setVideoZoom(playerPreferences.defaultVideoZoom.get())
         applyVideoTransform()
       }
+      if (!PlaybackSession.isCurrentGeneration(loadGeneration)) return@launch
+      // Companion audio is looked up after the unpause: probing ~80 candidate filenames used to hold
+      // every new video paused, and its audio-add is only accepted once the session is READY.
+      try {
+        ExternalAudioDiscovery.autoload(this@PlayerActivity, loadGeneration)
+      } catch (error: CancellationException) {
+        throw error
+      } catch (error: Exception) {
+        Log.e(TAG, "Companion audio discovery failed", error)
+      }
       autoloadJob?.join()
       if (!PlaybackSession.isCurrentGeneration(loadGeneration)) return@launch
       trackSelector.onFileLoaded(
@@ -5744,8 +5786,6 @@ class PlayerActivity :
     }
 
     return runCatching {
-      ExternalAudioDiscovery.autoload(this@PlayerActivity, loadGeneration)
-      if (!PlaybackSession.isCurrentGeneration(loadGeneration)) return@runCatching LoadedPlaybackState()
       val state = resolvePlaybackState(identifier, legacyIdentifier)
 
       if (!PlaybackSession.isCurrentGeneration(loadGeneration)) return@runCatching LoadedPlaybackState()
@@ -6658,16 +6698,20 @@ private suspend fun restorePlaybackPosition(state: PlaybackStateEntity?, loadGen
       positionRestoreOverride ?: scriptRestore ?: snapshotJump ?: AudiobookPlayback.positionForLoad(item, intent)
     val restoreSavedPosition = playerPreferences.savePositionOnQuit.get()
     val resumeMode = playerPreferences.resumePlaybackMode.get()
+    // A video that was never played has nothing to restore, so it must not start held paused
+    // behind the restore work that runs after FILE_LOADED.
+    val savedState =
+      if (effectivePositionOverride == null && restoreSavedPosition && !item.isDefinitelyAudioOnly()) {
+        resolvePlaybackState(item.stableId, legacyMediaIdentifier)
+      } else {
+        null
+      }
     // Only Always Resume may use the fast load-local start option. Never starts at zero.
     val initialPositionSeconds =
       if (effectivePositionOverride != null) {
         effectivePositionOverride.positionSeconds?.takeIf { it.isFinite() && it > 0.0 }
-      } else if (
-        restoreSavedPosition &&
-        resumeMode == ResumePlaybackMode.Always &&
-        !item.isDefinitelyAudioOnly()
-      ) {
-        resolvePlaybackState(item.stableId, legacyMediaIdentifier)
+      } else if (resumeMode == ResumePlaybackMode.Always) {
+        savedState
           ?.lastPosition
           ?.takeIf { it > 3 }
           ?.toDouble()
@@ -6720,7 +6764,7 @@ private suspend fun restorePlaybackPosition(state: PlaybackStateEntity?, loadGen
     val generation =
       PlaybackSession.load(
           item = item,
-          restoreSavedPosition = restoreSavedPosition,
+          restoreSavedPosition = restoreSavedPosition && savedState != null,
           positionRestoreOverride = effectivePositionOverride,
           initialPositionSeconds = initialPositionSeconds,
           flattenEditions = requiresYtdlp && !MpvConfigOverridePolicy.isOwnedByMpvConf("flatten-editions"),
@@ -7444,12 +7488,12 @@ private suspend fun restorePlaybackPosition(state: PlaybackStateEntity?, loadGen
         }
         TvPlayerRemoteAction.SEEK_BACKWARD -> {
           consumedTvRemoteKeys += keyCode
-          viewModel.seekFromTvRemote(-tvScrubStepSeconds(event?.repeatCount ?: 0))
+          viewModel.seekFromTvRemote(-tvScrubStepSeconds(event?.repeatCount ?: 0, gesturePreferences.tvSeekDuration.get()))
           return true
         }
         TvPlayerRemoteAction.SEEK_FORWARD -> {
           consumedTvRemoteKeys += keyCode
-          viewModel.seekFromTvRemote(tvScrubStepSeconds(event?.repeatCount ?: 0))
+          viewModel.seekFromTvRemote(tvScrubStepSeconds(event?.repeatCount ?: 0, gesturePreferences.tvSeekDuration.get()))
           return true
         }
         TvPlayerRemoteAction.TOGGLE_PLAYBACK -> {

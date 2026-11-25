@@ -741,6 +741,7 @@
   <string name="pref_custom_seek_label">Секунди</string>
   <string name="pref_double_tap_seek_area_width_summary">Поточна: %1$d%%</string>
   <string name="pref_custom_seek_summary_format">Власна (%1$d с)</string>
+  <string name="pref_tv_seek_duration_title">Крок перемотування з пульта</string>
   <string name="pref_section_landscape_controls">Альбомні елементи керування</string>
   <string name="pref_section_portrait_controls">Портретні елементи керування</string>
   <string name="pref_section_seekbar_style">Стиль панелі пошуку</string>
@@ -2225,6 +2226,8 @@
   <string name="playlist_columns_landscape">Колонки в альбомному режимі</string>
   <string name="playlist_extension">Розширення файлу</string>
   <string name="pref_background_playback_behavior">Поведінка фонового відтворення</string>
+  <string name="pref_video_background_screen_off_only_title">Лише за вимкненого екрана</string>
+  <string name="pref_video_background_screen_off_only_summary">Продовжувати відтворення, коли екран вимикається, але ставити на паузу під час закриття плеєра або переходу в іншу програму</string>
   <string name="pref_background_playback_remember">Завжди пам\'ятати мій вибір</string>
   <string name="pref_background_playback_remember_summary">Зберігати вибір фонового відтворення для наступних відео.</string>
   <string name="pref_background_playback_per_video">Пам\'ятати для кожного відео окремо</string>
