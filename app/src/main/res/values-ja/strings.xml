@@ -103,7 +103,6 @@
   <string name="theme_cotton_candy">コットンキャンディ</string>
   <string name="theme_doom">Doom</string>
   <string name="theme_green_apple">グリーンアップル</string>
-  <string name="theme_lavender">ラベンダー</string>
   <string name="theme_midnight">ミッドナイト</string>
   <string name="theme_mocha">モカ</string>
   <string name="theme_strawberry">ストロベリー</string>
@@ -140,11 +139,6 @@
   <string name="pref_auto_pip_summary">ホームまたは戻るを押したときに自動的にPIPモードへ移行します</string>
   <string name="pref_auto_pip_home_only_title">ホームジェスチャーのみでPIP</string>
   <string name="pref_auto_pip_home_only_summary">ホームジェスチャーまたはスワイプのみでPIPに移行し、戻るボタンはプレイヤーを閉じます</string>
-  <string name="pref_enable_video_mini_player_title">動画ミニプレーヤーを有効化</string>
-  <string name="pref_enable_video_mini_player_summary">戻るボタンを押したときに動画再生をフローティングミニプレーヤーに最小化</string>
-  <string name="pref_video_mini_player_dependency_title">動画のバックグラウンド再生を有効にしますか？</string>
-  <string name="pref_video_mini_player_dependency_message">動画プレーヤーのバックグラウンド再生が必要です。</string>
-  <string name="pref_video_mini_player_dependency_confirm">有効にして続行</string>
   <string name="pref_player_keep_screen_on_when_paused_title">一時停止中も画面をオンにする</string>
   <string name="pref_player_external_display_projection_title">外部ディスプレイへの投影</string>
   <string name="pref_player_external_display_projection_summary">スマートフォン画面を消し、HDMI・USB-C・無線ディスプレイで再生します。</string>
@@ -491,12 +485,11 @@
     <item quantity="other">%1$d秒</item>
   </plurals>
   <!-- Background Playback -->
-  <string name="pref_audio_background_playback_title">バックグラウンド再生（オーディオプレイヤー）</string>
-  <string name="toast_audio_background_playback_on">音声のバックグラウンド再生をオンにしました</string>
-  <string name="toast_audio_background_playback_off">音声のバックグラウンド再生をオフにしました</string>
-  <string name="pref_audio_background_playback_summary">オーディオプレイヤーを離れたり画面をオフにしても音声を再生し続ける</string>
   <string name="pref_video_background_playback_title">バックグラウンド再生（ビデオプレイヤー）</string>
-  <string name="pref_video_background_playback_summary">ビデオプレイヤーを離れたり画面をオフにしても動画の音声を再生し続ける</string>
+  <string name="pref_video_background_playback_summary">ホームに戻る、アプリを切り替える、画面をオフにしたときも動画の再生を続けます。戻るボタンでは常に動画を閉じます。一度だけ行うには、プレーヤーのバックグラウンドボタンを長押しします。</string>
+  <string name="toast_background_playback_on">バックグラウンド再生オン</string>
+  <string name="toast_background_playback_off">バックグラウンド再生オフ</string>
+  <string name="btn_label_background_playback_once">一度だけバックグラウンドで再生</string>
   <string name="deselect_all">すべて選択解除</string>
   <string name="select_all">すべて選択</string>
   <string name="invert_selection">選択を反転</string>
@@ -521,12 +514,7 @@
   <string name="notification_playing">再生中</string>
   <string name="notification_add_to_favorites">お気に入りに追加</string>
   <string name="notification_saved_to_favorites">お気に入りに保存しました</string>
-  <string name="notification_chapter_counter">チャプター %1$d / %2$d</string>
   <string name="notification_playback_progress">経過 %1$s - 残り %2$s</string>
-  <string name="notification_permission_denied">バックグラウンド再生の操作には通知権限が必要です。</string>
-  <string name="notification_permission_disabled">mpvRxの通知が無効です。再生操作を表示するには有効にしてください。</string>
-  <string name="notification_disabled_in_advanced_settings">バックグラウンド再生を使用するには、高度な設定で通知を有効にしてください。</string>
-  <string name="pref_advanced_notification_style">通知スタイル</string>
   <!-- Media Info Activity -->
   <string name="pref_player_use_precise_seeking">高精度シークを使用</string>
   <!-- Folders Preferences -->
@@ -909,12 +897,15 @@
   <string name="pref_decoder_vulkan_experimental_title">Vulkan（試験的）</string>
   <string name="hdr_mode_off">オフ</string>
   <string name="hdr_mode_off_description">通常のSDR出力</string>
+  <string name="hdr_mode_linear_passthrough">リニアパススルー (hdr-toys)</string>
+  <string name="hdr_mode_linear_passthrough_short">リニアパススルー</string>
+  <string name="hdr_mode_linear_passthrough_description">この画面に HDR を送ります。先に hdr-toys の Astra が各動画を画面のピーク輝度に合わせてトーンマッピングします。gpu-next と Vulkan が必要です。</string>
   <string name="hdr_mode_bt2100_pq_description">AstraトーンマッピングとBottosson色域マッピングを使用したHDR10形式のPQ</string>
   <string name="hdr_mode_bt2100_hlg_description">hdr-toysのAstraおよびBottossonシェーダーチェーンによるHLG HDR</string>
   <string name="hdr_mode_bt2020_description">hdr-toysの色域マッピングを使用したBT.2020 / BT.1886変換</string>
   <string name="hdr_mode_linear">リニアHDR</string>
   <string name="hdr_mode_linear_short">リニア</string>
-  <string name="hdr_mode_linear_description">hdr-toys の Astra および Bottosson シェーダーによるリニア HDR パイプライン</string>
+  <string name="hdr_mode_linear_description">ネイティブのリニア HDR。逆トーンマッピングは常に有効で、トーンマッピングは Clip に固定されます。</string>
   <string name="pref_section_support">サポート</string>
   <string name="pref_section_updates">アップデート</string>
   <string name="pref_section_system">システム</string>
@@ -1142,7 +1133,6 @@
   <string name="ui_create_new_folder">新しいフォルダーを作成</string>
   <string name="ui_folder_name">フォルダー名</string>
   <string name="ui_go_back">戻る</string>
-  <string name="ui_go_to_internal_storage">内部ストレージへ移動</string>
   <string name="ui_create_folder">フォルダーを作成</string>
   <string name="ui_ai_is_thinking">AIが考えています...</string>
   <string name="ui_ai_rename">AI名前変更</string>
@@ -1275,7 +1265,7 @@
   <string name="ui_file_permission_desc_playstore">端末に保存されているメディアファイルにアクセスして再生するために必要です。</string>
   <string name="ui_file_permission_desc_all_files">端末上のメディアファイルや字幕ファイルを検出するために必要です。</string>
   <string name="ui_notification_permission_title">通知</string>
-  <string name="ui_notification_permission_desc">任意。再生コントロール、バックグラウンド状態、更新アラートに必要です。</string>
+  <string name="ui_notification_permission_desc">任意。ダウンロードの進行状況とアップデートの通知に使用します。再生コントロールは許可がなくても動作します。</string>
   <string name="ui_audio_record_permission_title">音声の録音</string>
   <string name="ui_audio_record_permission_desc">任意。ビジュアライザーがリアルタイムの音声レベルを取得します。</string>
   <string name="ui_permission_granted">許可済み</string>
@@ -2185,13 +2175,6 @@
   <string name="playlist_columns_portrait">縦向きの列数</string>
   <string name="playlist_columns_landscape">横向きの列数</string>
   <string name="playlist_extension">ファイル拡張子</string>
-  <string name="pref_background_playback_behavior">バックグラウンド再生の動作</string>
-  <string name="pref_video_background_screen_off_only_title">画面オフ時のみ</string>
-  <string name="pref_video_background_screen_off_only_summary">画面がオフになっても再生を続け、プレーヤーを閉じたりアプリを切り替えたりすると一時停止します</string>
-  <string name="pref_background_playback_remember">選択を常に記憶する</string>
-  <string name="pref_background_playback_remember_summary">バックグラウンド再生の選択を次の動画でも維持します。</string>
-  <string name="pref_background_playback_per_video">動画ごとに選択を記憶する</string>
-  <string name="pref_background_playback_per_video_summary">バックグラウンド再生の設定を動画ごとに保存します。</string>
   <string name="jellyfin_technical_details">技術情報</string>
 
   <!-- Snapshots (frame capture) -->
@@ -2632,47 +2615,10 @@
   <string name="delete_size_unknown">サイズ不明</string>
   <string name="delete_size_description">合計サイズ: %1$s</string>
 
-  <!-- Thumbnail information -->
-  <string name="media_info_tab_thumbnail">サムネイル</string>
-  <string name="thumbnail_preview_description">%1$s のキャッシュ済みサムネイル</string>
-  <string name="thumbnail_status_disk">ディスクにキャッシュ済み</string>
-  <string name="thumbnail_status_memory">メモリにキャッシュ済み</string>
-  <string name="thumbnail_status_unreadable">キャッシュされた画像をデコードできませんでした</string>
-  <string name="thumbnail_status_missing">キャッシュされたサムネイルはありません</string>
-  <string name="thumbnail_info_status">キャッシュの状態</string>
-  <string name="thumbnail_info_generator">生成ポリシー</string>
-  <string name="thumbnail_info_strategy">フレームまたはカバー画像の選択</string>
-  <string name="thumbnail_strategy_artwork">アルバムのカバー画像</string>
-  <string name="thumbnail_strategy_android">Android が選択したフレーム</string>
-  <string name="thumbnail_info_quality">設定された画質</string>
-  <string name="thumbnail_info_maximum">設定されたサイズ上限</string>
-  <string name="thumbnail_maximum_value">長辺が最大 %1$d ピクセル</string>
-  <string name="thumbnail_info_dimensions">実際の画像サイズ</string>
-  <string name="thumbnail_dimensions_value">%1$d × %2$d ピクセル</string>
-  <string name="thumbnail_info_format">キャッシュされた画像の形式</string>
-  <string name="thumbnail_info_size">キャッシュファイルのサイズ</string>
-  <string name="thumbnail_info_memory">メディアブラウザのメモリキャッシュに存在</string>
-  <string name="thumbnail_info_preview_memory">プレビューのメモリ使用量</string>
-  <string name="thumbnail_info_frame">設定されたフレーム位置</string>
-  <string name="thumbnail_percent_value">%1$.1f%%</string>
-  <string name="thumbnail_info_jpeg_setting">アプリの JPEG エンコーダ設定</string>
-  <string name="thumbnail_jpeg_value">%1$d%%</string>
-  <string name="thumbnail_info_modified">キャッシュファイルの更新日時</string>
-  <string name="thumbnail_info_cache_path">キャッシュファイルのパス</string>
-  <string name="thumbnail_info_source">ソース URI</string>
-  <string name="thumbnail_yes">はい</string>
-  <string name="thumbnail_no">いいえ</string>
-  <string name="thumbnail_refresh">情報を更新</string>
-  <string name="thumbnail_generate">サムネイルを生成</string>
-  <string name="thumbnail_quality_note">保存済みのプレビューで、新たな抽出は行いません。指定上限より小さい場合があります。</string>
-  <string name="thumbnail_inspection_failed">サムネイル情報を読み取れませんでした。更新してください。</string>
-  <string name="thumbnail_generation_unavailable">選択した生成方法では、このファイルのサムネイルを取得できませんでした。</string>
-
   <!-- Automatic thumbnail generation -->
   <string name="pref_appearance_thumbnail_generator_summary">ローカルのサムネイルと曲のカバーに自動、Native、MediaStoreのいずれかを選択</string>
   <string name="pref_thumbnail_generator_auto">自動（デフォルト）</string>
   <string name="pref_thumbnail_generator_auto_summary">Androidを優先し、取得できなければネイティブ抽出。切り替えるとキャッシュを消去。</string>
-  <string name="thumbnail_strategy_auto">最初にMediaStore、取得できない場合はNative</string>
 
   <string name="update_download_failed">ダウンロードに失敗しました。「再試行」をタップすると再開します。</string>
   <string name="update_install_failed">インストーラーを開けませんでした。もう一度お試しください。</string>
@@ -2680,7 +2626,6 @@
   <string name="update_checking_download">ダウンロードした APK を確認中…</string>
   <string name="update_check_failed">更新を確認できませんでした。接続を確認するか、後でもう一度お試しください。</string>
   <string name="update_auto_install">自動でダウンロードしてインストール</string>
-  <string name="update_auto_install_summary">従量制でない回線で取得し、待機時にインストール。Androidが許可を求める場合があります。</string>
   <string name="update_download_and_install">ダウンロードしてインストール</string>
   <string name="update_background_downloading">アプリの更新をダウンロード中…</string>
   <string name="update_installing">更新をインストール中…</string>
@@ -3105,12 +3050,10 @@
   <string name="pref_floating_lyrics_summary">他のアプリの上に移動できる歌詞パネルを表示</string>
   <string name="floating_lyrics_permission">フローティング歌詞を使うには他のアプリの上への表示を許可してください</string>
   <string name="floating_lyrics_unavailable">フローティング歌詞を開始できませんでした</string>
-  <string name="floating_lyrics_background_required">先に音声のバックグラウンド再生を有効にしてください</string>
   <string name="floating_lyrics_open_player">プレーヤーを開く</string>
   <string name="floating_lyrics_dock_left">歌詞パネルを左側へ移動</string>
   <string name="floating_lyrics_dock_right">歌詞パネルを右側へ移動</string>
   <string name="floating_lyrics_dismiss">mpvRxを再び開くまで非表示</string>
   <string name="floating_lyrics_turn_off">フローティング歌詞をオフ</string>
   <string name="floating_lyrics_never">今後表示しない</string>
-  <string name="floating_lyrics_no_lyrics">歌詞がありません</string>
 </resources>

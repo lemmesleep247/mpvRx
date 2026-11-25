@@ -12,8 +12,6 @@ package app.gyrolet.mpvrx.ui.preferences
 import android.app.Activity
 import android.content.Intent
 import android.net.Uri
-import app.gyrolet.mpvrx.domain.fonts.MpvFontConfig
-import android.os.Build
 import android.os.Environment
 import app.gyrolet.mpvrx.ui.components.AppToast as Toast
 import androidx.activity.compose.LocalActivity
@@ -66,7 +64,6 @@ import app.gyrolet.mpvrx.presentation.crash.CrashActivity
 import app.gyrolet.mpvrx.presentation.crash.DebugLogReader
 import app.gyrolet.mpvrx.ui.icons.Icon
 import app.gyrolet.mpvrx.ui.icons.Icons
-import app.gyrolet.mpvrx.ui.player.NotificationStyle
 import app.gyrolet.mpvrx.ui.player.PlaybackSession
 import app.gyrolet.mpvrx.ui.player.MpvConfigCache
 import app.gyrolet.mpvrx.ui.preferences.components.SwitchPreference
@@ -687,14 +684,6 @@ object AdvancedPreferencesScreen : ScrollableSettingsScreen {
           }
 
           item {
-            val notificationStyle by preferences.notificationStyle.collectAsState()
-            val supportedNotificationStyles =
-              remember {
-                NotificationStyle.entries.filter { it.isSupportedOn(Build.VERSION.SDK_INT) }
-              }
-            val selectedNotificationStyle =
-              notificationStyle.takeIf { it.isSupportedOn(Build.VERSION.SDK_INT) }
-                ?: NotificationStyle.Media
             PreferenceCard {
               ExpressivePreferenceItem {
                 ListPreference(
@@ -713,24 +702,6 @@ object AdvancedPreferencesScreen : ScrollableSettingsScreen {
                     )
                   },
                 )
-              }
-              DevicePreference(R.string.pref_advanced_notification_style) {
-                ExpressivePreferenceItem {
-                  ListPreference(
-                    modifier = Modifier.settingsSearchTarget(R.string.pref_advanced_notification_style),
-                    value = selectedNotificationStyle,
-                    onValueChange = preferences.notificationStyle::set,
-                    values = supportedNotificationStyles,
-                    valueToText = { AnnotatedString(it.displayName) },
-                    title = { Text(text = stringResource(R.string.pref_advanced_notification_style)) },
-                    summary = {
-                      Text(
-                        text = selectedNotificationStyle.displayName,
-                        color = MaterialTheme.colorScheme.outline,
-                      )
-                    },
-                  )
-                }
               }
             }
           }
@@ -879,16 +850,19 @@ object AdvancedPreferencesScreen : ScrollableSettingsScreen {
                       size
                     }
 
-                  // Fonts cache size, including the downloaded subtitle fallback fonts
-                  val fontFiles =
-                    listOf(File(context.filesDir, "fonts"), MpvFontConfig.fallbackFontsDirectory(context))
-                      .flatMap { directory ->
-                        directory.listFiles()?.filter {
-                          it.isFile && it.name.lowercase().matches(".*\\.[ot]tf$".toRegex())
-                        }.orEmpty()
-                      }
-                  fontsFileCount = fontFiles.size
-                  fontsCacheSize = fontFiles.sumOf { it.length() }
+                  // Fonts cache size
+                  val fontsDir = File(context.filesDir, "fonts")
+                  if (fontsDir.exists()) {
+                    val fontFiles =
+                      fontsDir.listFiles()?.filter {
+                        it.isFile && it.name.lowercase().matches(".*\\.[ot]tf$".toRegex())
+                      } ?: emptyList()
+                    fontsFileCount = fontFiles.size
+                    fontsCacheSize = fontFiles.sumOf { it.length() }
+                  } else {
+                    fontsFileCount = 0
+                    fontsCacheSize = 0
+                  }
                 }
               }
 
@@ -1036,7 +1010,6 @@ object AdvancedPreferencesScreen : ScrollableSettingsScreen {
                       check(!fontsDir.exists() || fontsDir.deleteRecursively()) {
                         "Unable to clear fonts cache directory: ${fontsDir.absolutePath}"
                       }
-                      MpvFontConfig.fallbackFontsDirectory(context).listFiles()?.forEach(File::delete)
                     }.onSuccess {
                       withContext(Dispatchers.Main) {
                         fontsCacheSize = 0L

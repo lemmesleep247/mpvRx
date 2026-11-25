@@ -1230,15 +1230,6 @@ object SearchablePreferences {
       )
       add(
         SearchablePreference(
-          titleRes = R.string.pref_audio_background_playback_title,
-          summaryRes = R.string.pref_audio_background_playback_summary,
-          keywords = listOf("background", "playback", "audio", "service", "music"),
-          category = "Audio",
-          screen = AudioPreferencesScreen,
-        ),
-      )
-      add(
-        SearchablePreference(
           titleRes = R.string.pref_autoplay_next_audio_title,
           summaryRes = R.string.pref_autoplay_next_audio_summary,
           keywords = listOf("autoplay", "next", "audio", "music", "advance", "continuous"),
@@ -1250,25 +1241,7 @@ object SearchablePreferences {
         SearchablePreference(
           titleRes = R.string.pref_video_background_playback_title,
           summaryRes = R.string.pref_video_background_playback_summary,
-          keywords = listOf("background", "playback", "video", "service", "media"),
-          category = "Player",
-          screen = PlayerPreferencesScreen,
-        ),
-      )
-      add(
-        SearchablePreference(
-          titleRes = R.string.pref_background_playback_behavior,
-          summaryRes = R.string.pref_background_playback_per_video_summary,
-          keywords = listOf("background", "remember", "per video", "individual", "save", "video"),
-          category = "Player",
-          screen = PlayerPreferencesScreen,
-        ),
-      )
-      add(
-        SearchablePreference(
-          titleRes = R.string.pref_video_background_screen_off_only_title,
-          summaryRes = R.string.pref_video_background_screen_off_only_summary,
-          keywords = listOf("background", "screen off", "lock", "back", "close", "exit", "home", "pause", "video"),
+          keywords = listOf("background", "playback", "video", "home", "screen off", "long press", "once"),
           category = "Player",
           screen = PlayerPreferencesScreen,
         ),
@@ -1438,24 +1411,6 @@ object SearchablePreferences {
           keywords = listOf("clear", "fonts", "cache", "reset"),
           category = "Advanced",
           screen = AdvancedPreferencesScreen,
-        ),
-      )
-      add(
-        SearchablePreference(
-          titleRes = R.string.pref_advanced_notification_style,
-          summary = "Choose media controls, progress with chapters, or no playback notification.",
-          keywords =
-            listOf(
-              "notification",
-              "media controls",
-              "progress",
-              "chapters",
-              "no notification",
-              "hide notification",
-              "background playback",
-            ),
-          category = "Player",
-          screen = PlayerPreferencesScreen,
         ),
       )
       add(
@@ -1755,7 +1710,6 @@ object SearchablePreferences {
         screen = PlayerPreferencesScreen,
         anchorItemIndex = 1,
         SearchEntrySpec(R.string.pref_playlist_mode_title, listOf("playlist", "next", "previous", "navigation", "queue")),
-        SearchEntrySpec(R.string.pref_enable_video_mini_player_title, listOf("mini player", "video", "background", "continue")),
         SearchEntrySpec(R.string.ui_show_media_info_in_chooser, listOf("media info", "chooser", "open with", "system")),
       )
       addSearchEntries(
@@ -1899,10 +1853,6 @@ object SearchablePreferences {
         category = "Subtitles",
         screen = SubtitlesPreferencesScreen,
         anchorItemIndex = 3,
-        SearchEntrySpec(
-          R.string.pref_subtitles_auto_download_fonts,
-          listOf("subtitle", "font", "download", "missing", "emoji", "script", "language", "google"),
-        ),
         SearchEntrySpec(R.string.reload_fonts, listOf("subtitle", "font", "reload", "rescan")),
         SearchEntrySpec(R.string.clear_font_directory, listOf("subtitle", "font", "clear", "folder"), R.string.pref_subtitles_fonts_dir),
       )
@@ -2179,7 +2129,6 @@ object SearchablePreferences {
         category = "Advanced",
         screen = AdvancedPreferencesScreen,
         anchorItemIndex = 1,
-        SearchEntrySpec(R.string.pref_advanced_notification_style, listOf("notification", "style", "media", "compact")),
         SearchEntrySpec(R.string.pref_auto_backup_title, listOf("automatic", "backup", "settings", "restore", "folder")),
         SearchEntrySpec(R.string.pref_debug_log_size_title, listOf("debug", "log", "size", "limit", "storage")),
       )

@@ -47,15 +47,12 @@ import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
-import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.withTimeoutOrNull
 import java.io.File
@@ -333,22 +330,6 @@ object PlaybackSession : MPVLib.EventObserver {
   val videoZoom: StateFlow<Float> = _videoZoom.asStateFlow()
   val videoPanX: StateFlow<Float> = _videoPanX.asStateFlow()
   val videoPanY: StateFlow<Float> = _videoPanY.asStateFlow()
-
-  val videoBackgroundPlaybackEnabled: Flow<Boolean> by lazy {
-    audioPreferences.videoBackgroundPlaybackChanges(state.map(::videoBackgroundPlaybackId).distinctUntilChanged())
-  }
-
-  internal fun videoBackgroundPlaybackId(playbackState: PlaybackSessionState): String? =
-    playbackState.currentItem?.takeUnless { it.audiobook != null || it.isDefinitelyAudioOnly() }?.stableId
-
-  fun isVideoBackgroundPlaybackEnabled(): Boolean =
-    audioPreferences.getVideoBackgroundPlayback(videoBackgroundPlaybackId(_state.value))
-
-  fun setVideoBackgroundPlaybackEnabled(enabled: Boolean) {
-    nativeLock.withLock {
-      audioPreferences.setVideoBackgroundPlayback(videoBackgroundPlaybackId(_state.value), enabled)
-    }
-  }
 
   fun setVideoTransformZoom(zoom: Float) {
     _videoZoom.value = zoom
@@ -988,25 +969,6 @@ internal fun userScriptsNeedReload(currentKey: String): Boolean {
     attachedSurfaceHeight = 0
     updateState { it.copy(surfaceAttached = false) }
   }
-
-  /**
-   * Makes libass rebuild its font list, e.g. after a fallback font was downloaded. A new
-   * sub-fonts-dir value recreates the subtitle renderers and redecodes their cached lines, so the
-   * shown line stays. Each value names the same folder: a trailing slash is dropped or added, and
-   * an unset one (mpv's config fonts folder) becomes "~~/fonts".
-   */
-  fun reloadSubtitleFonts(): Boolean =
-    withCore(false) {
-      val directory = MPVLib.getPropertyString("sub-fonts-dir").orEmpty()
-      val replacement =
-        when {
-          directory.isEmpty() -> "~~/fonts"
-          directory.endsWith('/') && directory.length > 1 -> directory.dropLast(1)
-          else -> "$directory/"
-        }
-      MPVLib.setPropertyString("sub-fonts-dir", replacement)
-      true
-    }
 
   /** A retained VO can redraw its current frame without seeking or touching audio buffers. */
   fun redrawVideoFrame() {

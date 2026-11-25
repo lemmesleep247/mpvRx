@@ -103,7 +103,6 @@
   <string name="theme_cotton_candy">Algodón de azúcar</string>
   <string name="theme_doom">Doom</string>
   <string name="theme_green_apple">Manzana verde</string>
-  <string name="theme_lavender">Lavanda</string>
   <string name="theme_midnight">Medianoche</string>
   <string name="theme_mocha">Moca</string>
   <string name="theme_strawberry">Fresa</string>
@@ -140,11 +139,6 @@
   <string name="pref_auto_pip_summary">Entrar automáticamente en modo PIP al pulsar Inicio o Atrás</string>
   <string name="pref_auto_pip_home_only_title">PIP solo con el gesto de inicio</string>
   <string name="pref_auto_pip_home_only_summary">Solo el gesto de inicio o deslizar activa el modo PIP; el botón Atrás cierra el reproductor</string>
-  <string name="pref_enable_video_mini_player_title">Activar minireproductor de vídeo</string>
-  <string name="pref_enable_video_mini_player_summary">Minimizar la reproducción de vídeo en un minireproductor flotante al pulsar Atrás</string>
-  <string name="pref_video_mini_player_dependency_title">¿Activar la reproducción de vídeo en segundo plano?</string>
-  <string name="pref_video_mini_player_dependency_message">Requiere reproducción en segundo plano del reproductor de vídeo.</string>
-  <string name="pref_video_mini_player_dependency_confirm">Activar y continuar</string>
   <string name="pref_player_keep_screen_on_when_paused_title">Mantener la pantalla encendida al pausar</string>
   <string name="pref_player_external_display_projection_title">Proyección en pantalla externa</string>
   <string name="pref_player_external_display_projection_summary">Reproduce en pantallas HDMI, USB-C o inalámbricas con la pantalla del móvil apagada.</string>
@@ -492,12 +486,11 @@
     <item quantity="other">%1$d segundos</item>
   </plurals>
   <!-- Background Playback -->
-  <string name="pref_audio_background_playback_title">Reproducción en segundo plano (Reproductor de Audio)</string>
-  <string name="toast_audio_background_playback_on">Reproducción de audio en segundo plano activada</string>
-  <string name="toast_audio_background_playback_off">Reproducción de audio en segundo plano desactivada</string>
-  <string name="pref_audio_background_playback_summary">Mantener la reproducción al salir del reproductor de audio o apagar la pantalla</string>
   <string name="pref_video_background_playback_title">Reproducción en segundo plano (Reproductor de Video)</string>
-  <string name="pref_video_background_playback_summary">Mantener el audio del video al salir del reproductor de video o apagar la pantalla</string>
+  <string name="pref_video_background_playback_summary">Sigue reproduciendo los videos al ir a la pantalla de inicio, cambiar de app o apagar la pantalla. Atrás siempre cierra el video. Mantén pulsado el botón de segundo plano del reproductor para hacerlo una sola vez.</string>
+  <string name="toast_background_playback_on">Reproducción en segundo plano activada</string>
+  <string name="toast_background_playback_off">Reproducción en segundo plano desactivada</string>
+  <string name="btn_label_background_playback_once">Reproducir en segundo plano una vez</string>
   <string name="deselect_all">Deseleccionar todo</string>
   <string name="select_all">Seleccionar todo</string>
   <string name="invert_selection">Invertir selección</string>
@@ -522,12 +515,7 @@
   <string name="notification_playing">Reproduciendo</string>
   <string name="notification_add_to_favorites">Añadir a Favoritos</string>
   <string name="notification_saved_to_favorites">Guardado en Favoritos</string>
-  <string name="notification_chapter_counter">Capítulo %1$d de %2$d</string>
   <string name="notification_playback_progress">%1$s transcurridos - %2$s restantes</string>
-  <string name="notification_permission_denied">Se necesita permiso de notificaciones para los controles de reproducción en segundo plano.</string>
-  <string name="notification_permission_disabled">Las notificaciones están desactivadas para mpvRx. Actívalas para mostrar los controles de reproducción.</string>
-  <string name="notification_disabled_in_advanced_settings">Activa las notificaciones en los ajustes avanzados para usar la reproducción en segundo plano.</string>
-  <string name="pref_advanced_notification_style">Estilo de notificación</string>
   <!-- Media Info Activity -->
   <string name="pref_player_use_precise_seeking">Usar búsqueda precisa</string>
   <!-- Folders Preferences -->
@@ -913,12 +901,15 @@ Reinicia la aplicación para que se apliquen todos los cambios.</string>
   <string name="pref_decoder_vulkan_experimental_title">Vulkan (Experimental)</string>
   <string name="hdr_mode_off">Desactivado</string>
   <string name="hdr_mode_off_description">Salida SDR normal</string>
+  <string name="hdr_mode_linear_passthrough">Paso directo lineal (hdr-toys)</string>
+  <string name="hdr_mode_linear_passthrough_short">Paso directo lineal</string>
+  <string name="hdr_mode_linear_passthrough_description">Envía HDR a esta pantalla. Astra de hdr-toys ajusta antes cada vídeo al brillo máximo de la pantalla. Requiere gpu-next con Vulkan.</string>
   <string name="hdr_mode_bt2100_pq_description">PQ tipo HDR10 con mapeo tonal Astra y mapeo de gama Bottosson</string>
   <string name="hdr_mode_bt2100_hlg_description">HDR HLG mediante la cadena de shaders Astra y Bottosson de hdr-toys</string>
   <string name="hdr_mode_bt2020_description">Conversión BT.2020 / BT.1886 mediante el mapeo de gama de hdr-toys</string>
   <string name="hdr_mode_linear">HDR lineal</string>
   <string name="hdr_mode_linear_short">Lineal</string>
-  <string name="hdr_mode_linear_description">Pipeline HDR lineal mediante la cadena de shaders Astra y Bottosson de hdr-toys</string>
+  <string name="hdr_mode_linear_description">HDR lineal nativo. El mapeo tonal inverso permanece activo y el mapeo tonal queda fijado en Clip.</string>
   <string name="pref_section_support">Soporte</string>
   <string name="pref_section_updates">Actualizaciones</string>
   <string name="pref_section_system">Sistema</string>
@@ -1150,7 +1141,6 @@ Reinicia la aplicación para que se apliquen todos los cambios.</string>
   <string name="ui_create_new_folder">Crear nueva carpeta</string>
   <string name="ui_folder_name">Nombre de la carpeta</string>
   <string name="ui_go_back">Volver</string>
-  <string name="ui_go_to_internal_storage">Ir al almacenamiento interno</string>
   <string name="ui_create_folder">Crear carpeta</string>
   <string name="ui_ai_is_thinking">La IA está pensando...</string>
   <string name="ui_ai_rename">Cambio de nombre con IA</string>
@@ -1286,7 +1276,7 @@ Reinicia la aplicación para que se apliquen todos los cambios.</string>
   <string name="ui_file_permission_desc_playstore">Requerido para acceder y reproducir archivos de medios almacenados en tu dispositivo.</string>
   <string name="ui_file_permission_desc_all_files">Requerido para descubrir archivos de medios y subtítulos en tu dispositivo.</string>
   <string name="ui_notification_permission_title">Notificaciones</string>
-  <string name="ui_notification_permission_desc">Opcional. Requerido para controles de reproducción, estado en segundo plano y alertas de actualización.</string>
+  <string name="ui_notification_permission_desc">Opcional. Se usa para el progreso de las descargas y los avisos de actualización. Los controles de reproducción funcionan sin él.</string>
   <string name="ui_audio_record_permission_title">Grabación de audio</string>
   <string name="ui_audio_record_permission_desc">Opcional. Permite al visualizador leer niveles de sonido en directo.</string>
   <string name="ui_permission_granted">Concedido</string>
@@ -2199,13 +2189,6 @@ Reinicia la aplicación para que se apliquen todos los cambios.</string>
   <string name="playlist_columns_portrait">Columnas en vertical</string>
   <string name="playlist_columns_landscape">Columnas en horizontal</string>
   <string name="playlist_extension">Extensión del archivo</string>
-  <string name="pref_background_playback_behavior">Comportamiento de reproducción en segundo plano</string>
-  <string name="pref_video_background_screen_off_only_title">Solo con la pantalla apagada</string>
-  <string name="pref_video_background_screen_off_only_summary">Sigue reproduciendo el vídeo al apagar la pantalla, pero lo pausa al cerrar el reproductor o cambiar de aplicación</string>
-  <string name="pref_background_playback_remember">Recordar siempre mi elección</string>
-  <string name="pref_background_playback_remember_summary">Conservar la elección de reproducción en segundo plano para los próximos vídeos.</string>
-  <string name="pref_background_playback_per_video">Recordar la elección para cada vídeo</string>
-  <string name="pref_background_playback_per_video_summary">Recuerda la reproducción en segundo plano para cada vídeo.</string>
   <string name="jellyfin_technical_details">Detalles técnicos</string>
 
   <!-- Snapshots (frame capture) -->
@@ -2656,47 +2639,10 @@ Reinicia la aplicación para que se apliquen todos los cambios.</string>
   <string name="delete_size_unknown">Tamaño desconocido</string>
   <string name="delete_size_description">Tamaño total: %1$s</string>
 
-  <!-- Thumbnail information -->
-  <string name="media_info_tab_thumbnail">Miniatura</string>
-  <string name="thumbnail_preview_description">Miniatura en caché de %1$s</string>
-  <string name="thumbnail_status_disk">Almacenada en caché en disco</string>
-  <string name="thumbnail_status_memory">Almacenada en caché en memoria</string>
-  <string name="thumbnail_status_unreadable">No se pudo decodificar la imagen en caché</string>
-  <string name="thumbnail_status_missing">No hay ninguna miniatura en caché</string>
-  <string name="thumbnail_info_status">Estado de la caché</string>
-  <string name="thumbnail_info_generator">Política de generación</string>
-  <string name="thumbnail_info_strategy">Selección de fotograma o carátula</string>
-  <string name="thumbnail_strategy_artwork">Carátula del álbum</string>
-  <string name="thumbnail_strategy_android">Fotograma seleccionado por Android</string>
-  <string name="thumbnail_info_quality">Calidad configurada</string>
-  <string name="thumbnail_info_maximum">Límite de tamaño configurado</string>
-  <string name="thumbnail_maximum_value">Hasta %1$d píxeles en el lado más largo</string>
-  <string name="thumbnail_info_dimensions">Dimensiones reales de la imagen</string>
-  <string name="thumbnail_dimensions_value">%1$d × %2$d píxeles</string>
-  <string name="thumbnail_info_format">Formato de la imagen en caché</string>
-  <string name="thumbnail_info_size">Tamaño del archivo en caché</string>
-  <string name="thumbnail_info_memory">Presente en la caché de memoria del explorador</string>
-  <string name="thumbnail_info_preview_memory">Memoria de la vista previa</string>
-  <string name="thumbnail_info_frame">Posición de fotograma configurada</string>
-  <string name="thumbnail_percent_value">%1$.1f%%</string>
-  <string name="thumbnail_info_jpeg_setting">Ajuste del codificador JPEG de la aplicación</string>
-  <string name="thumbnail_jpeg_value">%1$d%%</string>
-  <string name="thumbnail_info_modified">Última actualización del archivo de caché</string>
-  <string name="thumbnail_info_cache_path">Ruta del archivo de caché</string>
-  <string name="thumbnail_info_source">URI de origen</string>
-  <string name="thumbnail_yes">Sí</string>
-  <string name="thumbnail_no">No</string>
-  <string name="thumbnail_refresh">Actualizar información</string>
-  <string name="thumbnail_generate">Generar miniatura</string>
-  <string name="thumbnail_quality_note">Es la vista previa en caché, no un fotograma nuevo. Puede ser menor que el límite elegido.</string>
-  <string name="thumbnail_inspection_failed">No se pudo leer la información de la miniatura. Prueba a actualizarla.</string>
-  <string name="thumbnail_generation_unavailable">El generador seleccionado no devolvió una miniatura para este archivo.</string>
-
   <!-- Automatic thumbnail generation -->
   <string name="pref_appearance_thumbnail_generator_summary">Elige Automático, Extracción directa o MediaStore para las miniaturas y carátulas locales</string>
   <string name="pref_thumbnail_generator_auto">Automático (predeterminado)</string>
   <string name="pref_thumbnail_generator_auto_summary">Usa primero miniaturas de Android y luego Nativo si faltan. Cambiar borra la caché.</string>
-  <string name="thumbnail_strategy_auto">Primero MediaStore y después extracción directa como alternativa</string>
 
   <string name="update_download_failed">La descarga falló. Toca Reintentar para continuar.</string>
   <string name="update_install_failed">No se pudo abrir el instalador. Puedes volver a intentarlo.</string>
@@ -2704,7 +2650,6 @@ Reinicia la aplicación para que se apliquen todos los cambios.</string>
   <string name="update_checking_download">Comprobando el APK descargado…</string>
   <string name="update_check_failed">No se pudieron buscar actualizaciones. Comprueba la conexión o inténtalo más tarde.</string>
   <string name="update_auto_install">Descargar e instalar automáticamente</string>
-  <string name="update_auto_install_summary">Descarga en redes sin límite e instala en reposo. Android puede pedir permiso.</string>
   <string name="update_download_and_install">Descargar e instalar</string>
   <string name="update_background_downloading">Descargando actualización de la aplicación…</string>
   <string name="update_installing">Instalando actualización…</string>
@@ -3132,12 +3077,10 @@ Reinicia la aplicación para que se apliquen todos los cambios.</string>
   <string name="pref_floating_lyrics_summary">Mostrar una burbuja móvil de letras sobre otras aplicaciones</string>
   <string name="floating_lyrics_permission">Permite mostrar sobre otras aplicaciones para usar letras flotantes</string>
   <string name="floating_lyrics_unavailable">No se pudieron iniciar las letras flotantes</string>
-  <string name="floating_lyrics_background_required">Activa primero el audio en segundo plano</string>
   <string name="floating_lyrics_open_player">Abrir reproductor</string>
   <string name="floating_lyrics_dock_left">Mover las letras flotantes a la izquierda</string>
   <string name="floating_lyrics_dock_right">Mover las letras flotantes a la derecha</string>
   <string name="floating_lyrics_dismiss">Ocultar hasta volver a abrir mpvRx</string>
   <string name="floating_lyrics_turn_off">Desactivar letras flotantes</string>
   <string name="floating_lyrics_never">Nunca</string>
-  <string name="floating_lyrics_no_lyrics">No hay letras disponibles</string>
 </resources>

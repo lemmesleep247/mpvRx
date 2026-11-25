@@ -155,7 +155,6 @@
   <string name="theme_cotton_candy">Cotton Candy</string>
   <string name="theme_doom">Doom</string>
   <string name="theme_green_apple">Green Apple</string>
-  <string name="theme_lavender">Lavender</string>
   <string name="theme_midnight">Midnight</string>
   <string name="theme_mocha">Mocha</string>
   <string name="theme_strawberry">Strawberry</string>
@@ -208,11 +207,6 @@
   <string name="pref_auto_pip_summary">Automatically enter PIP mode when pressing home or back</string>
   <string name="pref_auto_pip_home_only_title">PiP on home gesture only</string>
   <string name="pref_auto_pip_home_only_summary">Only the home gesture or swipe enters PIP; the back button closes the player</string>
-  <string name="pref_enable_video_mini_player_title">Enable Video Mini Player</string>
-  <string name="pref_enable_video_mini_player_summary">Minimize video playback into a floating Mini Player when pressing Back</string>
-  <string name="pref_video_mini_player_dependency_title">Enable video background playback?</string>
-  <string name="pref_video_mini_player_dependency_message">Requires Video Player Background Playback.</string>
-  <string name="pref_video_mini_player_dependency_confirm">Enable and continue</string>
   <string name="pref_player_keep_screen_on_when_paused_title">Keep screen on when paused</string>
   <string name="pref_player_external_display_projection_title">External display projection</string>
   <string name="pref_player_external_display_projection_summary">Play on HDMI, USB-C or wireless displays with the phone screen off.</string>
@@ -395,9 +389,6 @@
   <string name="pref_subtitles_font_directory_selected">Source: %1$s</string>
   <string name="pref_subtitles_font_no_custom">No custom fonts loaded</string>
   <string name="pref_subtitles_font_copy_failed">Could not load fonts: %1$s</string>
-  <string name="pref_subtitles_auto_download_fonts">Download missing fonts</string>
-  <string name="pref_subtitles_auto_download_fonts_summary">Adds a Google font when subtitles use a script or emoji this device can\'t show</string>
-  <string name="subtitle_font_added">Font added: %1$s</string>
   <string name="pref_subtitles_autoload_title">Automatically load subtitles</string>
   <string name="pref_subtitles_autoload_summary">Automatically find matching subtitles beside the video and up to two subfolders deep.</string>
   <string name="pref_subtitles_search_online">Online Subtitle Search…</string>
@@ -690,12 +681,11 @@
   <!-- Background Playback -->
   <string name="pref_ignore_audio_focus_title">Ignore audio focus</string>
   <string name="pref_ignore_audio_focus_summary">Keep audio and video playing alongside other apps without pausing or lowering volume</string>
-  <string name="pref_audio_background_playback_title">Audio Player Background Playback</string>
-  <string name="toast_audio_background_playback_on">Audio background playback on</string>
-  <string name="toast_audio_background_playback_off">Audio background playback off</string>
-  <string name="pref_audio_background_playback_summary">Keep audio playing when leaving the audio player or turning off screen</string>
   <string name="pref_video_background_playback_title">Video Player Background Playback</string>
-  <string name="pref_video_background_playback_summary">Keep video audio playing when leaving the video player or turning off screen</string>
+  <string name="pref_video_background_playback_summary">Keep videos playing after you go Home, switch apps or turn off the screen. Back always closes the video. Long-press the background button in the player to do this once.</string>
+  <string name="toast_background_playback_on">Background playback on</string>
+  <string name="toast_background_playback_off">Background playback off</string>
+  <string name="btn_label_background_playback_once">Play in the background once</string>
   <string name="deselect_all">Deselect All</string>
   <string name="select_all">Select All</string>
   <string name="invert_selection">Invert Selection</string>
@@ -766,12 +756,7 @@
   <string name="notification_add_to_favorites">Add to Favorites</string>
   <string name="notification_saved_to_favorites">Saved to Favorites</string>
   <string name="notification_close">Close</string>
-  <string name="notification_chapter_counter">Chapter %1$d of %2$d</string>
   <string name="notification_playback_progress">%1$s elapsed - %2$s remaining</string>
-  <string name="notification_permission_denied">Notification permission is required for background playback controls.</string>
-  <string name="notification_permission_disabled">Notifications are disabled for mpvRx. Enable them to show playback controls.</string>
-  <string name="notification_disabled_in_advanced_settings">Enable notifications in Advanced Settings to use background playback.</string>
-  <string name="pref_advanced_notification_style">Notification style</string>
   <!-- Media Info Activity -->
   <string name="pref_player_use_precise_seeking">Use precise seeking</string>
   <!-- Folders Preferences -->
@@ -1258,6 +1243,9 @@
   <string name="pref_decoder_vulkan_experimental_title">Vulkan (Experimental)</string>
   <string name="hdr_mode_off">Off</string>
   <string name="hdr_mode_off_description">Normal SDR output</string>
+  <string name="hdr_mode_linear_passthrough">Linear Passthrough (hdr-toys)</string>
+  <string name="hdr_mode_linear_passthrough_short">Linear Passthrough</string>
+  <string name="hdr_mode_linear_passthrough_description">Sends HDR to this screen. hdr-toys Astra first tone maps each video to the peak brightness of the screen. Needs gpu-next with Vulkan.</string>
   <string name="hdr_mode_bt2100_pq" translatable="false">BT.2100 PQ</string>
   <string name="hdr_mode_pq_short" translatable="false">PQ</string>
   <string name="hdr_mode_bt2100_pq_description">HDR10-style PQ with Astra tone mapping and Bottosson gamut mapping</string>
@@ -1615,7 +1603,6 @@
   <string name="ui_create_new_folder">Create New Folder</string>
   <string name="ui_folder_name">Folder name</string>
   <string name="ui_go_back">Go back</string>
-  <string name="ui_go_to_internal_storage">Go to internal storage</string>
   <string name="ui_create_folder">Create folder</string>
   <string name="ui_ai_is_thinking">AI is thinking...</string>
   <string name="ui_ai_rename">AI Rename</string>
@@ -1789,7 +1776,7 @@
   <string name="ui_file_permission_desc_playstore">Required to access and play media files stored on your device.</string>
   <string name="ui_file_permission_desc_all_files">Required to discover media and subtitle files on your device.</string>
   <string name="ui_notification_permission_title">Notifications</string>
-  <string name="ui_notification_permission_desc">Optional. Required for media playback controls, background status, and update alerts.</string>
+  <string name="ui_notification_permission_desc">Optional. Used for download progress and update alerts. Playback controls work without it.</string>
   <string name="ui_audio_record_permission_title">Record Audio</string>
   <string name="ui_audio_record_permission_desc">Optional. Lets audio visualizers read live sound levels.</string>
   <string name="ui_permission_granted">Granted</string>
@@ -2709,13 +2696,6 @@
   <string name="playlist_columns_portrait">Portrait columns</string>
   <string name="playlist_columns_landscape">Landscape columns</string>
   <string name="playlist_extension">File extension</string>
-  <string name="pref_background_playback_behavior">Background playback behavior</string>
-  <string name="pref_video_background_screen_off_only_title">Only when the screen is off</string>
-  <string name="pref_video_background_screen_off_only_summary">Keep videos playing when the screen turns off, but pause them when you close the player or switch apps</string>
-  <string name="pref_background_playback_remember">Always remember my choice</string>
-  <string name="pref_background_playback_remember_summary">Keep the background playback choice for future videos.</string>
-  <string name="pref_background_playback_per_video">Remember for each video</string>
-  <string name="pref_background_playback_per_video_summary">Remember background playback separately for each video.</string>
   <string name="jellyfin_technical_details">Technical details</string>
 
   <!-- Snapshots (frame capture) -->
@@ -3036,50 +3016,12 @@
   <string name="delete_size_unknown">Size unknown</string>
   <string name="delete_size_description">Total size: %1$s</string>
 
-  <!-- Thumbnail information -->
-  <string name="media_info_tab_thumbnail">Thumbnail</string>
-  <string name="thumbnail_preview_description">Cached thumbnail for %1$s</string>
-  <string name="thumbnail_status_disk">Cached on disk</string>
-  <string name="thumbnail_status_memory">Cached in memory</string>
-  <string name="thumbnail_status_unreadable">Cached image could not be decoded</string>
-  <string name="thumbnail_status_missing">No cached thumbnail</string>
-  <string name="thumbnail_info_status">Cache status</string>
-  <string name="thumbnail_info_generator">Generator policy</string>
-  <string name="thumbnail_info_strategy">Frame or artwork selection</string>
-  <string name="thumbnail_strategy_artwork">Album artwork</string>
-  <string name="thumbnail_strategy_auto">MediaStore first, then Native fallback</string>
-  <string name="thumbnail_strategy_android">Android-selected frame</string>
-  <string name="thumbnail_info_quality">Configured quality</string>
-  <string name="thumbnail_info_maximum">Configured size limit</string>
-  <string name="thumbnail_maximum_value">Up to %1$d px on the longest side</string>
-  <string name="thumbnail_info_dimensions">Actual image dimensions</string>
-  <string name="thumbnail_dimensions_value">%1$d × %2$d px</string>
-  <string name="thumbnail_info_format">Cached image format</string>
-  <string name="thumbnail_info_size">Cached file size</string>
-  <string name="thumbnail_info_memory">Present in browser memory cache</string>
-  <string name="thumbnail_info_preview_memory">Preview memory</string>
-  <string name="thumbnail_info_frame">Configured frame position</string>
-  <string name="thumbnail_percent_value">%1$.1f%%</string>
-  <string name="thumbnail_info_jpeg_setting">App JPEG encoder setting</string>
-  <string name="thumbnail_jpeg_value">%1$d%%</string>
-  <string name="thumbnail_info_modified">Cache file updated</string>
-  <string name="thumbnail_info_cache_path">Cache file path</string>
-  <string name="thumbnail_info_source">Source URI</string>
-  <string name="thumbnail_yes">Yes</string>
-  <string name="thumbnail_no">No</string>
-  <string name="thumbnail_refresh">Refresh info</string>
-  <string name="thumbnail_generate">Generate thumbnail</string>
-  <string name="thumbnail_quality_note">This is the cached preview, not a new frame. Its size may be below your chosen limit.</string>
-  <string name="thumbnail_inspection_failed">Thumbnail information could not be read. Try refreshing.</string>
-  <string name="thumbnail_generation_unavailable">The selected generator did not return a thumbnail for this file.</string>
-
   <string name="update_download_failed">Download failed. Tap Retry to resume.</string>
   <string name="update_install_failed">Could not open the installer. You can try again.</string>
   <string name="update_install_permission">Allow this app to install updates in Android settings, then tap Install again.</string>
   <string name="update_checking_download">Checking downloaded APK…</string>
   <string name="update_check_failed">Could not check for updates. Check your connection or try again later.</string>
   <string name="update_auto_install">Automatically download and install</string>
-  <string name="update_auto_install_summary">Download on unmetered networks; install when idle. Android may ask permission.</string>
   <string name="update_download_and_install">Download and install</string>
   <string name="update_background_downloading">Downloading app update…</string>
   <string name="update_installing">Installing update…</string>
@@ -3301,12 +3243,10 @@
   <string name="pref_floating_lyrics_summary">Show a movable lyrics pill over other apps</string>
   <string name="floating_lyrics_permission">Allow Display over other apps to use floating lyrics</string>
   <string name="floating_lyrics_unavailable">Could not start floating lyrics</string>
-  <string name="floating_lyrics_background_required">Enable audio background playback first</string>
   <string name="floating_lyrics_open_player">Open player</string>
   <string name="floating_lyrics_dock_left">Move floating lyrics to the left</string>
   <string name="floating_lyrics_dock_right">Move floating lyrics to the right</string>
   <string name="floating_lyrics_dismiss">Hide until mpvRx is reopened</string>
   <string name="floating_lyrics_turn_off">Turn off floating lyrics</string>
   <string name="floating_lyrics_never">Never</string>
-  <string name="floating_lyrics_no_lyrics">No lyrics available</string>
 </resources>

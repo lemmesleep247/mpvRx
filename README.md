@@ -106,8 +106,8 @@ mpvRx pushes the mpv-android experience further with deep customization, thermal
 
 | Feature | Description |
 |---|---|
-| **Shader-Based HDR Pipeline** | Powered by [hdr-toys](https://github.com/natural-harmonia-gropius/hdr-toys) — 83 bundled GLSL shaders |
-| **Four HDR Modes** | BT.2100 PQ (HDR10), BT.2100 HLG, BT.2020 gamut mapping, Linear HDR |
+| **Shader-Based HDR Pipeline** | Powered by [hdr-toys](https://github.com/natural-harmonia-gropius/hdr-toys): Astra tone mapping and Bottosson gamut mapping, with the shader chains of its own profiles |
+| **Five HDR Modes** | Linear Passthrough (hdr-toys HDR output, default), BT.2100 PQ (HDR10), BT.2100 HLG, BT.2020 gamut mapping, Linear HDR |
 | **SDR-to-HDR Boost** | Boost SDR content into HDR range when using Linear HDR pipeline |
 | **GPU Deband** | CPU (gradfun) or GPU deband with configurable iterations, threshold, range, grain |
 | **Smart Render Backend** | Auto-selects between OpenGL/Vulkan and gpu/gpu-next based on device support |
@@ -344,8 +344,8 @@ mpvRx pushes the mpv-android experience further with deep customization, thermal
 | **Frame Navigation** | Frame-by-frame forward/backward with frame number display |
 | **Sleep Timer** | Built-in with quick presets (15/30/45/60 min) |
 | **Adaptive Background Playback** | Auto-PiP on Home, auto-resume after screen unlock |
-| **Unified Background Playback** | One persistent audio/video switch; Back can return to browser lists without stopping the current media |
-| **Notification Styles** | None, Media, or Progress with Chapters (Android 16+) |
+| **Background Playback** | Music always keeps playing; one switch keeps videos playing after Home, an app switch or screen-off, and a long press on the player button does it once. Back closes a video |
+| **Media Notification** | System media controls with artwork and chapter text while playing in the background; no notification permission needed |
 | **Safe Area / Window Offset** | Prevents camera notch overlap |
 | **Display Cutout Mode** | Full-bleed on notch devices |
 | **Remember Brightness** | Persists brightness level set during playback |

@@ -118,7 +118,6 @@
   <string name="theme_cotton_candy">Цукрова вата</string>
   <string name="theme_doom">Doom</string>
   <string name="theme_green_apple">Зелене яблуко</string>
-  <string name="theme_lavender">Лаванда</string>
   <string name="theme_midnight">Опівніч</string>
   <string name="theme_mocha">Мокко</string>
   <string name="theme_strawberry">Полуниця</string>
@@ -169,11 +168,6 @@
   <string name="pref_auto_pip_summary">Автоматично вмикати режим PiP під час натискання кнопок «Додому» або «Назад»</string>
   <string name="pref_auto_pip_home_only_title">PiP лише для жесту «Додому»</string>
   <string name="pref_auto_pip_home_only_summary">Лише жест «Додому» або проведення активує PiP; кнопка «Назад» закриває плеєр</string>
-  <string name="pref_enable_video_mini_player_title">Увімкнути міні-відеоплеєр</string>
-  <string name="pref_enable_video_mini_player_summary">Згортати відтворення відео у плаваючий мініплеєр після натискання «Назад»</string>
-  <string name="pref_video_mini_player_dependency_title">Увімкнути фонове відтворення відео?</string>
-  <string name="pref_video_mini_player_dependency_message">Потрібне фонове відтворення відеопрогравача.</string>
-  <string name="pref_video_mini_player_dependency_confirm">Увімкнути та продовжити</string>
   <string name="pref_player_keep_screen_on_when_paused_title">Не вимикати екран на паузі</string>
   <string name="pref_player_external_display_projection_title">Проєкція на зовнішній екран</string>
   <string name="pref_player_external_display_projection_summary">Відтворювати на HDMI, USB-C чи бездротовому екрані з вимкненим екраном телефона.</string>
@@ -571,12 +565,11 @@
     <item quantity="many">%1$d секунд</item>
     <item quantity="other">%1$d секунд</item>
   </plurals>
-  <string name="pref_audio_background_playback_title">Фонове відтворення аудіоплеєра</string>
-  <string name="toast_audio_background_playback_on">Фонове відтворення аудіо ввімкнено</string>
-  <string name="toast_audio_background_playback_off">Фонове відтворення аудіо вимкнено</string>
-  <string name="pref_audio_background_playback_summary">Продовжувати відтворення аудіо під час виходу з аудіоплеєра або вимкнення екрана</string>
   <string name="pref_video_background_playback_title">Фонове відтворення відеоплеєра</string>
-  <string name="pref_video_background_playback_summary">Продовжувати відтворення звуку відео під час виходу з відеоплеєра або вимкнення екрана</string>
+  <string name="pref_video_background_playback_summary">Відео продовжує відтворюватися, коли ви переходите на головний екран, перемикаєтеся на інший застосунок або вимикаєте екран. Кнопка «Назад» завжди закриває відео. Щоб зробити це один раз, утримуйте кнопку фонового відтворення в плеєрі.</string>
+  <string name="toast_background_playback_on">Фонове відтворення увімкнено</string>
+  <string name="toast_background_playback_off">Фонове відтворення вимкнено</string>
+  <string name="btn_label_background_playback_once">Відтворити у фоні один раз</string>
   <string name="deselect_all">Зняти виділення з усіх</string>
   <string name="select_all">Виділити все</string>
   <string name="invert_selection">Інвертувати виділення</string>
@@ -603,12 +596,7 @@
   <string name="notification_add_to_favorites">Додати до вибраного</string>
   <string name="notification_saved_to_favorites">Збережено у вибраному</string>
   <string name="notification_close">Закрити</string>
-  <string name="notification_chapter_counter">Розділ %1$d з %2$d</string>
   <string name="notification_playback_progress">Минуло: %1$s — залишилося: %2$s</string>
-  <string name="notification_permission_denied">Для керування фоновим відтворенням потрібен дозвіл на сповіщення.</string>
-  <string name="notification_permission_disabled">Сповіщення для mpvRx вимкнено. Увімкніть їх для відображення кнопок керування.</string>
-  <string name="notification_disabled_in_advanced_settings">Увімкніть сповіщення в розширених налаштуваннях для використання фонового відтворення.</string>
-  <string name="pref_advanced_notification_style">Стиль сповіщень</string>
   <string name="pref_player_use_precise_seeking">Використовувати точне перемотування</string>
   <string name="pref_folders_title">Папки</string>
   <string name="pref_folders_summary">Керування чорним списком папок та прихованими медіафайлами</string>
@@ -973,12 +961,15 @@
   <string name="pref_decoder_vulkan_experimental_title">Vulkan (Експериментально)</string>
   <string name="hdr_mode_off">Вимкнено</string>
   <string name="hdr_mode_off_description">Звичайний вивід SDR</string>
+  <string name="hdr_mode_linear_passthrough">Лінійний прямий вивід (hdr-toys)</string>
+  <string name="hdr_mode_linear_passthrough_short">Лінійний прямий вивід</string>
+  <string name="hdr_mode_linear_passthrough_description">Виводить HDR на цей екран. Спершу Astra з hdr-toys підлаштовує кожне відео під пікову яскравість екрана. Потрібен gpu-next з Vulkan.</string>
   <string name="hdr_mode_bt2100_pq_description">PQ у стилі HDR10 з тональним відображенням Astra та колірним охопленням Bottosson</string>
   <string name="hdr_mode_bt2100_hlg_description">HLG HDR через ланцюжок шейдерів hdr-toys Astra та Bottosson</string>
   <string name="hdr_mode_bt2020_description">Перетворення BT.2020 / BT.1886 з використанням охоплення hdr-toys</string>
   <string name="hdr_mode_linear">Лінійний HDR</string>
   <string name="hdr_mode_linear_short">Лінійний</string>
-  <string name="hdr_mode_linear_description">Лінійний конвеєр світла HDR із шейдерами hdr-toys Astra та Bottosson</string>
+  <string name="hdr_mode_linear_description">Нативний лінійний HDR. Зворотне тональне відображення лишається увімкненим, а тональне відображення зафіксовано на Clip.</string>
   <string name="pref_section_support">Підтримка</string>
   <string name="pref_section_updates">Оновлення</string>
   <string name="pref_section_system">Система</string>
@@ -1287,7 +1278,6 @@
   <string name="ui_create_new_folder">Створити нову папку</string>
   <string name="ui_folder_name">Назва папки</string>
   <string name="ui_go_back">Назад</string>
-  <string name="ui_go_to_internal_storage">Перейти до внутрішньої пам\'яті</string>
   <string name="ui_create_folder">Створити папку</string>
   <string name="ui_ai_is_thinking">ШІ роздумує…</string>
   <string name="ui_ai_rename">ШІ-перейменування</string>
@@ -1464,7 +1454,7 @@
   <string name="ui_file_permission_desc_playstore">Необхідно для доступу та відтворення медіафайлів, збережених на пристрої.</string>
   <string name="ui_file_permission_desc_all_files">Необхідно для пошуку медіафайлів і субтитрів на вашому пристрої.</string>
   <string name="ui_notification_permission_title">Сповіщення</string>
-  <string name="ui_notification_permission_desc">Необов\'язково. Необхідно для керування відтворенням у фоні, відображення стану та сповіщень про оновлення.</string>
+  <string name="ui_notification_permission_desc">Необов’язково. Використовується для прогресу завантажень і сповіщень про оновлення. Керування відтворенням працює і без нього.</string>
   <string name="ui_audio_record_permission_title">Запис аудіо</string>
   <string name="ui_audio_record_permission_desc">Необов’язково. Надає візуалізатору доступ до поточних рівнів звуку.</string>
   <string name="ui_permission_granted">Надано</string>
@@ -2225,13 +2215,6 @@
   <string name="playlist_columns_portrait">Колонки в портретному режимі</string>
   <string name="playlist_columns_landscape">Колонки в альбомному режимі</string>
   <string name="playlist_extension">Розширення файлу</string>
-  <string name="pref_background_playback_behavior">Поведінка фонового відтворення</string>
-  <string name="pref_video_background_screen_off_only_title">Лише за вимкненого екрана</string>
-  <string name="pref_video_background_screen_off_only_summary">Продовжувати відтворення, коли екран вимикається, але ставити на паузу під час закриття плеєра або переходу в іншу програму</string>
-  <string name="pref_background_playback_remember">Завжди пам\'ятати мій вибір</string>
-  <string name="pref_background_playback_remember_summary">Зберігати вибір фонового відтворення для наступних відео.</string>
-  <string name="pref_background_playback_per_video">Пам\'ятати для кожного відео окремо</string>
-  <string name="pref_background_playback_per_video_summary">Запам’ятовувати фонове відтворення окремо для кожного відео.</string>
   <string name="jellyfin_technical_details">Технічні подробиці</string>
   <string name="ui_snapshots">Знімки</string>
   <string name="ui_profile">Профіль</string>
@@ -2629,47 +2612,10 @@
   <string name="delete_size_unknown">Розмір невідомий</string>
   <string name="delete_size_description">Загальний розмір: %1$s</string>
 
-  <!-- Thumbnail information -->
-  <string name="media_info_tab_thumbnail">Мініатюра</string>
-  <string name="thumbnail_preview_description">Кешована мініатюра для %1$s</string>
-  <string name="thumbnail_status_disk">Кешована на диску</string>
-  <string name="thumbnail_status_memory">Кешована в пам’яті</string>
-  <string name="thumbnail_status_unreadable">Не вдалося декодувати кешоване зображення</string>
-  <string name="thumbnail_status_missing">Немає кешованої мініатюри</string>
-  <string name="thumbnail_info_status">Стан кешу</string>
-  <string name="thumbnail_info_generator">Політика створення</string>
-  <string name="thumbnail_info_strategy">Вибір кадру або обкладинки</string>
-  <string name="thumbnail_strategy_artwork">Обкладинка альбому</string>
-  <string name="thumbnail_strategy_android">Кадр, вибраний Android</string>
-  <string name="thumbnail_info_quality">Задана якість</string>
-  <string name="thumbnail_info_maximum">Задане обмеження розміру</string>
-  <string name="thumbnail_maximum_value">До %1$d пікс. на довшій стороні</string>
-  <string name="thumbnail_info_dimensions">Фактичні розміри зображення</string>
-  <string name="thumbnail_dimensions_value">%1$d × %2$d пікс.</string>
-  <string name="thumbnail_info_format">Формат кешованого зображення</string>
-  <string name="thumbnail_info_size">Розмір файлу кешу</string>
-  <string name="thumbnail_info_memory">Є в кеші пам’яті оглядача</string>
-  <string name="thumbnail_info_preview_memory">Пам’ять для попереднього перегляду</string>
-  <string name="thumbnail_info_frame">Задана позиція кадру</string>
-  <string name="thumbnail_percent_value">%1$.1f%%</string>
-  <string name="thumbnail_info_jpeg_setting">Налаштування JPEG-кодувальника застосунку</string>
-  <string name="thumbnail_jpeg_value">%1$d%%</string>
-  <string name="thumbnail_info_modified">Час оновлення файлу кешу</string>
-  <string name="thumbnail_info_cache_path">Шлях до файлу кешу</string>
-  <string name="thumbnail_info_source">URI джерела</string>
-  <string name="thumbnail_yes">Так</string>
-  <string name="thumbnail_no">Ні</string>
-  <string name="thumbnail_refresh">Оновити відомості</string>
-  <string name="thumbnail_generate">Створити мініатюру</string>
-  <string name="thumbnail_quality_note">Це кешований перегляд, а не новий кадр. Розмір може бути меншим за вибрану межу.</string>
-  <string name="thumbnail_inspection_failed">Не вдалося прочитати відомості про мініатюру. Спробуйте оновити.</string>
-  <string name="thumbnail_generation_unavailable">Вибраний генератор не повернув мініатюру для цього файлу.</string>
-
   <!-- Automatic thumbnail generation -->
   <string name="pref_appearance_thumbnail_generator_summary">Виберіть автоматичний режим, пряме видобування або MediaStore для локальних мініатюр та обкладинок пісень</string>
   <string name="pref_thumbnail_generator_auto">Авто (за замовчуванням)</string>
   <string name="pref_thumbnail_generator_auto_summary">Спочатку мініатюри Android, потім Native, якщо їх немає. Зміна очищує кеш.</string>
-  <string name="thumbnail_strategy_auto">Спочатку MediaStore, потім пряме видобування у разі невдачі</string>
 
   <string name="update_download_failed">Помилка завантаження. Натисніть «Повторити», щоб продовжити.</string>
   <string name="update_install_failed">Не вдалося відкрити програму встановлення. Повторіть спробу.</string>
@@ -2677,7 +2623,6 @@
   <string name="update_checking_download">Перевірка завантаженого APK…</string>
   <string name="update_check_failed">Не вдалося перевірити оновлення. Перевірте з’єднання або повторіть спробу пізніше.</string>
   <string name="update_auto_install">Автоматично завантажувати й установлювати</string>
-  <string name="update_auto_install_summary">Завантажувати в безлімітних мережах, ставити під час простою. Android може запитати дозвіл.</string>
   <string name="update_download_and_install">Завантажити й установити</string>
   <string name="update_background_downloading">Завантаження оновлення застосунку…</string>
   <string name="update_installing">Установлення оновлення…</string>
@@ -3108,12 +3053,10 @@
   <string name="pref_floating_lyrics_summary">Показувати рухому панель тексту поверх інших застосунків</string>
   <string name="floating_lyrics_permission">Дозвольте показ поверх інших застосунків для плаваючих текстів</string>
   <string name="floating_lyrics_unavailable">Не вдалося запустити плаваючі тексти</string>
-  <string name="floating_lyrics_background_required">Спочатку ввімкніть фонове відтворення аудіо</string>
   <string name="floating_lyrics_open_player">Відкрити програвач</string>
   <string name="floating_lyrics_dock_left">Перемістити панель тексту ліворуч</string>
   <string name="floating_lyrics_dock_right">Перемістити панель тексту праворуч</string>
   <string name="floating_lyrics_dismiss">Приховати до повторного відкриття mpvRx</string>
   <string name="floating_lyrics_turn_off">Вимкнути плаваючі тексти</string>
   <string name="floating_lyrics_never">Ніколи</string>
-  <string name="floating_lyrics_no_lyrics">Текст пісні недоступний</string>
 </resources>

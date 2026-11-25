@@ -9,15 +9,16 @@
 
 package app.gyrolet.mpvrx.domain.hdr
 
+/** The hdr-toys shader chains of the HDR screen modes, as in upstream's hdr-toys.conf. */
 enum class HdrToysProfile(
-  val configSection: String,
   val targetPrim: String,
   val targetTrc: String,
   val shaderPaths: List<String>,
   val shaderOptions: List<Pair<String, String>> = emptyList(),
+  /** Ends in PQ for an HDR display, so mpv must hint the display instead of showing SDR. */
+  val outputsHdr: Boolean = false,
 ) {
   BT_2100_PQ(
-    configSection = "bt.2100-pq",
     targetPrim = "bt.2020",
     targetTrc = "pq",
     shaderPaths =
@@ -31,7 +32,6 @@ enum class HdrToysProfile(
     shaderOptions = listOf("auto_exposure_limit_positive" to "1.02"),
   ),
   BT_2100_HLG(
-    configSection = "bt.2100-hlg",
     targetPrim = "bt.2020",
     targetTrc = "hlg",
     shaderPaths =
@@ -44,7 +44,6 @@ enum class HdrToysProfile(
       ),
   ),
   BT_2020(
-    configSection = "bt.2020",
     targetPrim = "bt.2020",
     targetTrc = "bt.1886",
     shaderPaths =
@@ -54,30 +53,40 @@ enum class HdrToysProfile(
         "hdr-toys/transfer-function/bt1886.glsl",
       ),
   ),
-  LINEAR(
-    configSection = "linear",
+
+  /**
+   * hdr-toys' recipe for an HDR display: the BT.2100 PQ chain, but Astra maps to the display's
+   * peak ([shaderOptionsValue] sets reference_white to it) and pq.glsl encodes PQ instead of
+   * BT.1886. The output stays BT.2020, so no gamut mapping is needed.
+   */
+  LINEAR_PASSTHROUGH(
     targetPrim = "bt.2020",
-    targetTrc = "linear",
+    targetTrc = "pq",
     shaderPaths =
       listOf(
-        "hdr-toys/utils/clip_black.glsl",
-        "hdr-toys/utils/clip_alpha.glsl",
+        "hdr-toys/utils/clip_both.glsl",
+        "hdr-toys/transfer-function/pq_inv.glsl",
         "hdr-toys/tone-mapping/astra.glsl",
-        "hdr-toys/gamut-mapping/bottosson.glsl",
-        "hdr-toys/transfer-function/bt1886.glsl",
+        "hdr-toys/transfer-function/pq.glsl",
       ),
     shaderOptions =
       listOf(
-        "spatial_stable_level" to "0",
-        "temporal_stable_duration" to "0",
-        "enable_metering" to "1",
+        "auto_exposure_limit_positive" to "1.02",
+        "contrast_ratio" to "1000000",
       ),
+    outputsHdr = true,
   ),
   ;
 
-  /** Comma-separated key=value string passed to mpv's glsl-shader-opts. */
-  val shaderOptionsValue: String
-    get() = shaderOptions.joinToString(",") { (name, value) -> "$name=$value" }
+  /**
+   * Comma-separated key=value string passed to mpv's glsl-shader-opts. An HDR output profile maps
+   * reference white to [displayPeakNits].
+   */
+  fun shaderOptionsValue(displayPeakNits: Int): String {
+    val options =
+      if (outputsHdr) shaderOptions + ("reference_white" to displayPeakNits.toString()) else shaderOptions
+    return options.joinToString(",") { (name, value) -> "$name=$value" }
+  }
 
   /** Absolute mpv paths using the ~~/shaders/ config-dir prefix. */
   val mpvShaderPaths: List<String>
