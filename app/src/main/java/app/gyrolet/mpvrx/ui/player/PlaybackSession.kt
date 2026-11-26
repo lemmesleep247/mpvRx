@@ -218,6 +218,9 @@ object PlaybackSession : MPVLib.EventObserver {
   }
 
   private val BUFFERING_STATUS_PROPERTIES = setOf("pause", "paused-for-cache", "seeking", "demuxer-via-network", "eof-reached")
+
+  /** The current seek's target is already cached; see [seekTargetIsCachedLocked]. */
+  @Volatile private var seekWaitsOnlyForDecoder = false
   private const val PLAYBACK_TRANSITION_AUDIO_RESTORE_DELAY_MS = 180L
   private const val AMBIENT_SHADER_PREFIX = "ambient_"
   private const val AMBIENT_SHADER_SUFFIX = ".glsl"
@@ -296,6 +299,12 @@ object PlaybackSession : MPVLib.EventObserver {
     val registration: NetworkStreamRegistration? = null,
   )
 
+  /** The detach-time hwdec and vd-lavc-skipframe values, restored with the next renderer. */
+  private data class DetachedDecoderOptions(
+    val hwdec: String,
+    val skipFrame: String,
+  )
+
   /** A video selection belongs to one file, not to the Activity or its replacement Surface. */
   private data class SuspendedVideoTrack(
     val id: Int,
@@ -365,6 +374,8 @@ object PlaybackSession : MPVLib.EventObserver {
   private var activeNetworkStream: NetworkStreamRegistration? = null
   private val auxiliaryNetworkStreams = linkedMapOf<String, NetworkStreamRegistration>()
   private var suspendedVideoTrack: SuspendedVideoTrack? = null
+  /** Decoder options replaced while a kept video track has no renderer; restored with the next one. */
+  private var detachedDecoderRestore: DetachedDecoderOptions? = null
   private var deferredVideoSelectionGeneration: Long? = null
   private var pendingStopClearQueue = false
   private var supersededStopGeneration = 0L
@@ -590,6 +601,7 @@ internal fun userScriptsNeedReload(currentKey: String): Boolean {
         resetStatisticsState()
         observedProperties.clear()
         suspendedVideoTrack = null
+        detachedDecoderRestore = null
         rendererOutputReady = false
         deferredVideoSelectionGeneration = null
         pendingStopClearQueue = false
@@ -706,7 +718,9 @@ internal fun userScriptsNeedReload(currentKey: String): Boolean {
       // Both vo and wid changes seek the whole file when a video track is selected. Finish
       // deselecting video before either changes, including direct fullscreen/mini-player handoffs.
       // AudioTrack and its clock stay running while the video decoder/output are replaced.
-      detachRendererSurfaceLocked()
+      // With no Surface attached there is no handoff: a track kept across the Surface loss stays
+      // selected so its read-ahead cache is still there when this output comes up.
+      detachRendererSurfaceLocked(surfaceLost = !_state.value.surfaceAttached)
       val token = ++surfaceAttachmentToken
       MPVLib.attachSurface(surface)
       MPVLib.setPropertyString("android-surface-size", "${targetWidth}x$targetHeight")
@@ -740,6 +754,9 @@ internal fun userScriptsNeedReload(currentKey: String): Boolean {
               if (windowId == 0L || windowId == -1L) return@withLock false
 
               val activated = runCatching {
+                // wid is observable: a kept track may use the hardware decoder and decode every
+                // frame again. Before vo, which mediacodec_embed cannot initialize without it.
+                restoreAttachedVideoDecoderLocked()
                 MPVLib.setPropertyString("vo", videoOutput)
                 MPVLib.setPropertyString("force-window", "yes")
                 // Readiness is "Surface bound and wid applied", not "a video output object
@@ -785,7 +802,7 @@ internal fun userScriptsNeedReload(currentKey: String): Boolean {
               } else {
                 // A failed bind must be retryable. Leaving surfaceAttached=true strands every
                 // later ensureSurfaceAttached() call behind an attachment that never became ready.
-                detachRendererSurfaceLocked()
+                detachRendererSurfaceLocked(surfaceLost = true)
                 true
               }
             }
@@ -935,18 +952,29 @@ internal fun userScriptsNeedReload(currentKey: String): Boolean {
   fun unbindSurface(owner: Any): Boolean =
     withCore(default = false) {
       if (attachedSurfaceOwner !== owner || !_state.value.surfaceAttached) return@withCore false
-      detachRendererSurfaceLocked(overlayOwner = owner)
+      detachRendererSurfaceLocked(overlayOwner = owner, surfaceLost = true)
       true
     }
 
   /**
-   * Stops video before changing vo/wid. These operations must stay under the same native lock;
-   * restoring vid before the replacement output is ready would reintroduce a whole-file seek.
-   * [overlayOwner]'s subtitle overlay leaves with the video Surface.
+   * Stops video before changing vo/wid, unless [keepsVideoTrackAcrossDetachLocked] keeps the track
+   * selected for its cache. These operations must stay under the same native lock; restoring vid
+   * before the replacement output is ready would reintroduce a whole-file seek.
+   * [overlayOwner]'s subtitle overlay leaves with the video Surface. [surfaceLost] is true when no
+   * replacement Surface is taking over (Home, Recents, a destroyed SurfaceView).
    */
-  private fun detachRendererSurfaceLocked(overlayOwner: Any? = null) {
+  private fun detachRendererSurfaceLocked(
+    overlayOwner: Any? = null,
+    surfaceLost: Boolean = false,
+  ) {
     ++surfaceAttachmentToken
-    suspendVideoTrackLocked()
+    val keepVideoTrack = keepsVideoTrackAcrossDetachLocked(surfaceLost)
+    if (keepVideoTrack) {
+      Log.d(TAG, "Video track kept across Surface loss to preserve the demuxer cache: " +
+        "generation=${_state.value.generation}, phase=${_state.value.phase}")
+    } else {
+      suspendVideoTrackLocked()
+    }
     rendererOutputReady = false
     // Release a GPU output's overlay while mpv is idle: once wid=0 lets mpv retire that output,
     // every synchronous call, including the overlay's own surfaceDestroyed, waits for the GPU
@@ -958,11 +986,16 @@ internal fun userScriptsNeedReload(currentKey: String): Boolean {
     // FongMi's mpv only drops the swapchain for wid=0, and detachSurface() returns once the
     // Surface is unused; its core thread then retires the idle output. vo=null or
     // force-window=no would instead destroy the whole Vulkan device on this (UI) thread, which
-    // Mali drivers can stall on while the window is being hidden (ANR).
-    if (!BuildConfig.MPV_SUPPORTS_IN_PLACE_SURFACE) {
+    // Mali drivers can stall on while the window is being hidden (ANR). A kept video track is not
+    // idle, though: it must not decode into an output whose swapchain is gone, so it always moves
+    // to the null output first.
+    if (!BuildConfig.MPV_SUPPORTS_IN_PLACE_SURFACE || keepVideoTrack) {
       MPVLib.setPropertyString("vo", "null")
       MPVLib.setPropertyString("force-window", "no")
     }
+    // After vo (mediacodec_embed fails without a hardware decoder, dropping the track) and before
+    // the window goes, so the hardware decoder is torn down while its Surface is still valid.
+    if (keepVideoTrack) useDetachedVideoDecoderLocked()
     MPVLib.detachSurface()
     attachedSurfaceOwner = null
     attachedSurfaceWidth = 0
@@ -2483,6 +2516,12 @@ internal fun userScriptsNeedReload(currentKey: String): Boolean {
       if (property in AUDIO_SUBTITLE_TRACK_PROPERTIES && MPVLib.getPropertyString(property) == value) {
         return@withCore
       }
+      val detachedDecoder = detachedDecoderRestore
+      if (property == "hwdec" && detachedDecoder != null) {
+        // The detached software decoder stays until a renderer returns; that is when this applies.
+        detachedDecoderRestore = detachedDecoder.copy(hwdec = value)
+        return@withCore
+      }
       if (property == "vid") {
         // Explicit selections supersede a lifecycle suspension. In particular, a user choosing
         // no video must not have the previously suspended track silently restored on return.
@@ -2610,6 +2649,8 @@ internal fun userScriptsNeedReload(currentKey: String): Boolean {
     property: String,
     value: Long,
   ) {
+    // The player observes time-pos in whole seconds; see the Double overload.
+    if (property == "time-pos" && seekWaitsOnlyForDecoder) refreshBufferingState()
     if (shouldSuppressTimelineUpdate(property)) {
       propLong.emit(property, null)
       propInt.emit(property, null)
@@ -2644,6 +2685,9 @@ internal fun userScriptsNeedReload(currentKey: String): Boolean {
     property: String,
     value: Double,
   ) {
+    // mpv keeps `seeking` set while it works through queued seeks, so only the new target shows
+    // when a seek that started inside the cache moves outside it.
+    if (property == "time-pos" && seekWaitsOnlyForDecoder) refreshBufferingState()
     if (shouldSuppressTimelineUpdate(property)) {
       propDouble.emit(property, null)
       propFloat.emit(property, null)
@@ -2873,13 +2917,21 @@ internal fun userScriptsNeedReload(currentKey: String): Boolean {
           loadedItem.playableUri == current.currentItem.playableUri &&
           !current.paused
       // Cheap flag reads first; the network check only runs while something is actually waiting.
+      var seekInCache = false
       val waiting =
         when {
           !canBuffer -> null
           MPVLib.getPropertyBoolean("paused-for-cache") == true -> BufferingReason.CACHE
-          MPVLib.getPropertyBoolean("seeking") == true -> BufferingReason.SEEKING
+          MPVLib.getPropertyBoolean("seeking") == true ->
+            if (seekTargetIsCachedLocked()) {
+              seekInCache = true
+              null
+            } else {
+              BufferingReason.SEEKING
+            }
           else -> null
         }
+      seekWaitsOnlyForDecoder = seekInCache
       val reason =
         waiting?.takeIf { MPVLib.getPropertyBoolean("eof-reached") != true && activeFileUsesNetworkLocked() }
       if (reason == BufferingReason.CACHE) {
@@ -2888,6 +2940,21 @@ internal fun userScriptsNeedReload(currentKey: String): Boolean {
         propDouble.emit("demuxer-cache-duration", MPVLib.getPropertyDouble("demuxer-cache-duration"))
       }
       updateState { it.copy(bufferingReason = reason) }
+    }
+  }
+
+  /**
+   * Whether mpv's current seek lands inside its demuxer cache, so it waits only for the decoder:
+   * an absolute seek (a swipe or seekbar scrub) decodes from the previous keyframe, and a swipe
+   * queues one after another. That is not buffering. While mpv seeks, time-pos is the seek target.
+   */
+  private fun seekTargetIsCachedLocked(): Boolean {
+    val target = MPVLib.getPropertyDouble("time-pos")?.takeIf { it.isFinite() } ?: return false
+    val ranges = MPVLib.getPropertyNode("demuxer-cache-state")?.get("seekable-ranges")?.asArray() ?: return false
+    return ranges.any { range ->
+      val start = range["start"]?.asDouble() ?: return@any false
+      val end = range["end"]?.asDouble() ?: return@any false
+      target in start..end
     }
   }
 
@@ -3174,6 +3241,60 @@ internal fun userScriptsNeedReload(currentKey: String): Boolean {
     if (!rendererOutputReady || !current.surfaceAttached || loadedGeneration != current.generation) return
     MPVLib.setPropertyString("vid", "auto")
     deferredVideoSelectionGeneration = null
+  }
+
+  /**
+   * Whether the selected video track survives a renderer detach. mpv's demuxer frees every cached
+   * packet of a stream the moment it is deselected, so `vid=no` on each Surface loss (Home, Recents,
+   * screen lock with background playback) threw away the whole read-ahead cache and re-downloaded
+   * it on return. A lost Surface therefore keeps the track, playing or paused, and decodes it
+   * cheaply with no output ([useDetachedVideoDecoderLocked]). A handoff between two Surfaces while
+   * playing still deselects, so the outgoing output's teardown cannot seek the running audio.
+   */
+  private fun keepsVideoTrackAcrossDetachLocked(surfaceLost: Boolean): Boolean {
+    val current = _state.value
+    if (loadedGeneration != current.generation ||
+      current.phase !in setOf(PlaybackPhase.READY, PlaybackPhase.BACKGROUND)
+    ) return false
+    val selected = MPVLib.getPropertyString("vid")?.toIntOrNull()
+    if (selected == null || selected <= 0) return false
+    return surfaceLost || (MPVLib.getPropertyBoolean("pause") ?: desiredPaused)
+  }
+
+  /**
+   * A kept track with no renderer still has its packets decoded, so it moves to the software
+   * decoder, which never touches the Android window (MediaCodec would be configured with a null
+   * Surface), and decodes keyframes only: background audio of a 4K video then costs a picture every
+   * few seconds. The previous values come back with the next renderer.
+   */
+  private fun useDetachedVideoDecoderLocked() {
+    if (detachedDecoderRestore != null) return
+    val saved =
+      DetachedDecoderOptions(
+        hwdec = MPVLib.getPropertyString("hwdec") ?: "no",
+        skipFrame = MPVLib.getPropertyString("vd-lavc-skipframe") ?: "default",
+      )
+    runCatching {
+      MPVLib.setPropertyString("hwdec", "no")
+      MPVLib.setPropertyString("vd-lavc-skipframe", "nonkey")
+    }.onSuccess {
+      detachedDecoderRestore = saved
+    }.onFailure { error ->
+      Log.w(TAG, "Could not switch the detached video track to light decoding", error)
+      runCatching {
+        MPVLib.setPropertyString("hwdec", saved.hwdec)
+        MPVLib.setPropertyString("vd-lavc-skipframe", saved.skipFrame)
+      }
+    }
+  }
+
+  private fun restoreAttachedVideoDecoderLocked() {
+    val saved = detachedDecoderRestore ?: return
+    detachedDecoderRestore = null
+    runCatching {
+      MPVLib.setPropertyString("vd-lavc-skipframe", saved.skipFrame)
+      MPVLib.setPropertyString("hwdec", saved.hwdec)
+    }.onFailure { Log.w(TAG, "Could not restore the video decoder after Surface reattachment", it) }
   }
 
   /** Synchronous property writes plus readback confirm deselection before any vo/wid update. */

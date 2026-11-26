@@ -222,15 +222,6 @@ object SearchablePreferences {
       )
       add(
         SearchablePreference(
-          titleRes = R.string.pref_appearance_thumbnail_quality_title,
-          summaryRes = R.string.pref_appearance_thumbnail_quality_summary,
-          keywords = listOf("thumbnail", "quality", "resolution", "720p", "1080p", "1440p", "storage"),
-          category = "Appearance",
-          screen = AppearancePreferencesScreen,
-        ),
-      )
-      add(
-        SearchablePreference(
           titleRes = R.string.pref_gesture_tap_thumbnail_to_select_title,
           summaryRes = R.string.pref_gesture_tap_thumbnail_to_select_summary,
           keywords = listOf("thumbnail", "selection", "select", "tap", "gesture"),
@@ -388,9 +379,9 @@ object SearchablePreferences {
       )
       add(
         SearchablePreference(
-          titleRes = R.string.pref_auto_pip_home_only_title,
-          summaryRes = R.string.pref_auto_pip_home_only_summary,
-          keywords = listOf("pip", "picture", "home", "gesture", "swipe", "back", "close"),
+          titleRes = R.string.pref_pip_on_back_title,
+          summaryRes = R.string.pref_pip_on_back_summary,
+          keywords = listOf("pip", "picture", "back", "button", "home", "gesture", "close"),
           category = "Player",
           screen = PlayerPreferencesScreen,
         ),
@@ -1248,6 +1239,15 @@ object SearchablePreferences {
       )
       add(
         SearchablePreference(
+          titleRes = R.string.pref_video_background_on_back_title,
+          summaryRes = R.string.pref_video_background_on_back_summary,
+          keywords = listOf("background", "playback", "video", "back", "button", "close", "keep playing"),
+          category = "Player",
+          screen = PlayerPreferencesScreen,
+        ),
+      )
+      add(
+        SearchablePreference(
           titleRes = R.string.pref_audio_channels,
           keywords = listOf("channels", "audio", "stereo", "surround", "output", "sound"),
           category = "Audio",
@@ -1599,8 +1599,15 @@ object SearchablePreferences {
         anchorItemIndex = 3,
         SearchEntrySpec(R.string.pref_tree_flatten_depth_title, listOf("tree", "folder", "path", "flatten", "compression")),
         SearchEntrySpec(R.string.ui_dual_pane_view, listOf("tablet", "two pane", "split", "folder")),
-        SearchEntrySpec(R.string.ui_delete_folder_all_contents, listOf("delete", "folder", "all files", "media only")),
       )
+      if (!app.gyrolet.mpvrx.BuildConfig.SCOPED_STORAGE_ONLY) {
+        addSearchEntries(
+          category = "Appearance",
+          screen = AppearancePreferencesScreen,
+          anchorItemIndex = 3,
+          SearchEntrySpec(R.string.ui_delete_folder_all_contents, listOf("delete", "folder", "all files", "media only")),
+        )
+      }
       addSearchEntries(
         category = "Appearance",
         screen = AppearancePreferencesScreen,
@@ -1609,10 +1616,6 @@ object SearchablePreferences {
           R.string.pref_appearance_thumbnail_position_title,
           listOf("thumbnail", "frame", "position", "percent", "preview"),
           R.string.pref_appearance_thumbnail_generation_title,
-        ),
-        SearchEntrySpec(
-          R.string.pref_appearance_thumbnail_parallelism_title,
-          listOf("thumbnail", "cores", "threads", "parallel", "cpu", "speed", "performance"),
         ),
       )
       addSearchEntries(

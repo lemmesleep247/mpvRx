@@ -78,15 +78,8 @@
   <string name="pref_appearance_thumbnail_generation_summary">Виберіть вбудовану обкладинку або кадр відео.</string>
   <string name="pref_appearance_thumbnail_generation_change_title">Змінити стратегію створення мініатюр?</string>
   <string name="pref_appearance_thumbnail_generation_change_summary">Очистити кеш мініатюр і створювати їх знову під час перегляду?</string>
-  <string name="pref_appearance_thumbnail_quality_title">Якість мініатюр</string>
-  <string name="pref_appearance_thumbnail_quality_summary">Межа мініатюр: %1$d px. Більшим зображенням потрібно більше пам’яті й обробки.</string>
   <string name="pref_appearance_thumbnail_position_title">Позиція кадру мініатюри</string>
   <string name="pref_appearance_thumbnail_position_summary">Захоплювати кадр на позначці %1$d%% тривалості відео</string>
-  <string name="pref_appearance_thumbnail_parallelism_title">Ядра для мініатюр</string>
-  <string name="pref_appearance_thumbnail_parallelism_auto">Авто (%1$d з %2$d)</string>
-  <string name="pref_appearance_thumbnail_parallelism_value">%1$d з %2$d</string>
-  <string name="pref_appearance_thumbnail_parallelism_dialog_summary">Більше потоків — швидше, але зростають витрати пам’яті, батареї й ризик ривків. Рекомендовано авто.</string>
-  <string name="pref_appearance_thumbnail_parallelism_warning">Більше за рекомендоване для цього пристрою (%1$d). Зменште, якщо списки гальмують або застосунок закривається у фоні.</string>
   <string name="pref_appearance_show_network_thumbnails_title">Мініатюри для мережевих потоків (експериментально)</string>
   <string name="pref_appearance_show_network_thumbnails_summary">Створювати мініатюри для мережевих потоків (може збільшити витрати мобільного трафіку)</string>
   <string name="pref_nav_music_title">Вкладка «Музика»</string>
@@ -166,8 +159,8 @@
   <string name="save_queue_as_playlist">Зберегти чергу як плейліст</string>
   <string name="pref_auto_pip_title">Автоматичний режим «Картинка в картинці»</string>
   <string name="pref_auto_pip_summary">Автоматично вмикати режим PiP під час натискання кнопок «Додому» або «Назад»</string>
-  <string name="pref_auto_pip_home_only_title">PiP лише для жесту «Додому»</string>
-  <string name="pref_auto_pip_home_only_summary">Лише жест «Додому» або проведення активує PiP; кнопка «Назад» закриває плеєр</string>
+  <string name="pref_pip_on_back_title">«Назад» вмикає «картинку в картинці»</string>
+  <string name="pref_pip_on_back_summary">Кнопка «Назад» згортає відео в плаваюче вікно, а не закриває його. Вимк.: «картинку в картинці» вмикає лише перехід на головний екран, а «Назад» закриває плеєр.</string>
   <string name="pref_player_keep_screen_on_when_paused_title">Не вимикати екран на паузі</string>
   <string name="pref_player_external_display_projection_title">Проєкція на зовнішній екран</string>
   <string name="pref_player_external_display_projection_summary">Відтворювати на HDMI, USB-C чи бездротовому екрані з вимкненим екраном телефона.</string>
@@ -566,7 +559,9 @@
     <item quantity="other">%1$d секунд</item>
   </plurals>
   <string name="pref_video_background_playback_title">Фонове відтворення відеоплеєра</string>
-  <string name="pref_video_background_playback_summary">Відео продовжує відтворюватися, коли ви переходите на головний екран, перемикаєтеся на інший застосунок або вимикаєте екран. Кнопка «Назад» завжди закриває відео. Щоб зробити це один раз, утримуйте кнопку фонового відтворення в плеєрі.</string>
+  <string name="pref_video_background_playback_summary">Відео продовжує відтворюватися, коли ви переходите на головний екран, перемикаєтеся на інший застосунок або вимикаєте екран. Щоб зробити це один раз, утримуйте кнопку фонового відтворення в плеєрі.</string>
+  <string name="pref_video_background_on_back_title">«Назад» не зупиняє відео</string>
+  <string name="pref_video_background_on_back_summary">Кнопка «Назад» повертає до списку, а відео продовжує відтворюватися у фоні з керуванням у сповіщенні. Вимк.: «Назад» закриває відео.</string>
   <string name="toast_background_playback_on">Фонове відтворення увімкнено</string>
   <string name="toast_background_playback_off">Фонове відтворення вимкнено</string>
   <string name="btn_label_background_playback_once">Відтворити у фоні один раз</string>
@@ -1205,6 +1200,7 @@
   <string name="ui_unpin_videos">Відкріпити відео</string>
   <string name="ui_pinned_video">Закріплене відео</string>
   <string name="ui_folder">Папка</string>
+  <string name="ui_hidden_folder">Прихована папка (.nomedia)</string>
   <string name="ui_connect_automatically_on_app_launch">Під\'єднуватися автоматично під час запуску додатка</string>
   <string name="ui_connecting">Під\'єднання…</string>
   <string name="ui_browse">Огляд</string>

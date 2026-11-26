@@ -69,15 +69,8 @@
   <string name="pref_appearance_thumbnail_generation_summary">اختر غلافًا مضمّنًا أو إطارًا من الفيديو.</string>
   <string name="pref_appearance_thumbnail_generation_change_title">تغيير استراتيجية الصور المصغّرة؟</string>
   <string name="pref_appearance_thumbnail_generation_change_summary">مسح الصور المصغرة المخزنة وإعادة إنشائها أثناء التصفح؟</string>
-  <string name="pref_appearance_thumbnail_quality_title">جودة الصور المصغّرة</string>
-  <string name="pref_appearance_thumbnail_quality_summary">حد الصور المصغرة: %1$d بكسل. الصور الأكبر تستهلك مساحة ومعالجة أكثر.</string>
   <string name="pref_appearance_thumbnail_position_title">موضع إطار الصورة المصغّرة</string>
   <string name="pref_appearance_thumbnail_position_summary">التقاط الإطار عند %1$d%% من الفيديو</string>
-  <string name="pref_appearance_thumbnail_parallelism_title">أنوية معالجة الصور المصغرة</string>
-  <string name="pref_appearance_thumbnail_parallelism_auto">تلقائي (%1$d من %2$d)</string>
-  <string name="pref_appearance_thumbnail_parallelism_value">%1$d من %2$d</string>
-  <string name="pref_appearance_thumbnail_parallelism_dialog_summary">الخيوط الأكثر أسرع، لكنها قد تزيد الذاكرة واستهلاك البطارية والتقطّع. يُنصح بالتلقائي.</string>
-  <string name="pref_appearance_thumbnail_parallelism_warning">أعلى من القيمة الموصى بها لهذا الجهاز (%1$d). خفّضها إذا تباطأت القوائم أو أُغلق التطبيق في الخلفية.</string>
   <string name="pref_appearance_show_network_thumbnails_title">إظهار صور الشبكة المصغّرة (تجريبي)</string>
   <string name="pref_appearance_show_network_thumbnails_summary">إنشاء صور مصغّرة لتدفقات الشبكة (قد يزيد استهلاك البيانات على شبكات الهاتف)</string>
   <string name="pref_nav_network_title">إظهار علامة تبويب الشبكة</string>
@@ -137,8 +130,8 @@
   <string name="pref_autoplay_next_video_summary_disabled">البقاء على الفيديو الحالي عند انتهائه</string>
   <string name="pref_auto_pip_title">صورة داخل صورة تلقائيًا</string>
   <string name="pref_auto_pip_summary">الدخول تلقائيًا إلى وضع PIP عند الضغط على الرئيسية أو الرجوع</string>
-  <string name="pref_auto_pip_home_only_title">صورة داخل صورة بإيماءة الرئيسية فقط</string>
-  <string name="pref_auto_pip_home_only_summary">إيماءة الرئيسية أو السحب فقط تُفعّل وضع PIP؛ زر الرجوع يغلق المشغّل</string>
+  <string name="pref_pip_on_back_title">زر الرجوع يفعّل صورة داخل صورة</string>
+  <string name="pref_pip_on_back_summary">يصغّر زر الرجوع الفيديو إلى نافذة عائمة بدلًا من إغلاقه. عند الإيقاف: الشاشة الرئيسية فقط تفعّل صورة داخل صورة ويغلق زر الرجوع المشغّل.</string>
   <string name="pref_player_keep_screen_on_when_paused_title">إبقاء الشاشة قيد التشغيل عند الإيقاف المؤقت</string>
   <string name="pref_player_external_display_projection_title">العرض على شاشة خارجية</string>
   <string name="pref_player_external_display_projection_summary">شغّل على شاشة HDMI أو USB-C أو لاسلكية مع إطفاء شاشة الهاتف.</string>
@@ -491,7 +484,9 @@
   </plurals>
   <!-- Background Playback -->
   <string name="pref_video_background_playback_title">التشغيل في الخلفية (مشغل الفيديو)</string>
-  <string name="pref_video_background_playback_summary">يواصل تشغيل الفيديو عند الانتقال إلى الشاشة الرئيسية أو التبديل إلى تطبيق آخر أو إطفاء الشاشة. يغلق زر الرجوع الفيديو دائمًا. اضغط مطولًا على زر التشغيل في الخلفية في المشغل لفعل ذلك مرة واحدة.</string>
+  <string name="pref_video_background_playback_summary">يواصل تشغيل الفيديو عند الانتقال إلى الشاشة الرئيسية أو التبديل إلى تطبيق آخر أو إطفاء الشاشة. اضغط مطولًا على زر التشغيل في الخلفية في المشغل لفعل ذلك مرة واحدة.</string>
+  <string name="pref_video_background_on_back_title">زر الرجوع يُبقي الفيديو قيد التشغيل</string>
+  <string name="pref_video_background_on_back_summary">يعود زر الرجوع إلى القائمة ويستمر تشغيل الفيديو في الخلفية مع عناصر التحكم في الإشعار. عند الإيقاف: يغلق زر الرجوع الفيديو.</string>
   <string name="toast_background_playback_on">تم تشغيل التشغيل في الخلفية</string>
   <string name="toast_background_playback_off">تم إيقاف التشغيل في الخلفية</string>
   <string name="btn_label_background_playback_once">التشغيل في الخلفية مرة واحدة</string>
@@ -1129,6 +1124,7 @@
   <string name="ui_unpin_videos">إلغاء تثبيت الفيديوهات</string>
   <string name="ui_pinned_video">فيديو مثبّت</string>
   <string name="ui_folder">مجلد</string>
+  <string name="ui_hidden_folder">مجلد مخفي (.nomedia)</string>
   <string name="ui_connect_automatically_on_app_launch">الاتصال تلقائيًا عند تشغيل التطبيق</string>
   <string name="ui_connecting">جارٍ الاتصال</string>
   <string name="ui_browse">تصفح</string>

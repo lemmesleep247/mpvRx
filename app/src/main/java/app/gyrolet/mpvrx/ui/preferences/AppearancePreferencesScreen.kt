@@ -52,7 +52,6 @@ import app.gyrolet.mpvrx.preferences.MultiChoiceSegmentedButton
 import app.gyrolet.mpvrx.preferences.PlayerPreferences
 import app.gyrolet.mpvrx.preferences.ThumbnailGenerator
 import app.gyrolet.mpvrx.preferences.ThumbnailMode
-import app.gyrolet.mpvrx.preferences.ThumbnailQuality
 import app.gyrolet.mpvrx.preferences.TreeFlattenDepth
 import app.gyrolet.mpvrx.preferences.preference.collectAsState
 import app.gyrolet.mpvrx.presentation.components.ConfirmDialog
@@ -64,9 +63,6 @@ import app.gyrolet.mpvrx.ui.player.VideoOpenAnimation
 import app.gyrolet.mpvrx.ui.preferences.components.SwitchPreference
 import app.gyrolet.mpvrx.ui.preferences.components.RestartRequiredDialog
 import app.gyrolet.mpvrx.ui.preferences.components.ThemePicker
-import app.gyrolet.mpvrx.ui.preferences.components.ThumbnailParallelismDialog
-import app.gyrolet.mpvrx.ui.preferences.components.thumbnailParallelismLabel
-import app.gyrolet.mpvrx.domain.thumbnail.maxThumbnailParallelism
 import app.gyrolet.mpvrx.ui.theme.DarkMode
 import app.gyrolet.mpvrx.ui.theme.CustomThemeDefinition
 import app.gyrolet.mpvrx.ui.theme.WallpaperDerivedThemeName
@@ -122,12 +118,7 @@ object AppearancePreferencesScreen : ScrollableSettingsScreen {
     val backgroundType by preferences.backgroundType.collectAsState()
     val storedThumbnailMode by browserPreferences.thumbnailMode.collectAsState()
     val thumbnailGenerator by browserPreferences.thumbnailGenerator.collectAsState()
-    val thumbnailQuality by browserPreferences.thumbnailQuality.collectAsState()
     val thumbnailFramePosition by browserPreferences.thumbnailFramePosition.collectAsState()
-    val thumbnailParallelism by browserPreferences.thumbnailParallelism.collectAsState()
-    val automaticThumbnailParallelism = remember { thumbnailRepository.automaticParallelism }
-    val maximumThumbnailParallelism = remember { maxThumbnailParallelism() }
-    var isThumbnailParallelismDialogOpen by rememberSaveable { mutableStateOf(false) }
     val dualPaneForTablet by browserPreferences.dualPaneForTablet.collectAsState()
     val treeFlattenDepth by browserPreferences.treeFlattenDepth.collectAsState()
     val thumbnailCacheClearedMessage = stringResource(R.string.pref_thumbnail_cache_cleared)
@@ -214,19 +205,6 @@ object AppearancePreferencesScreen : ScrollableSettingsScreen {
       GoogleFontsSheet(
         preferences = preferences,
         onDismiss = { isAppFontSheetOpen = false },
-      )
-    }
-
-    if (isThumbnailParallelismDialogOpen) {
-      ThumbnailParallelismDialog(
-        initialValue = thumbnailParallelism,
-        automatic = automaticThumbnailParallelism,
-        maximum = maximumThumbnailParallelism,
-        onConfirm = { selected ->
-          browserPreferences.thumbnailParallelism.set(selected)
-          isThumbnailParallelismDialogOpen = false
-        },
-        onDismiss = { isThumbnailParallelismDialogOpen = false },
       )
     }
 
@@ -498,7 +476,9 @@ object AppearancePreferencesScreen : ScrollableSettingsScreen {
 
           item {
             ExpressivePreferenceGroup {
-              val itemCount = 6
+              // Scoped storage (the Play Store build) never deletes folders, so it has no folder-delete mode.
+              val showDeleteFolderMode = !app.gyrolet.mpvrx.BuildConfig.SCOPED_STORAGE_ONLY
+              val itemCount = if (showDeleteFolderMode) 6 else 5
               val showUnplayedOldVideoLabel by preferences.showUnplayedOldVideoLabel.collectAsState()
               SwitchPreference(
                 modifier = Modifier.settingsSearchTarget(R.string.pref_appearance_show_unplayed_old_video_label_title),
@@ -621,32 +601,34 @@ object AppearancePreferencesScreen : ScrollableSettingsScreen {
                 groupSize = itemCount,
               )
 
-              val deleteFolderAllContents by browserPreferences.deleteFolderAllContents.collectAsState()
-              SwitchPreference(
-                modifier = Modifier.settingsSearchTarget(R.string.ui_delete_folder_all_contents),
-                value = deleteFolderAllContents,
-                onValueChange = { browserPreferences.deleteFolderAllContents.set(it) },
-                title = {
-                  Text(
-                    androidx.compose.ui.res.stringResource(
-                      app.gyrolet.mpvrx.R.string.ui_delete_folder_all_contents,
-                    ),
-                  )
-                },
-                summary = {
-                  Text(
-                    text =
-                      if (deleteFolderAllContents) {
-                        "Deletes entire folder (all files)"
-                      } else {
-                        "Only media files (audio/video) are deleted"
-                      },
-                    color = MaterialTheme.colorScheme.outline,
-                  )
-                },
-                groupIndex = 5,
-                groupSize = itemCount,
-              )
+              if (showDeleteFolderMode) {
+                val deleteFolderAllContents by browserPreferences.deleteFolderAllContents.collectAsState()
+                SwitchPreference(
+                  modifier = Modifier.settingsSearchTarget(R.string.ui_delete_folder_all_contents),
+                  value = deleteFolderAllContents,
+                  onValueChange = { browserPreferences.deleteFolderAllContents.set(it) },
+                  title = {
+                    Text(
+                      androidx.compose.ui.res.stringResource(
+                        app.gyrolet.mpvrx.R.string.ui_delete_folder_all_contents,
+                      ),
+                    )
+                  },
+                  summary = {
+                    Text(
+                      text =
+                        if (deleteFolderAllContents) {
+                          "Deletes entire folder (all files)"
+                        } else {
+                          "Only media files (audio/video) are deleted"
+                        },
+                      color = MaterialTheme.colorScheme.outline,
+                    )
+                  },
+                  groupIndex = 5,
+                  groupSize = itemCount,
+                )
+              }
             }
           }
 
@@ -659,7 +641,7 @@ object AppearancePreferencesScreen : ScrollableSettingsScreen {
           item {
             ExpressivePreferenceGroup {
               val showFramePosition = thumbnailGenerator != ThumbnailGenerator.MediaStore && thumbnailMode == ThumbnailMode.FrameAtPosition
-              val itemCount = if (showFramePosition) 8 else 7
+              val itemCount = if (showFramePosition) 6 else 5
               val showVideoThumbnails by browserPreferences.showVideoThumbnails.collectAsState()
               SwitchPreference(
                 modifier = Modifier.settingsSearchTarget(R.string.pref_appearance_show_video_thumbnails_title),
@@ -768,66 +750,8 @@ object AppearancePreferencesScreen : ScrollableSettingsScreen {
                 )
               }
 
-              ExpressivePreferenceTile(index = 3, itemCount = itemCount) {
-                ListPreference(
-                  modifier = Modifier.settingsSearchTarget(R.string.pref_appearance_thumbnail_quality_title),
-                  value = thumbnailQuality,
-                  onValueChange = { newQuality ->
-                    if (newQuality != thumbnailQuality) {
-                      scope.launch {
-                        withContext(Dispatchers.IO) {
-                          thumbnailRepository.clearThumbnailCache()
-                        }
-                        browserPreferences.thumbnailQuality.set(newQuality)
-                      }
-                    }
-                  },
-                  values = ThumbnailQuality.entries,
-                  valueToText = { AnnotatedString(it.displayName) },
-                  title = {
-                    Text(
-                      text = stringResource(id = R.string.pref_appearance_thumbnail_quality_title),
-                    )
-                  },
-                  summary = {
-                    Text(
-                      text =
-                        stringResource(
-                          id = R.string.pref_appearance_thumbnail_quality_summary,
-                          thumbnailQuality.maxSizePx,
-                        ),
-                      color = MaterialTheme.colorScheme.outline,
-                    )
-                  },
-                  enabled = showVideoThumbnails,
-                )
-              }
-
-              ExpressivePreferenceTile(index = 4, itemCount = itemCount) {
-                Preference(
-                  modifier = Modifier.settingsSearchTarget(R.string.pref_appearance_thumbnail_parallelism_title),
-                  title = {
-                    Text(text = stringResource(id = R.string.pref_appearance_thumbnail_parallelism_title))
-                  },
-                  summary = {
-                    Text(
-                      text =
-                        thumbnailParallelismLabel(
-                          thumbnailParallelism,
-                          automaticThumbnailParallelism,
-                          maximumThumbnailParallelism,
-                        ),
-                      color = MaterialTheme.colorScheme.outline,
-                    )
-                  },
-                  onClick = { isThumbnailParallelismDialogOpen = true },
-                  action = PreferenceAction.Dialog,
-                  enabled = showVideoThumbnails,
-                )
-              }
-
               if (showFramePosition) {
-                ExpressivePreferenceTile(index = 5, itemCount = itemCount) {
+                ExpressivePreferenceTile(index = 3, itemCount = itemCount) {
                   SliderPreference(
                     value = thumbnailFramePosition,
                     onValueChange = { browserPreferences.thumbnailFramePosition.set(it) },
@@ -875,7 +799,7 @@ object AppearancePreferencesScreen : ScrollableSettingsScreen {
                   )
                 },
                 enabled = showVideoThumbnails,
-                groupIndex = if (showFramePosition) 6 else 5,
+                groupIndex = if (showFramePosition) 4 else 3,
                 groupSize = itemCount,
               )
 

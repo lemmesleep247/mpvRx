@@ -87,7 +87,6 @@ data class FolderCardUiConfig(
   val showFolderPath: Boolean = false,
   val centerGridTitles: Boolean = false,
   val showFolderThumbnails: Boolean = false,
-  val thumbnailQuality: app.gyrolet.mpvrx.preferences.ThumbnailQuality = app.gyrolet.mpvrx.preferences.ThumbnailQuality.High,
   val includeAudio: Boolean = false,
   val swipeLeft: VideoSwipeAction = VideoSwipeAction.AddToPlaylist,
   val swipeRight: VideoSwipeAction = VideoSwipeAction.ToggleWatched,
@@ -108,7 +107,6 @@ fun rememberFolderCardUiConfig(viewPreferences: BrowserPageViewPreferences? = nu
   val showFolderPath by browserPreferences.showFolderPath.collectAsState()
   val centerGridTitles by (viewPreferences?.centerGridTitles ?: browserPreferences.centerGridTitles).collectAsState()
   val showFolderThumbnails by (viewPreferences?.showThumbnails ?: browserPreferences.showFolderThumbnails).collectAsState()
-  val thumbnailQuality by browserPreferences.thumbnailQuality.collectAsState()
   val thumbnailGenerator by browserPreferences.thumbnailGenerator.collectAsState()
   val includeAudio by browserPreferences.includeAudioBrowser.collectAsState()
   val swipeLeft by browserPreferences.videoSwipeLeft.collectAsState()
@@ -123,7 +121,6 @@ fun rememberFolderCardUiConfig(viewPreferences: BrowserPageViewPreferences? = nu
     showFolderPath,
     centerGridTitles,
     showFolderThumbnails,
-    thumbnailQuality,
     thumbnailGenerator,
     includeAudio,
     swipeLeft,
@@ -138,7 +135,6 @@ fun rememberFolderCardUiConfig(viewPreferences: BrowserPageViewPreferences? = nu
       showFolderPath = showFolderPath,
       centerGridTitles = centerGridTitles,
       showFolderThumbnails = showFolderThumbnails,
-      thumbnailQuality = thumbnailQuality,
       thumbnailGenerator = thumbnailGenerator,
       includeAudio = includeAudio,
       swipeLeft = swipeLeft,
@@ -186,7 +182,6 @@ fun FolderCard(
   val showFolderPath = resolvedUiConfig.showFolderPath
   val centerGridTitles = resolvedUiConfig.centerGridTitles
   val showFolderThumbnails = resolvedUiConfig.showFolderThumbnails
-  val thumbnailQuality = resolvedUiConfig.thumbnailQuality
   val thumbnailGenerator = resolvedUiConfig.thumbnailGenerator
   val includeAudio = resolvedUiConfig.includeAudio
   val swipeLeft = resolvedUiConfig.swipeLeft
@@ -205,7 +200,6 @@ fun FolderCard(
     folder.bucketId,
     folder.path,
     showFolderThumbnails,
-    thumbnailQuality,
     thumbnailGenerator,
     thumbnailCacheRevision,
     isGridMode,
@@ -264,6 +258,8 @@ fun FolderCard(
 
   // Remove the redundant folder name from the path
   val parentPath = folder.path.substringBeforeLast("/", folder.path)
+
+  val hiddenFolderLabel = androidx.compose.ui.res.stringResource(R.string.ui_hidden_folder)
 
   @Composable
   fun PinnedFolderBadge(modifier: Modifier = Modifier) {
@@ -420,6 +416,25 @@ fun FolderCard(
                     .align(Alignment.TopStart)
                     .padding(6.dp),
               )
+            }
+
+            // A .nomedia or dot folder, marked on its image in the corner the other badges leave free.
+            if (folder.isHidden) {
+              Box(
+                modifier =
+                  Modifier
+                    .align(Alignment.BottomStart)
+                    .padding(6.dp)
+                    .cardOverlay()
+                    .padding(horizontal = 5.dp, vertical = 3.dp),
+              ) {
+                Icon(
+                  imageVector = Icons.RoundedFilled.VisibilityOff,
+                  contentDescription = hiddenFolderLabel,
+                  modifier = Modifier.size(12.dp),
+                  tint = Color.White,
+                )
+              }
             }
 
             if (showTotalDurationChip && folder.totalDuration > 0) {
@@ -591,8 +606,29 @@ fun FolderCard(
                 androidx.compose.foundation.layout.Arrangement
                   .spacedBy(4.dp),
             ) {
-              // Render custom chip content first if provided
               var hasChip = false
+              // A .nomedia or dot folder: the first chip, before counts, size and date.
+              if (folder.isHidden) {
+                Box(
+                  modifier =
+                    Modifier
+                      .background(
+                        MaterialTheme.colorScheme.surfaceContainerHigh,
+                        AppShapeScale.small,
+                      ).padding(horizontal = 6.dp, vertical = 4.dp),
+                  contentAlignment = Alignment.Center,
+                ) {
+                  Icon(
+                    imageVector = Icons.RoundedFilled.VisibilityOff,
+                    contentDescription = hiddenFolderLabel,
+                    modifier = Modifier.size(14.dp),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                  )
+                }
+                hasChip = true
+              }
+
+              // Render custom chip content first if provided
               if (customChipContent != null) {
                 customChipContent()
                 hasChip = true

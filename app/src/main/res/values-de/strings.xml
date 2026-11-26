@@ -69,15 +69,8 @@
   <string name="pref_appearance_thumbnail_generation_summary">Eingebettetes Cover oder Videoframe wählen.</string>
   <string name="pref_appearance_thumbnail_generation_change_title">Vorschaubild-Strategie ändern?</string>
   <string name="pref_appearance_thumbnail_generation_change_summary">Vorschaubild-Cache leeren und beim Browsen neu erzeugen?</string>
-  <string name="pref_appearance_thumbnail_quality_title">Vorschaubildqualität</string>
-  <string name="pref_appearance_thumbnail_quality_summary">Vorschaubildlimit: %1$d px. Größere Bilder brauchen mehr Speicher und Rechenleistung.</string>
   <string name="pref_appearance_thumbnail_position_title">Bildposition des Vorschaubilds</string>
   <string name="pref_appearance_thumbnail_position_summary">Bild bei %1$d%% des Videos erfassen</string>
-  <string name="pref_appearance_thumbnail_parallelism_title">Prozessorkerne für Vorschaubilder</string>
-  <string name="pref_appearance_thumbnail_parallelism_auto">Automatisch (%1$d von %2$d)</string>
-  <string name="pref_appearance_thumbnail_parallelism_value">%1$d von %2$d</string>
-  <string name="pref_appearance_thumbnail_parallelism_dialog_summary">Mehr Threads sind schneller, können aber RAM, Akkuverbrauch und Ruckeln erhöhen. Auto wird empfohlen.</string>
-  <string name="pref_appearance_thumbnail_parallelism_warning">Höher als die für dieses Gerät empfohlenen %1$d. Verringere den Wert, wenn Listen ruckeln oder die App im Hintergrund beendet wird.</string>
   <string name="pref_appearance_show_network_thumbnails_title">Netzwerk-Vorschaubilder anzeigen (experimentell)</string>
   <string name="pref_appearance_show_network_thumbnails_summary">Vorschaubilder für Netzwerkstreams erstellen (kann den Datenverbrauch in Mobilfunknetzen erhöhen)</string>
   <string name="pref_nav_network_title">Netzwerk-Tab anzeigen</string>
@@ -137,8 +130,8 @@
   <string name="pref_autoplay_next_video_summary_disabled">Nach dem Ende beim aktuellen Video bleiben</string>
   <string name="pref_auto_pip_title">Automatisches Bild-im-Bild</string>
   <string name="pref_auto_pip_summary">Beim Drücken von Startseite oder Zurück automatisch in den PIP-Modus wechseln</string>
-  <string name="pref_auto_pip_home_only_title">PIP nur bei Home-Geste</string>
-  <string name="pref_auto_pip_home_only_summary">Nur die Home-Geste bzw. Wischen aktiviert PIP; die Zurück-Taste schließt den Player</string>
+  <string name="pref_pip_on_back_title">Zurück öffnet Bild-im-Bild</string>
+  <string name="pref_pip_on_back_summary">Zurück verkleinert das Video zu einem schwebenden Fenster, statt es zu schließen. Aus: Nur der Startbildschirm öffnet Bild-im-Bild, Zurück schließt den Player.</string>
   <string name="pref_player_keep_screen_on_when_paused_title">Bildschirm bei Pause eingeschaltet lassen</string>
   <string name="pref_player_external_display_projection_title">Auf externes Display projizieren</string>
   <string name="pref_player_external_display_projection_summary">Auf HDMI-, USB-C- oder drahtlosen Displays bei ausgeschaltetem Handybildschirm abspielen.</string>
@@ -487,7 +480,9 @@
   </plurals>
   <!-- Background Playback -->
   <string name="pref_video_background_playback_title">Hintergrundwiedergabe (Video-Player)</string>
-  <string name="pref_video_background_playback_summary">Videos laufen weiter, wenn du zum Startbildschirm wechselst, eine andere App öffnest oder den Bildschirm ausschaltest. Zurück schließt das Video immer. Halte die Hintergrund-Taste im Player gedrückt, um das einmalig zu tun.</string>
+  <string name="pref_video_background_playback_summary">Videos laufen weiter, wenn du zum Startbildschirm wechselst, eine andere App öffnest oder den Bildschirm ausschaltest. Halte die Hintergrund-Taste im Player gedrückt, um das einmalig zu tun.</string>
+  <string name="pref_video_background_on_back_title">Zurück lässt das Video weiterlaufen</string>
+  <string name="pref_video_background_on_back_summary">Zurück kehrt zur Liste zurück, und das Video läuft im Hintergrund weiter, mit Steuerung in der Benachrichtigung. Aus: Zurück schließt das Video.</string>
   <string name="toast_background_playback_on">Hintergrundwiedergabe an</string>
   <string name="toast_background_playback_off">Hintergrundwiedergabe aus</string>
   <string name="btn_label_background_playback_once">Einmalig im Hintergrund abspielen</string>
@@ -1097,6 +1092,7 @@ Bitte starten Sie die App neu, damit alle Änderungen wirksam werden.</string>
   <string name="ui_unpin_videos">Videos lösen</string>
   <string name="ui_pinned_video">Angeheftetes Video</string>
   <string name="ui_folder">Ordner</string>
+  <string name="ui_hidden_folder">Verborgener Ordner (.nomedia)</string>
   <string name="ui_connect_automatically_on_app_launch">Beim App-Start automatisch verbinden</string>
   <string name="ui_connecting">Verbindung wird hergestellt</string>
   <string name="ui_browse">Durchsuchen</string>

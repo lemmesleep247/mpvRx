@@ -69,15 +69,8 @@
   <string name="pref_appearance_thumbnail_generation_summary">埋め込み画像または動画のフレームを選びます。</string>
   <string name="pref_appearance_thumbnail_generation_change_title">サムネイル生成方法を変更しますか？</string>
   <string name="pref_appearance_thumbnail_generation_change_summary">サムネイルキャッシュを消去し、閲覧時に再生成しますか？</string>
-  <string name="pref_appearance_thumbnail_quality_title">サムネイルの品質</string>
-  <string name="pref_appearance_thumbnail_quality_summary">サムネイル上限：%1$d px。大きいほど保存容量と処理量が増えます。</string>
   <string name="pref_appearance_thumbnail_position_title">サムネイルのフレーム位置</string>
   <string name="pref_appearance_thumbnail_position_summary">動画の%1$d%%の位置のフレームを取得します</string>
-  <string name="pref_appearance_thumbnail_parallelism_title">サムネイル処理コア数</string>
-  <string name="pref_appearance_thumbnail_parallelism_auto">自動（%2$d中%1$d）</string>
-  <string name="pref_appearance_thumbnail_parallelism_value">%2$d中%1$d</string>
-  <string name="pref_appearance_thumbnail_parallelism_dialog_summary">並列数を増やすと高速になりますが、メモリ・電池消費やカクつきが増える場合があります。自動を推奨。</string>
-  <string name="pref_appearance_thumbnail_parallelism_warning">この端末の推奨値（%1$d）を超えています。リストが重い場合やアプリがバックグラウンドで終了する場合は下げてください。</string>
   <string name="pref_appearance_show_network_thumbnails_title">ネットワークのサムネイルを表示（試験的）</string>
   <string name="pref_appearance_show_network_thumbnails_summary">ネットワークストリームのサムネイルを生成します（モバイルネットワークでのデータ使用量が増える場合があります）</string>
   <string name="pref_nav_network_title">ネットワークタブを表示</string>
@@ -137,8 +130,8 @@
   <string name="pref_autoplay_next_video_summary_disabled">終了後も現在の動画に留まります</string>
   <string name="pref_auto_pip_title">自動ピクチャーインピクチャー</string>
   <string name="pref_auto_pip_summary">ホームまたは戻るを押したときに自動的にPIPモードへ移行します</string>
-  <string name="pref_auto_pip_home_only_title">ホームジェスチャーのみでPIP</string>
-  <string name="pref_auto_pip_home_only_summary">ホームジェスチャーまたはスワイプのみでPIPに移行し、戻るボタンはプレイヤーを閉じます</string>
+  <string name="pref_pip_on_back_title">戻るでピクチャー・イン・ピクチャー</string>
+  <string name="pref_pip_on_back_summary">戻るを押すと、動画を閉じずにフローティングウィンドウに縮小します。オフ：ホームでのみPiPになり、戻るでプレーヤーを閉じます。</string>
   <string name="pref_player_keep_screen_on_when_paused_title">一時停止中も画面をオンにする</string>
   <string name="pref_player_external_display_projection_title">外部ディスプレイへの投影</string>
   <string name="pref_player_external_display_projection_summary">スマートフォン画面を消し、HDMI・USB-C・無線ディスプレイで再生します。</string>
@@ -486,7 +479,9 @@
   </plurals>
   <!-- Background Playback -->
   <string name="pref_video_background_playback_title">バックグラウンド再生（ビデオプレイヤー）</string>
-  <string name="pref_video_background_playback_summary">ホームに戻る、アプリを切り替える、画面をオフにしたときも動画の再生を続けます。戻るボタンでは常に動画を閉じます。一度だけ行うには、プレーヤーのバックグラウンドボタンを長押しします。</string>
+  <string name="pref_video_background_playback_summary">ホームに戻る、アプリを切り替える、画面をオフにしたときも動画の再生を続けます。一度だけ行うには、プレーヤーのバックグラウンドボタンを長押しします。</string>
+  <string name="pref_video_background_on_back_title">戻るでも動画を再生し続ける</string>
+  <string name="pref_video_background_on_back_summary">戻るを押すとリストに戻り、動画はバックグラウンドで再生を続けます。操作は通知から行えます。オフ：戻るで動画を閉じます。</string>
   <string name="toast_background_playback_on">バックグラウンド再生オン</string>
   <string name="toast_background_playback_off">バックグラウンド再生オフ</string>
   <string name="btn_label_background_playback_once">一度だけバックグラウンドで再生</string>
@@ -1089,6 +1084,7 @@
   <string name="ui_unpin_videos">動画のピン留めを解除</string>
   <string name="ui_pinned_video">ピン留めした動画</string>
   <string name="ui_folder">フォルダー</string>
+  <string name="ui_hidden_folder">非表示フォルダー (.nomedia)</string>
   <string name="ui_connect_automatically_on_app_launch">アプリ起動時に自動接続</string>
   <string name="ui_connecting">接続中</string>
   <string name="ui_browse">参照</string>
