@@ -2472,7 +2472,7 @@ Bitte starten Sie die App neu, damit alle Änderungen wirksam werden.</string>
   <string name="watch_stats_media_breakdown">Aufschlüsselung nach Medien</string>
   <string name="watch_stats_overall_playback">Gesamte Wiedergabe</string>
   <string name="network_server_no_matches">Keine passenden Adressen. Du kannst weiterhin eine eingeben.</string>
-  <string name="network_server_none_found">Keine angekündigten Server gefunden. Prüfe, ob beide Geräte im selben Netzwerk sind, versuche es erneut oder gib die Adresse manuell ein.</string>
+  <string name="network_server_none_found">Keine Server gefunden. Prüfe, ob beide Geräte im selben Netzwerk sind, versuche es erneut oder gib die Adresse manuell ein.</string>
   <string name="network_server_saved">Gespeicherte Adresse</string>
   <string name="network_server_nearby">Server in der Nähe</string>
   <string name="network_server_this_device">Dieses Gerät im lokalen Netzwerk</string>
@@ -2481,7 +2481,7 @@ Bitte starten Sie die App neu, damit alle Änderungen wirksam werden.</string>
   <string name="network_server_scan">Server in der Nähe suchen</string>
   <string name="network_server_scanning">Server in der Nähe werden gesucht…</string>
   <string name="network_server_scan_unavailable">Die Erkennung ist nicht verfügbar oder unvollständig. Wähle eine gespeicherte Adresse oder gib eine ein.</string>
-  <string name="network_server_discovery_hint">Findet veröffentlichte LAN-Server. Geräteadressen sind Verknüpfungen; Zugangsdaten unten eingeben.</string>
+  <string name="network_server_discovery_hint">Findet SMB-, FTP-, SFTP-, WebDAV- und DLNA-Server im Netzwerk. Geräteadressen sind Verknüpfungen; Zugangsdaten unten eingeben.</string>
   <string name="network_smb_username_hint">Verwende deinen Benutzernamen oder DOMAIN\\username für ein Domänenkonto.</string>
   <string name="pref_playstore_hidden_title">Ausgewählte versteckte Ordner</string>
   <string name="pref_playstore_hidden_summary">Wähle einen Ordner aus, um seine Medien und Unterordner einzubeziehen.</string>
@@ -3074,4 +3074,5 @@ Bitte starten Sie die App neu, damit alle Änderungen wirksam werden.</string>
   <string name="floating_lyrics_dismiss">Bis zum nächsten Öffnen von mpvRx ausblenden</string>
   <string name="floating_lyrics_turn_off">Schwebende Liedtexte ausschalten</string>
   <string name="floating_lyrics_never">Nie</string>
+  <string name="toast_media_file_missing">Diese Datei existiert nicht mehr; die Liste wird aktualisiert.</string>
 </resources>
