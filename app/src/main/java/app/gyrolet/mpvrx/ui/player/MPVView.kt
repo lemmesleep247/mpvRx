@@ -45,6 +45,8 @@ import app.gyrolet.mpvrx.ui.player.ytdlp.YtdlpManager
 import app.gyrolet.mpvrx.utils.device.VulkanCapabilities
 import app.gyrolet.mpvrx.utils.logging.Log
 import app.gyrolet.mpvrx.utils.media.VideoCodecSupportInspector
+import `is`.xyz.mpv.KeyMapping
+import `is`.xyz.mpv.MPVLib
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -56,8 +58,6 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
-import `is`.xyz.mpv.KeyMapping
-import `is`.xyz.mpv.MPVLib
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 import kotlin.math.abs
@@ -86,12 +86,14 @@ class MPVView(
   var isExiting = false
   private var lastRequestedFrameRate = Float.NaN
   var forceOpenGlFallback = false
+
   // Android may create the Surface while the core is still initializing on IO. Do not let its
   // main-thread callbacks wait on the native lock; attachSessionSurface enables them afterwards.
   private var renderCallbacksEnabled = false
   private var surfaceRecovery: Runnable? = null
   private var pausedFrameRedraw: Runnable? = null
   private val surfaceReadiness = MutableStateFlow(false)
+
   /** Prevent glass from sampling a new renderer before the native video output is ready. */
   internal val surfaceReady: StateFlow<Boolean> = surfaceReadiness.asStateFlow()
   var isSurfaceReady: Boolean
@@ -102,6 +104,7 @@ class MPVView(
   var surfaceAttachmentGeneration = 0L
     private set
   var onSurfaceReady: (() -> Unit)? = null
+
   @Volatile
   var surfaceBindingEnabled = true
     set(value) {
@@ -136,7 +139,9 @@ class MPVView(
           when {
             ensureSurfaceAttached() -> true
             // A hidden window (backgrounded/locked) will not create a Surface until it returns.
-            isExiting || !surfaceBindingEnabled || !renderCallbacksEnabled ||
+            isExiting ||
+              !surfaceBindingEnabled ||
+              !renderCallbacksEnabled ||
               (isAttachedToWindow && windowVisibility != VISIBLE) -> false
             else -> null
           }
@@ -265,20 +270,24 @@ class MPVView(
     if (isExiting || !isSurfaceReady) return
     cancelPausedFrameRedraw()
     val generation = surfaceAttachmentGeneration
-    val redraw = Runnable {
-      pausedFrameRedraw = null
-      if (generation == surfaceAttachmentGeneration && isAttachedToWindow &&
-        windowVisibility == VISIBLE
-      ) redrawPausedFrame()
-    }
+    val redraw =
+      Runnable {
+        pausedFrameRedraw = null
+        if (generation == surfaceAttachmentGeneration &&
+          isAttachedToWindow &&
+          windowVisibility == VISIBLE
+        ) {
+          redrawPausedFrame()
+        }
+      }
     pausedFrameRedraw = redraw
     postDelayed(redraw, 150L)
   }
 
   private data class StartupShaderSelection(
     val backend: RenderBackendSelection,
+    val requestedHdrMode: HdrScreenMode,
     val hdrMode: HdrScreenMode,
-    val hdrPipelineReady: Boolean,
   )
 
   private var pendingStartupShaders: StartupShaderSelection? = null
@@ -360,12 +369,13 @@ class MPVView(
       // because it also depends on forceOpenGlFallback, which differs on the Vulkan retry attempt.
       anime4kEnabled = decoderPreferences.enableAnime4K.get() && decoderPreferences.anime4kMode.get() != "OFF",
       gpuNextEnabled = decoderPreferences.gpuNext.get(),
-      vulkanCapable = RendererBackendPolicy.canUseVulkan(
-        buildIncludesVulkan = BuildConfig.MPV_SUPPORTS_VULKAN,
-        deviceSupportsVulkan = VulkanCapabilities.isDeviceSupported(context),
-        userEnabledVulkan = decoderPreferences.useVulkan.get(),
-        forceOpenGlFallback = false,
-      ),
+      vulkanCapable =
+        RendererBackendPolicy.canUseVulkan(
+          buildIncludesVulkan = BuildConfig.MPV_SUPPORTS_VULKAN,
+          deviceSupportsVulkan = VulkanCapabilities.isDeviceSupported(context),
+          userEnabledVulkan = decoderPreferences.useVulkan.get(),
+          forceOpenGlFallback = false,
+        ),
       hdrScreenOutputEnabled = decoderPreferences.hdrScreenOutput.get(),
       hdrScreenModePreference = decoderPreferences.hdrScreenMode.get(),
       boostSdrToHdr = decoderPreferences.boostSdrToHdr.get(),
@@ -464,10 +474,13 @@ class MPVView(
     val inputs = awaitInitInputs()
     PlaybackSession.setIntegrationOptionString("load-stats-overlay", "no")
     PlaybackSession.setOptionString("profile", inputs.profile)
-    val backend = selectRenderBackend(
-      inputs.mediaCodecEmbed, inputs.anime4kEnabled, inputs.gpuNextEnabled,
-      inputs.vulkanCapable && !forceOpenGlFallback,
-    )
+    val backend =
+      selectRenderBackend(
+        inputs.mediaCodecEmbed,
+        inputs.anime4kEnabled,
+        inputs.gpuNextEnabled,
+        inputs.vulkanCapable && !forceOpenGlFallback,
+      )
     val mediaCodecEmbed = backend.vo == MediaCodecEmbed.VO
     val useVulkan = backend.gpuApi == "vulkan"
     // MediaCodec embed accepts only MediaCodec's own buffers: no copy-back, no software decoding.
@@ -476,22 +489,11 @@ class MPVView(
     PlaybackSession.setOptionString("gpu-api", backend.gpuApi)
     PlaybackSession.setOptionString("gpu-context", backend.gpuContext)
 
-    val isNativeHdrOutputAvailable = useVulkan && backend.vo == "gpu-next"
-    val hdrScreenMode =
-      if (!inputs.hdrScreenOutputEnabled || mediaCodecEmbed) {
-        HdrScreenMode.OFF
-      } else {
-        if (inputs.hdrScreenModePreference.needsNativeHdrOutput && !isNativeHdrOutputAvailable) {
-          HdrScreenMode.fallbackMode
-        } else {
-          inputs.hdrScreenModePreference
-        }
-      }
-    val hdrPipelineReady = !hdrScreenMode.needsNativeHdrOutput || isNativeHdrOutputAvailable
+    val requestedHdrMode = if (inputs.hdrScreenOutputEnabled) inputs.hdrScreenModePreference else HdrScreenMode.OFF
+    val hdrScreenMode = requestedHdrMode.resolveForRenderer(backend.vo, backend.gpuApi)
     if (!MpvConfigOverridePolicy.ownsAny(MpvConfigControlledFeatures.HDR_OUTPUT)) {
       applyHdrScreenOutputOptions(
         mode = hdrScreenMode,
-        pipelineReady = hdrPipelineReady,
         displayPeakNits = hdrToysDisplayPeakNits(context),
         boostSdrToHdr = inputs.boostSdrToHdr,
       )
@@ -557,10 +559,14 @@ class MPVView(
     // MotionInterpolationController.
     val motion = inputs.motionInterpolation
     val motionStarts =
-      motion.enabled && MotionInterpolation.barrier(context, decoderPreferences) == MotionAvailability.READY &&
-        backend.vo == "gpu-next" && useVulkan
+      motion.enabled &&
+        MotionInterpolation.barrier(context, decoderPreferences) == MotionAvailability.READY &&
+        backend.vo == "gpu-next" &&
+        useVulkan
     // A new core starts without mpvRx's motion settings; mpv.conf may still enable it.
-    MotionInterpolation.appApplied = motionStarts && !MpvConfigOverridePolicy.isOwnedByMpvConf(MotionInterpolation.OPTION)
+    MotionInterpolation.appApplied =
+      motionStarts &&
+      !MpvConfigOverridePolicy.isOwnedByMpvConf(MotionInterpolation.OPTION)
     if (motionStarts) {
       MotionInterpolation.displayFpsOverride(context)?.let {
         PlaybackSession.setOptionString("display-fps-override", it)
@@ -575,7 +581,7 @@ class MPVView(
     // These are native property/command operations (shader list changes), not mpv options.
     // Running them before MPVLib.init() fails with "mpv_command: core not initialized".
     // Save the selection and apply it in postInitOptions(), before the first loadfile.
-    pendingStartupShaders = StartupShaderSelection(backend, hdrScreenMode, hdrPipelineReady)
+    pendingStartupShaders = StartupShaderSelection(backend, requestedHdrMode, hdrScreenMode)
 
     setupSubtitlesOptions()
     setupAudioOptions()
@@ -627,14 +633,26 @@ class MPVView(
 
     // libmpv is initialized here, but no file has been loaded yet. Unlike initOptions(),
     // it is safe to run change-list and shader property commands here.
-    // MediaCodec embed bypasses mpv's renderer, so it gets no shaders.
-    pendingStartupShaders?.takeIf { it.backend.vo != MediaCodecEmbed.VO }?.let { selection ->
-      if (!MpvConfigOverridePolicy.ownsAny(MpvConfigControlledFeatures.ANIME4K)) {
+    pendingStartupShaders?.let { selection ->
+      if (selection.backend.vo != MediaCodecEmbed.VO &&
+        !MpvConfigOverridePolicy.ownsAny(MpvConfigControlledFeatures.ANIME4K)
+      ) {
         applyAnime4KShaders(selection.backend.vo, selection.backend.gpuApi)
       }
       // HDR Toys must be appended after Anime4K.
       if (!MpvConfigOverridePolicy.ownsAny(MpvConfigControlledFeatures.HDR_OUTPUT)) {
-        applyHdrToysMode(selection.hdrMode, selection.hdrPipelineReady)
+        // mpv.conf has now been read. A real VO override takes precedence over the predicted one.
+        val output = PlaybackSession.getPropertyString("vo")?.takeUnless { it.isBlank() || it == "null" }
+        val gpuApi = PlaybackSession.getPropertyString("gpu-api") ?: selection.backend.gpuApi
+        val hdrMode = selection.requestedHdrMode.resolveForRenderer(output ?: selection.backend.vo, gpuApi)
+        if (hdrMode != selection.hdrMode) {
+          applyHdrScreenOutputProperties(
+            mode = hdrMode,
+            displayPeakNits = hdrToysDisplayPeakNits(context),
+            boostSdrToHdr = awaitInitInputs().boostSdrToHdr,
+          )
+        }
+        applyHdrToysMode(hdrMode)
       }
     }
     pendingStartupShaders = null
@@ -651,7 +669,6 @@ class MPVView(
       Debanding.CPU -> PlaybackSession.command("vf", "add", "@deband:gradfun=radius=12")
       Debanding.GPU -> PlaybackSession.setOptionString("deband", "yes")
     }
-
   }
 
   /**
@@ -746,11 +763,20 @@ class MPVView(
     PlaybackSession.redrawVideoFrame()
   }
 
-  override fun onRenderSurfaceAvailable(surface: Surface, width: Int, height: Int) {
+  override fun onRenderSurfaceAvailable(
+    surface: Surface,
+    width: Int,
+    height: Int,
+  ) {
     attachRenderSurface(surface, width, height, retriesRemaining = 2)
   }
 
-  private fun attachRenderSurface(surface: Surface, width: Int, height: Int, retriesRemaining: Int) {
+  private fun attachRenderSurface(
+    surface: Surface,
+    width: Int,
+    height: Int,
+    retriesRemaining: Int,
+  ) {
     if (isExiting || !surfaceBindingEnabled || !renderCallbacksEnabled || renderSurface !== surface) return
     if (PlaybackSession.isSurfaceAttachedTo(this)) return
     cancelSurfaceRecovery()
@@ -759,11 +785,18 @@ class MPVView(
     val attachedGeneration = surfaceAttachmentGeneration
 
     fun isCurrentSurface(): Boolean =
-      !isExiting && surfaceBindingEnabled && renderCallbacksEnabled && surface.isValid &&
-        renderSurface === surface && surfaceAttachmentGeneration == attachedGeneration
+      !isExiting &&
+        surfaceBindingEnabled &&
+        renderCallbacksEnabled &&
+        surface.isValid &&
+        renderSurface === surface &&
+        surfaceAttachmentGeneration == attachedGeneration
 
     PlaybackSession.bindSurface(
-      surface, width, height, this,
+      surface,
+      width,
+      height,
+      this,
       ownerIsActive = ::isCurrentSurface,
       // This view lays out android-video-rect and carries FongMi's subtitle overlay.
       hostsDirectOutput = true,
@@ -772,15 +805,17 @@ class MPVView(
       },
       onRendererFailed = {
         if (isCurrentSurface() && retriesRemaining > 0 && windowVisibility == VISIBLE) {
-          val retry = Runnable {
-            surfaceRecovery = null
-            if (isCurrentSurface() && windowVisibility == VISIBLE &&
-              !PlaybackSession.state.value.surfaceAttached
-            ) {
-              Log.w(TAG, "Retrying playback Surface after native window activation failed")
-              attachRenderSurface(surface, this.width, this.height, retriesRemaining - 1)
+          val retry =
+            Runnable {
+              surfaceRecovery = null
+              if (isCurrentSurface() &&
+                windowVisibility == VISIBLE &&
+                !PlaybackSession.state.value.surfaceAttached
+              ) {
+                Log.w(TAG, "Retrying playback Surface after native window activation failed")
+                attachRenderSurface(surface, this.width, this.height, retriesRemaining - 1)
+              }
             }
-          }
           surfaceRecovery = retry
           postDelayed(retry, SURFACE_RETRY_MS)
         }
@@ -790,17 +825,29 @@ class MPVView(
 
   private fun ensureOsdSurfaceAttached() {
     val surface = osdSurface ?: return
-    if (isExiting || !surfaceBindingEnabled || !renderCallbacksEnabled || !surface.isValid ||
+    if (isExiting ||
+      !surfaceBindingEnabled ||
+      !renderCallbacksEnabled ||
+      !surface.isValid ||
       PlaybackSession.isOsdSurfaceAttachedTo(this)
-    ) return
+    ) {
+      return
+    }
     PlaybackSession.bindOsdSurface(surface, osdSurfaceWidth, osdSurfaceHeight, owner = this)
   }
 
-  override fun onOsdSurfaceAvailable(surface: Surface, width: Int, height: Int) {
+  override fun onOsdSurfaceAvailable(
+    surface: Surface,
+    width: Int,
+    height: Int,
+  ) {
     ensureOsdSurfaceAttached()
   }
 
-  override fun onOsdSurfaceSizeChanged(width: Int, height: Int) {
+  override fun onOsdSurfaceSizeChanged(
+    width: Int,
+    height: Int,
+  ) {
     if (!renderCallbacksEnabled || isExiting) return
     if (!PlaybackSession.resizeOsdSurface(width, height, owner = this)) ensureOsdSurfaceAttached()
   }
@@ -825,9 +872,14 @@ class MPVView(
    */
   internal fun updateFrameRate(fps: Double? = null) {
     if (
-      android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.R || isExiting ||
-      !surfaceBindingEnabled || !isSurfaceReady || !PlaybackSession.state.value.surfaceAttached
-    ) return
+      android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.R ||
+      isExiting ||
+      !surfaceBindingEnabled ||
+      !isSurfaceReady ||
+      !PlaybackSession.state.value.surfaceAttached
+    ) {
+      return
+    }
     val content =
       (fps ?: PlaybackSession.getPropertyDouble("container-fps"))
         ?.takeIf { it.isFinite() && it > 0.0 && it <= 1000.0 }
@@ -942,7 +994,9 @@ class MPVView(
     // Resolve preferred languages before packet reads begin, but preserve the global subtitle-off
     // preference. TrackSelector remains responsible for title/forced/hearing-impaired filtering.
     val preferredSubtitleLanguages =
-      subtitlesPreferences.preferredLanguages.get().toMpvLanguageList()
+      subtitlesPreferences.preferredLanguages
+        .get()
+        .toMpvLanguageList()
         .takeIf { subtitlesPreferences.autoEnableSubtitles.get() }
         .orEmpty()
 
@@ -957,10 +1011,6 @@ class MPVView(
     val subDelay = (subtitlesPreferences.defaultSubDelay.get() / 1000.0).toString()
     val subSpeed = subtitlesPreferences.defaultSubSpeed.get().toString()
 
-    val windowOptions = subtitleWindowOptions(
-      scaleByWindow = subtitlesPreferences.scaleByWindow.get(),
-      isPortrait = resources.configuration.orientation == Configuration.ORIENTATION_PORTRAIT,
-    )
     val blendMode = subtitleBlendMode()
 
     return buildList {
@@ -1007,7 +1057,6 @@ class MPVView(
       add("sub-back-radius" to subtitlesPreferences.backgroundRadius.get().toString())
       add("sub-scale" to subtitlesPreferences.subScale.get().toString())
       add("sub-pos" to clampSubtitlePosition(subtitlesPreferences.subPos.get()).toString())
-      addAll(windowOptions)
       // Secondary has its own position/scale only.
       add("secondary-sub-scale" to subtitlesPreferences.secondarySubScale.get().toString())
       add(
@@ -1040,7 +1089,11 @@ class MPVView(
       // Prevent automatic volume normalization when downmixing multi-channel audio
       add("audio-normalize-downmix" to "no")
       audioPreferences.mpvAudioOutput().takeIf { it.isNotEmpty() }?.let { add("ao" to it) }
-      audioPreferences.audioPassthrough.get().codecs.takeIf { it.isNotEmpty() }?.let { add("audio-spdif" to it) }
+      audioPreferences.audioPassthrough
+        .get()
+        .codecs
+        .takeIf { it.isNotEmpty() }
+        ?.let { add("audio-spdif" to it) }
     }
 
   private fun setupSubtitlesOptions() {
@@ -1068,24 +1121,21 @@ class MPVView(
    * the chosen profile's shader chain to mpv's glsl-shaders list.
    * Safe to call on every init — clears previous hdr-toys shaders before re-applying.
    */
-  fun applyHdrToysMode(
-    mode: HdrScreenMode,
-    pipelineReady: Boolean,
-  ) {
-    if (MpvConfigOverridePolicy.ownsAny(MpvConfigControlledFeatures.HDR_OUTPUT)) return
+  private fun applyHdrToysMode(mode: HdrScreenMode) {
     val profile = mode.hdrToysProfile
-    if (!pipelineReady || profile == null) {
+    if (profile == null) {
       // A newly initialized core has no app HDR shaders to remove. Avoid a burst of
       // redundant change-list commands (and native work) on every normal video open.
-      if (PlaybackSession.getPropertyString("glsl-shaders")?.contains("hdr-toys", ignoreCase = true) == true) {
-        hdrToysManager.clear()
-      }
+      if (hasHdrToysShaders()) hdrToysManager.clear()
       return
     }
     if (!hdrToysManager.apply(profile)) {
       Log.w(TAG, "Skipping HDR Toys mode — bundled shaders unavailable: ${mode.name}")
     }
   }
+
+  private fun hasHdrToysShaders(): Boolean =
+    PlaybackSession.getPropertyString("glsl-shaders")?.contains("hdr-toys", ignoreCase = true) == true
 
   private fun applyAnime4KShaders(
     activeVo: String,
@@ -1172,8 +1222,10 @@ class MPVView(
   internal fun switchRendererLive(): Boolean? {
     // An OpenGL retry after a failed Vulkan start keeps the renderer it could open, and mpv.conf
     // keeps a renderer it chose itself.
-    if (!FongMiMpv.isBuildSupported || forceOpenGlFallback ||
-      MpvConfigOverridePolicy.isOwnedByMpvConf("gpu-api") || MpvConfigOverridePolicy.isOwnedByMpvConf("gpu-context")
+    if (!FongMiMpv.isBuildSupported ||
+      forceOpenGlFallback ||
+      MpvConfigOverridePolicy.isOwnedByMpvConf("gpu-api") ||
+      MpvConfigOverridePolicy.isOwnedByMpvConf("gpu-context")
     ) {
       return null
     }
@@ -1190,26 +1242,38 @@ class MPVView(
             forceOpenGlFallback = false,
           ),
       )
-    val current =
-      RenderBackendSelection(
-        vo = PlaybackSession.videoOutput,
-        gpuApi = PlaybackSession.getPropertyString("gpu-api").orEmpty(),
-        gpuContext = PlaybackSession.getPropertyString("gpu-context").orEmpty(),
-        reason = "running",
-      )
-    if (target.configurationKey == current.configurationKey) return null
-    // android-set-gpu-output moves only between GPU renderers; MediaCodec embed needs a new core.
-    if (target.vo == MediaCodecEmbed.VO || current.vo == MediaCodecEmbed.VO) return false
-    val switched =
-      PlaybackSession.switchGpuOutput(
-        gpuNext = target.vo == "gpu-next",
-        vulkan = target.gpuApi == "vulkan",
-        fromBackendKey = current.configurationKey,
-        toBackendKey = target.configurationKey,
-      )
-    // Cached init inputs hold the previous renderer selection.
-    if (switched) preparedInitInputs = null
-    return switched
+    return PlaybackSession.withVideoOutput<Boolean?>(false) { videoOutput ->
+      val current =
+        RenderBackendSelection(
+          vo = videoOutput,
+          gpuApi = PlaybackSession.getPropertyString("gpu-api").orEmpty(),
+          gpuContext = PlaybackSession.getPropertyString("gpu-context").orEmpty(),
+          reason = "running",
+        )
+      if (target.configurationKey == current.configurationKey) return@withVideoOutput null
+      // android-set-gpu-output moves only between GPU renderers; MediaCodec embed needs a new core.
+      if (target.vo == MediaCodecEmbed.VO || current.vo == MediaCodecEmbed.VO) return@withVideoOutput false
+      val clearHdrBeforeSwitch =
+        current.vo == "gpu-next" &&
+          target.vo == "gpu" &&
+          !MpvConfigOverridePolicy.ownsAny(MpvConfigControlledFeatures.HDR_OUTPUT) &&
+          hasHdrToysShaders()
+      if (clearHdrBeforeSwitch) hdrToysManager.clear()
+      val switched =
+        PlaybackSession.switchGpuOutput(
+          gpuNext = target.vo == "gpu-next",
+          vulkan = target.gpuApi == "vulkan",
+          fromBackendKey = current.configurationKey,
+          toBackendKey = target.configurationKey,
+        )
+      // Cached init inputs hold the previous renderer selection.
+      if (switched) {
+        preparedInitInputs = null
+      } else if (clearHdrBeforeSwitch && decoderPreferences.hdrScreenOutput.get()) {
+        applyHdrToysMode(decoderPreferences.hdrScreenMode.get().resolveForRenderer(current.vo, current.gpuApi))
+      }
+      switched
+    }
   }
 
   /**
@@ -1223,7 +1287,6 @@ class MPVView(
     gpuNextEnabled: Boolean,
     vulkanEnabled: Boolean,
   ): RenderBackendSelection {
-
     if (mediaCodecEmbed) {
       return RenderBackendSelection(
         vo = MediaCodecEmbed.VO,
@@ -1292,5 +1355,3 @@ class MPVView(
     )
   }
 }
-
-

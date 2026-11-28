@@ -9,8 +9,6 @@
 
 package app.gyrolet.mpvrx.ui.player.controls.components.sheets
 
-import app.gyrolet.mpvrx.ui.player.PlaybackSession
-
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
@@ -26,7 +24,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import app.gyrolet.mpvrx.ui.components.AppSlider as Slider
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -46,11 +43,13 @@ import app.gyrolet.mpvrx.presentation.components.PlayerSheetAction
 import app.gyrolet.mpvrx.presentation.components.RepeatingIconButton
 import app.gyrolet.mpvrx.ui.icons.Icon
 import app.gyrolet.mpvrx.ui.icons.Icons
-import app.gyrolet.mpvrx.ui.preferences.components.SwitchPreference
+import app.gyrolet.mpvrx.ui.player.PlaybackSession
 import app.gyrolet.mpvrx.ui.player.controls.components.tvFocusHighlight
+import app.gyrolet.mpvrx.ui.preferences.components.SwitchPreference
 import org.koin.compose.koinInject
 import kotlin.math.pow
 import kotlin.math.roundToInt
+import app.gyrolet.mpvrx.ui.components.AppSlider as Slider
 
 @Composable
 fun PlaybackSpeedSheet(
@@ -59,16 +58,17 @@ fun PlaybackSpeedSheet(
   onSpeedChange: (Float) -> Unit,
   onAddSpeedPreset: (Float) -> Unit,
   onRemoveSpeedPreset: (Float) -> Unit,
-  onResetPresets: () -> Unit,
-  onMakeDefault: (Float) -> Unit,
-  onResetDefault: () -> Unit,
   onDismissRequest: () -> Unit,
   speedControlEnabled: Boolean = true,
   pitchCorrectionEnabled: Boolean = true,
   modifier: Modifier = Modifier,
 ) {
-  val speedHaptics = app.gyrolet.mpvrx.ui.utils.rememberAdjustmentHaptics(0.05f, 4f, landmarks = listOf(1f))
-  val actionHaptics = app.gyrolet.mpvrx.ui.utils.rememberAppHaptics()
+  val speedHaptics =
+    app.gyrolet.mpvrx.ui.utils
+      .rememberAdjustmentHaptics(0.05f, 4f, landmarks = listOf(1f))
+  val actionHaptics =
+    app.gyrolet.mpvrx.ui.utils
+      .rememberAppHaptics()
   val adjustSpeed: (Float) -> Unit = { target ->
     if (kotlin.math.abs(target - speed) > 0.001f) {
       onSpeedChange(target)
@@ -81,24 +81,6 @@ fun PlaybackSpeedSheet(
     leadingIcon = Icons.RoundedFilled.Speed,
     customMaxWidth = 520.dp,
     showDragHandle = false,
-    actions = {
-      PlayerSheetAction(
-        icon = Icons.RoundedFilled.Bookmark,
-        label = stringResource(R.string.player_sheets_speed_make_default),
-        onClick = { onMakeDefault(speed) },
-        enabled = speedControlEnabled,
-      )
-      PlayerSheetAction(
-        icon = Icons.RoundedFilled.Restore,
-        label = stringResource(R.string.generic_reset),
-        onClick = {
-          onResetDefault()
-          onResetPresets()
-          onSpeedChange(1f)
-        },
-        enabled = speedControlEnabled,
-      )
-    },
   ) {
     Column(
       modifier
@@ -130,22 +112,32 @@ fun PlaybackSpeedSheet(
               enabled = speedControlEnabled,
               modifier = Modifier.size(48.dp),
             ) {
-              Icon(Icons.RoundedFilled.Remove, stringResource(R.string.player_speed_decrease), modifier = Modifier.size(22.dp))
+              Icon(
+                Icons.RoundedFilled.Remove,
+                stringResource(R.string.player_speed_decrease),
+                modifier = Modifier.size(22.dp),
+              )
             }
             Slider(
               value = speed,
               onValueChange = { adjustSpeed((it * 20).roundToInt() / 20f) },
               valueRange = 0.1f..4f,
               enabled = speedControlEnabled,
-              modifier = Modifier.weight(1f)
-                .tvFocusHighlight(MaterialTheme.shapes.small, enabled = speedControlEnabled),
+              modifier =
+                Modifier
+                  .weight(1f)
+                  .tvFocusHighlight(MaterialTheme.shapes.small, enabled = speedControlEnabled),
             )
             RepeatingIconButton(
               onClick = { adjustSpeed((speed + 0.05f).coerceAtMost(4f)) },
               enabled = speedControlEnabled,
               modifier = Modifier.size(48.dp),
             ) {
-              Icon(Icons.RoundedFilled.Add, stringResource(R.string.player_speed_increase), modifier = Modifier.size(22.dp))
+              Icon(
+                Icons.RoundedFilled.Add,
+                stringResource(R.string.player_speed_increase),
+                modifier = Modifier.size(22.dp),
+              )
             }
           }
         }
@@ -182,10 +174,18 @@ fun PlaybackSpeedSheet(
               enabled = speedControlEnabled,
               colors =
                 androidx.compose.material3.FilterChipDefaults.filterChipColors(
-                  containerColor = if (isDefault) playerSheetSelectionColor(false)
-                    else MaterialTheme.colorScheme.tertiaryContainer,
-                  labelColor = if (isDefault) MaterialTheme.colorScheme.onSurface
-                    else MaterialTheme.colorScheme.onTertiaryContainer,
+                  containerColor =
+                    if (isDefault) {
+                      playerSheetSelectionColor(false)
+                    } else {
+                      MaterialTheme.colorScheme.tertiaryContainer
+                    },
+                  labelColor =
+                    if (isDefault) {
+                      MaterialTheme.colorScheme.onSurface
+                    } else {
+                      MaterialTheme.colorScheme.onTertiaryContainer
+                    },
                   selectedContainerColor = playerSheetSelectionColor(true),
                   selectedLabelColor = MaterialTheme.colorScheme.onSecondaryContainer,
                 ),

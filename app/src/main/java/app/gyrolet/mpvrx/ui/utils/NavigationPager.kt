@@ -35,14 +35,14 @@ import androidx.compose.ui.semantics.semantics
 import app.gyrolet.mpvrx.preferences.GesturePreferences
 import app.gyrolet.mpvrx.preferences.PlayerPreferences
 import app.gyrolet.mpvrx.preferences.preference.collectAsState
-import app.gyrolet.mpvrx.ui.player.NavigationAnimStyle
 import app.gyrolet.mpvrx.ui.player.LocalInAppMusicSheet
+import app.gyrolet.mpvrx.ui.player.NavigationAnimStyle
 import app.gyrolet.mpvrx.ui.theme.AppMotion
 import app.gyrolet.mpvrx.ui.tv.isTelevision
-import kotlin.math.abs
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
+import kotlin.math.abs
 
 /** Page interaction is separate from the host lifecycle: swiping must not resume/rescan a library. */
 internal val LocalNavigationPageActive = compositionLocalOf { true }
@@ -52,7 +52,10 @@ private val LocalNavigationPagerPresent = staticCompositionLocalOf { false }
 private val PassThroughPageScrollConnection = object : NestedScrollConnection {}
 
 @Composable
-internal fun NavigationBackHandler(enabled: Boolean = true, onBack: () -> Unit) {
+internal fun NavigationBackHandler(
+  enabled: Boolean = true,
+  onBack: () -> Unit,
+) {
   // The live music sheet shares this window. Covered browser pages must not consume its Back
   // gesture or change tabs, even if a lazy page registered its callback after the player.
   val musicSheet = LocalInAppMusicSheet.current
@@ -81,24 +84,30 @@ internal fun NavigationPager(
   userScrollEnabled: Boolean = true,
   key: ((Int) -> Any)? = null,
   allowNestedSwipes: Boolean = false,
+  isMainNavigation: Boolean = false,
   activePageFocusRequester: FocusRequester? = null,
   content: @Composable PagerScope.(Int) -> Unit,
 ) {
   val gesturePreferences = koinInject<GesturePreferences>()
   val playerPreferences = koinInject<PlayerPreferences>()
   val nestedTabSwipesEnabled by gesturePreferences.nestedTabSwipesEnabled.collectAsState()
+  val mainPageSwipesEnabled by gesturePreferences.mainPageSwipesEnabled.collectAsState()
   val style by playerPreferences.appNavStyle.collectAsState()
   val reduceMotion = AppMotion.shouldReduceMotion()
   val isTelevision = isTelevision()
   val isNestedPager = LocalNavigationPagerPresent.current
   val ownsHorizontalSwipes =
-    !isTelevision && userScrollEnabled && (!isNestedPager || (allowNestedSwipes && nestedTabSwipesEnabled))
-  val nestedScrollConnection = if (ownsHorizontalSwipes) {
-    PagerDefaults.pageNestedScrollConnection(state, Orientation.Horizontal)
-  } else {
-    // Disabling drag alone does not disable a pager's nested-scroll/fling consumption.
-    PassThroughPageScrollConnection
-  }
+    !isTelevision &&
+      userScrollEnabled &&
+      (!isMainNavigation || mainPageSwipesEnabled) &&
+      (!isNestedPager || (allowNestedSwipes && nestedTabSwipesEnabled))
+  val nestedScrollConnection =
+    if (ownsHorizontalSwipes) {
+      PagerDefaults.pageNestedScrollConnection(state, Orientation.Horizontal)
+    } else {
+      // Disabling drag alone does not disable a pager's nested-scroll/fling consumption.
+      PassThroughPageScrollConnection
+    }
 
   CompositionLocalProvider(LocalNavigationPagerPresent provides true) {
     HorizontalPager(
@@ -137,20 +146,23 @@ internal fun rememberTabNavigation(state: PagerState): (Int) -> Unit {
 
   return { page ->
     if (page in 0 until state.pageCount) {
-      val isAlreadySettled = state.currentPage == page &&
-        state.currentPageOffsetFraction == 0f && !state.isScrollInProgress
+      val isAlreadySettled =
+        state.currentPage == page &&
+          state.currentPageOffsetFraction == 0f &&
+          !state.isScrollInProgress
       job?.cancel()
       if (!isAlreadySettled) {
-        job = scope.launch {
-          if (style == NavigationAnimStyle.None || reduceMotion) {
-            state.scrollToPage(page)
-          } else {
-            state.animateScrollToPage(
-              page = page,
-              animationSpec = navigationTabAnimationSpec(style, speed),
-            )
+        job =
+          scope.launch {
+            if (style == NavigationAnimStyle.None || reduceMotion) {
+              state.scrollToPage(page)
+            } else {
+              state.animateScrollToPage(
+                page = page,
+                animationSpec = navigationTabAnimationSpec(style, speed),
+              )
+            }
           }
-        }
       }
     }
   }

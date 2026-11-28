@@ -33,7 +33,11 @@ import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
 import org.json.JSONObject
-import java.io.*
+import java.io.BufferedReader
+import java.io.File
+import java.io.FileOutputStream
+import java.io.IOException
+import java.io.InputStreamReader
 
 object YtdlpManager {
   private const val TAG = "YtdlpManager"
@@ -79,8 +83,8 @@ object YtdlpManager {
         HttpUtils.directMediaExtensions
           .flatMap { extension ->
             listOf(
-              "^[^?#]+%.${extension}$",
-              "^[^?#]+%.${extension}[?#]",
+              "^[^?#]+%.$extension$",
+              "^[^?#]+%.$extension[?#]",
             )
           }
     ).joinToString("|")
@@ -140,7 +144,11 @@ object YtdlpManager {
         .build()
         .toString()
     }
-    return uri.buildUpon().fragment(null).build().toString()
+    return uri
+      .buildUpon()
+      .fragment(null)
+      .build()
+      .toString()
   }
 
   fun playPlaylist(
@@ -203,8 +211,10 @@ object YtdlpManager {
               add("--playlist-end")
               add(MAX_IMPORTED_PLAYLIST_ENTRIES.toString())
 
-              (userAgentOverride?.takeIf(String::isNotBlank)
-                ?: preferences.customUserAgent.get().takeIf(String::isNotBlank))?.let { userAgent ->
+              (
+                userAgentOverride?.takeIf(String::isNotBlank)
+                  ?: preferences.customUserAgent.get().takeIf(String::isNotBlank)
+              )?.let { userAgent ->
                 add("--user-agent")
                 add(userAgent)
               }
@@ -223,7 +233,9 @@ object YtdlpManager {
               if (preferences.geoBypass.get()) add("--geo-bypass")
 
               val cookiesFile =
-                preferences.cookiesFile.get().takeIf(String::isNotBlank)
+                preferences.cookiesFile
+                  .get()
+                  .takeIf(String::isNotBlank)
                   ?.let(::File)
                   ?.takeIf(File::isFile)
                   ?: AndroidCookieJar.playbackCookieFile(context).takeIf(File::isFile)
@@ -304,7 +316,8 @@ object YtdlpManager {
           "https://i.ytimg.com/vi/$id/hqdefault.jpg"
         } else {
           item.optionalString("thumbnail")
-            ?: item.optJSONArray("thumbnails")
+            ?: item
+              .optJSONArray("thumbnails")
               ?.let { thumbnails ->
                 (thumbnails.length() - 1 downTo 0)
                   .asSequence()
@@ -373,7 +386,10 @@ object YtdlpManager {
       }
     }
 
-  private fun copyRuntimeAssets(context: Context, onLog: (String) -> Unit = {}): Boolean {
+  private fun copyRuntimeAssets(
+    context: Context,
+    onLog: (String) -> Unit = {},
+  ): Boolean {
     val ytdlDir = getYtdlDir(context)
 
     // Clean up old potentially problematic scripts from multiple possible locations
@@ -424,7 +440,6 @@ object YtdlpManager {
     }
   }
 
-
   /**
    * ytdl_hook reads its executable path when libmpv starts built-in Lua scripts. A core may
    * already exist for a local file when a web URL arrives, so these app-owned script options
@@ -441,8 +456,7 @@ object YtdlpManager {
     // Configure the bundled hook before MPVLib.init(), otherwise it caches an empty path.
     // Keep a generated fallback for ytdl_hook. This file is app-owned compatibility state, not a
     // user preference: mpv.conf ownership must never delete it or leave a stale bundled path
-    // behind. A genuinely hand-written hook file is preserved and the required bootstrap values
-    // are supplied independently through app-owned script options below.
+    // behind. A genuinely hand-written hook file is preserved.
     try {
       val scriptOptsDir = File(context.filesDir, "script-opts")
       if (!scriptOptsDir.exists()) scriptOptsDir.mkdirs()
@@ -481,20 +495,16 @@ object YtdlpManager {
   private fun applyMpvHookOptions(context: Context) {
     val ytdlBinaryPath = getExecutablePath(context)
 
-    // These values are part of mpvRx's bundled bridge contract. They intentionally bypass
-    // preference ownership so a broad script-opts override cannot remove half of the integration.
-    PlaybackSession.setIntegrationOptionString("script-opts-append", "ytdl_hook-ytdl_path=$ytdlBinaryPath")
-    PlaybackSession.setIntegrationOptionString("script-opts-append", "ytdl_hook-all_formats=yes")
-    PlaybackSession.setIntegrationOptionString("script-opts-append", "ytdl_hook-force_all_formats=yes")
-    PlaybackSession.setIntegrationOptionString("script-opts-append", "ytdl_hook-try_ytdl_first=yes")
+    PlaybackSession.setOptionString("script-opts-append", "ytdl_hook-ytdl_path=$ytdlBinaryPath")
+    PlaybackSession.setOptionString("script-opts-append", "ytdl_hook-all_formats=yes")
+    PlaybackSession.setOptionString("script-opts-append", "ytdl_hook-force_all_formats=yes")
+    PlaybackSession.setOptionString("script-opts-append", "ytdl_hook-try_ytdl_first=yes")
     // Skip yt-dlp for direct media/manifest URLs (.m3u8/.mpd/.mp4/.ts/...). Without this,
     // ytdl_hook intercepts every http(s) URL and routes it through yt-dlp's generic
     // extractor, which chokes on tokenized HLS/CDN links — so mpv never falls back to
     // ffmpeg's native HLS demuxer and playback fails (while MX Player/VLC play it fine).
-    PlaybackSession.setIntegrationOptionString("script-opts-append", "ytdl_hook-exclude=$DIRECT_MEDIA_EXCLUDE")
-    // Configure the executable before enabling a hook disabled by a user config. Keep it
-    // enabled between loads; a local file must not unload the built-in script.
-    PlaybackSession.setIntegrationOptionString("ytdl", "yes")
+    PlaybackSession.setOptionString("script-opts-append", "ytdl_hook-exclude=$DIRECT_MEDIA_EXCLUDE")
+    PlaybackSession.setOptionString("ytdl", "yes")
   }
 
   fun setupMpvOptions(
@@ -523,7 +533,12 @@ object YtdlpManager {
       // Add nativeLibDir to PATH so scripts can find our bridge if they search PATH
       // setupMpvOptions also runs for each web load; don't grow these lists indefinitely.
       for (name in listOf("PATH", "LD_LIBRARY_PATH")) {
-        val existing = Os.getenv(name).orEmpty().split(':').filter { it.isNotEmpty() && it != nativeLibDir }
+        val existing =
+          Os
+            .getenv(name)
+            .orEmpty()
+            .split(':')
+            .filter { it.isNotEmpty() && it != nativeLibDir }
         Os.setenv(name, (listOf(nativeLibDir) + existing).joinToString(":"), true)
       }
 
@@ -742,8 +757,7 @@ object YtdlpManager {
     }
   }
 
-  private fun File.readTextOrNull(): String? =
-    runCatching { takeIf(File::isFile)?.readText()?.trim() }.getOrNull()
+  private fun File.readTextOrNull(): String? = runCatching { takeIf(File::isFile)?.readText()?.trim() }.getOrNull()
 
   private fun installYtdlp(
     context: Context,
@@ -775,8 +789,8 @@ object YtdlpManager {
     command: List<String>,
     context: Context,
     onOutput: (String) -> Unit,
-  ): Boolean {
-    return try {
+  ): Boolean =
+    try {
       val process = startPythonProcess(command, context)
 
       BufferedReader(InputStreamReader(process.inputStream)).use { reader ->
@@ -787,7 +801,6 @@ object YtdlpManager {
       onOutput("Error: ${e.message}")
       false
     }
-  }
 
   private suspend fun executePlaylistExtractionProcess(
     command: List<String>,

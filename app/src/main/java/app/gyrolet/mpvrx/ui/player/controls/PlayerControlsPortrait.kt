@@ -9,7 +9,6 @@
 
 package app.gyrolet.mpvrx.ui.player.controls
 
-import app.gyrolet.mpvrx.ui.liquidglass.liquidGlassActive
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -34,6 +33,7 @@ import app.gyrolet.mpvrx.preferences.PlayerButton
 import app.gyrolet.mpvrx.preferences.preference.collectAsState
 import app.gyrolet.mpvrx.ui.icons.Icon
 import app.gyrolet.mpvrx.ui.icons.Icons
+import app.gyrolet.mpvrx.ui.liquidglass.liquidGlassActive
 import app.gyrolet.mpvrx.ui.player.Panels
 import app.gyrolet.mpvrx.ui.player.PlayerActivity
 import app.gyrolet.mpvrx.ui.player.PlayerViewModel
@@ -41,8 +41,8 @@ import app.gyrolet.mpvrx.ui.player.Sheets
 import app.gyrolet.mpvrx.ui.player.VideoAspect
 import app.gyrolet.mpvrx.ui.player.controls.components.ControlsButton
 import app.gyrolet.mpvrx.ui.player.controls.components.ControlsGroup
-import app.gyrolet.mpvrx.ui.player.controls.components.fadingHorizontalScroll
 import app.gyrolet.mpvrx.ui.player.controls.components.PlayerTitlePill
+import app.gyrolet.mpvrx.ui.player.controls.components.fadingHorizontalScroll
 import app.gyrolet.mpvrx.ui.player.controls.components.playerButtonContentColor
 import app.gyrolet.mpvrx.ui.theme.spacing
 import dev.vivvvek.seeker.Segment
@@ -54,6 +54,7 @@ fun TopPlayerControlsPortrait(
   onBackPress: () -> Unit,
   onOpenSheet: (Sheets) -> Unit,
   viewModel: PlayerViewModel,
+  onSwitchToAudio: () -> Unit,
   isTranslatingSub: Boolean = false,
   isRealtimeSubsActive: Boolean = false,
   realtimeSubsLanguage: String = "",
@@ -77,6 +78,14 @@ fun TopPlayerControlsPortrait(
           ControlsButton(
             icon = Icons.RoundedFilled.ArrowBack,
             onClick = onBackPress,
+            color = playerButtonContentColor(),
+            modifier = Modifier.size(48.dp),
+          )
+
+          ControlsButton(
+            icon = Icons.RoundedFilled.ReplaceAudio,
+            onClick = onSwitchToAudio,
+            title = stringResource(R.string.player_switch_to_audio),
             color = playerButtonContentColor(),
             modifier = Modifier.size(48.dp),
           )
@@ -196,11 +205,13 @@ fun BottomPlayerControlsPortrait(
           .fadingHorizontalScroll(
             rememberScrollState(),
             shadowRoom = if (enableLiquidGlass) PortraitActionShadowRoom else 0.dp,
-          )
-          .padding(horizontal = if (enableLiquidGlass) 8.dp else 0.dp),
-      horizontalArrangement = if (alignToEnd) {
-        Arrangement.spacedBy(MaterialTheme.spacing.small, Alignment.End)
-      } else horizontalArrangement,
+          ).padding(horizontal = if (enableLiquidGlass) 8.dp else 0.dp),
+      horizontalArrangement =
+        if (alignToEnd) {
+          Arrangement.spacedBy(MaterialTheme.spacing.small, Alignment.End)
+        } else {
+          horizontalArrangement
+        },
       verticalAlignment = Alignment.CenterVertically,
     ) {
       buttons.forEach { button ->
@@ -225,7 +236,13 @@ fun BottomPlayerControlsPortrait(
           )
         }
         // Unbounded scroll width would stretch a long title pill across the whole row.
-        if (button == PlayerButton.VIDEO_TITLE) Box(Modifier.widthIn(max = 220.dp)) { renderButton() } else renderButton()
+        if (button ==
+          PlayerButton.VIDEO_TITLE
+        ) {
+          Box(Modifier.widthIn(max = 220.dp)) { renderButton() }
+        } else {
+          renderButton()
+        }
       }
       if (showVideoQualitySelector) {
         ControlsButton(

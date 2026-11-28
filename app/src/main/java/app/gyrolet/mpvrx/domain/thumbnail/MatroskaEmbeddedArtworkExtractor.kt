@@ -13,6 +13,7 @@ import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.net.Uri
+import android.provider.OpenableColumns
 import app.gyrolet.mpvrx.utils.logging.Log
 import java.io.FileInputStream
 import java.io.IOException
@@ -31,7 +32,10 @@ internal object MatroskaEmbeddedArtworkExtractor {
   private const val MAX_ATTACHMENT_BYTES = 20L * 1024L * 1024L
   private const val MAX_DEPTH = 4
 
-  fun decode(path: String?, maxSize: Int = MAX_THUMBNAIL_SIZE): Bitmap? {
+  fun decode(
+    path: String?,
+    maxSize: Int = MAX_THUMBNAIL_SIZE,
+  ): Bitmap? {
     val localPath = path?.toLocalFilePath()?.takeIf { it.hasMatroskaExtension() } ?: return null
     return try {
       FileInputStream(localPath).channel.use { channel ->
@@ -47,13 +51,29 @@ internal object MatroskaEmbeddedArtworkExtractor {
   }
 
   /** Read attachments from an Android document-tree grant without copying a whole video to disk. */
-  fun decode(context: Context, uri: Uri, displayName: String?, maxSize: Int = MAX_THUMBNAIL_SIZE): Bitmap? =
-    readArtwork(context, uri, displayName)?.decodeArtwork(maxSize)
+  fun decode(
+    context: Context,
+    uri: Uri,
+    displayName: String?,
+    maxSize: Int = MAX_THUMBNAIL_SIZE,
+  ): Bitmap? = readArtwork(context, uri, displayName)?.decodeArtwork(maxSize)
 
   /** Original attachment bytes for exporting artwork without downscaling or recompressing it. */
-  fun readArtwork(context: Context, uri: Uri, displayName: String?): ByteArray? {
-    if (displayName?.hasMatroskaExtension() != true) return null
+  fun readArtwork(
+    context: Context,
+    uri: Uri,
+    displayName: String?,
+  ): ByteArray? {
     return try {
+      val isMatroska =
+        displayName?.hasMatroskaExtension() == true ||
+          uri.lastPathSegment?.hasMatroskaExtension() == true ||
+          context.contentResolver
+            .query(uri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)
+            ?.use { cursor ->
+              cursor.moveToFirst() && cursor.getString(0)?.hasMatroskaExtension() == true
+            } == true
+      if (!isMatroska) return null
       context.contentResolver.openFileDescriptor(uri, "r")?.use { descriptor ->
         FileInputStream(descriptor.fileDescriptor).channel.use { it.readArtwork() }
       }
@@ -66,6 +86,9 @@ internal object MatroskaEmbeddedArtworkExtractor {
     } catch (error: IllegalArgumentException) {
       Log.w(TAG, "Could not open the media document", error)
       null
+    } catch (error: android.database.SQLException) {
+      Log.w(TAG, "Could not query the media document", error)
+      null
     }
   }
 
@@ -74,12 +97,18 @@ internal object MatroskaEmbeddedArtworkExtractor {
     return findArtwork(reader, start = 0L, end = reader.length(), depth = 0)?.readBytes(reader)
   }
 
-  private class SeekableMedia(private val channel: FileChannel) {
+  private class SeekableMedia(
+    private val channel: FileChannel,
+  ) {
     private val oneByte = ByteBuffer.allocate(1)
 
     fun length(): Long = channel.size()
+
     fun position(): Long = channel.position()
-    fun seek(offset: Long) { channel.position(offset) }
+
+    fun seek(offset: Long) {
+      channel.position(offset)
+    }
 
     fun read(): Int {
       oneByte.clear()
@@ -173,7 +202,9 @@ internal object MatroskaEmbeddedArtworkExtractor {
       BitmapFactory.decodeByteArray(this, 0, size, options)
       val sampleSize = calculateThumbnailSampleSize(options.outWidth, options.outHeight, maxSize)
       BitmapFactory.decodeByteArray(
-        this, 0, size,
+        this,
+        0,
+        size,
         BitmapFactory.Options().apply {
           inSampleSize = sampleSize
           inPreferredConfig = Bitmap.Config.ARGB_8888

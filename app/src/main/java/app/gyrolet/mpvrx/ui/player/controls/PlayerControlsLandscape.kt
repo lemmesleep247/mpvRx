@@ -43,6 +43,7 @@ fun TopLeftPlayerControlsLandscape(
   onBackPress: () -> Unit,
   onOpenSheet: (Sheets) -> Unit,
   viewModel: PlayerViewModel,
+  onSwitchToAudio: () -> Unit,
   isTranslatingSub: Boolean = false,
   isRealtimeSubsActive: Boolean = false,
   realtimeSubsLanguage: String = "",
@@ -67,19 +68,28 @@ fun TopLeftPlayerControlsLandscape(
           modifier = Modifier.size(48.dp),
         )
 
+        ControlsButton(
+          icon = Icons.RoundedFilled.ReplaceAudio,
+          onClick = onSwitchToAudio,
+          title = stringResource(R.string.player_switch_to_audio),
+          color = playerButtonContentColor(),
+          modifier = Modifier.size(48.dp),
+        )
+
         PlayerTitlePill(
           title = mediaTitle,
           playlistInfo = viewModel.getPlaylistInfo(),
           onOpenInfo = { onOpenSheet(Sheets.MediaInfo) },
           onOpenPlaylist = if (playlistModeEnabled) ({ onOpenSheet(Sheets.Playlist) }) else null,
-          modifier = Modifier.layout { measurable, constraints ->
-            if (constraints.maxWidth < 48.dp.roundToPx()) {
-              layout(0, 0) {}
-            } else {
-              val placeable = measurable.measure(constraints)
-              layout(placeable.width, placeable.height) { placeable.placeRelative(0, 0) }
-            }
-          },
+          modifier =
+            Modifier.layout { measurable, constraints ->
+              if (constraints.maxWidth < 48.dp.roundToPx()) {
+                layout(0, 0) {}
+              } else {
+                val placeable = measurable.measure(constraints)
+                layout(placeable.width, placeable.height) { placeable.placeRelative(0, 0) }
+              }
+            },
         )
       }
 

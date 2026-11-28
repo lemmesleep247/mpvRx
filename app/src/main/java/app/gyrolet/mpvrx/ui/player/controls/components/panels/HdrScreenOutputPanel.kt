@@ -30,8 +30,8 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -39,8 +39,8 @@ import app.gyrolet.mpvrx.ui.icons.Icon
 import app.gyrolet.mpvrx.ui.icons.Icons
 import app.gyrolet.mpvrx.ui.player.HdrScreenMode
 import app.gyrolet.mpvrx.ui.player.PlayerViewModel
-import app.gyrolet.mpvrx.ui.theme.AppShapeScale
 import app.gyrolet.mpvrx.ui.theme.AppConnectedShapeTokens
+import app.gyrolet.mpvrx.ui.theme.AppShapeScale
 import app.gyrolet.mpvrx.ui.theme.ConnectedLayout
 import app.gyrolet.mpvrx.ui.theme.rememberConnectedShape
 import app.gyrolet.mpvrx.ui.theme.spacing
@@ -52,8 +52,7 @@ fun HdrScreenOutputPanel(
   modifier: Modifier = Modifier,
 ) {
   val mode by viewModel.hdrScreenMode.collectAsState()
-  val pipelineReady by viewModel.isHdrScreenOutputPipelineReady.collectAsState()
-  val isNativeHdrOutputAvailable by viewModel.isNativeHdrOutputAvailable.collectAsState()
+  val supportedModes by viewModel.supportedHdrScreenModes.collectAsState()
 
   DraggablePanel(
     modifier = modifier,
@@ -68,7 +67,7 @@ fun HdrScreenOutputPanel(
       modifier = Modifier.padding(MaterialTheme.spacing.medium),
       verticalArrangement = Arrangement.spacedBy(MaterialTheme.spacing.medium),
     ) {
-      if (!pipelineReady) {
+      if (supportedModes.isEmpty()) {
         HdrPipelineUnavailableStatus()
       }
       // OFF is the default state controlled by the HDR toggle button, not shown here.
@@ -77,7 +76,7 @@ fun HdrScreenOutputPanel(
           HdrModeOption(
             mode = option,
             selected = mode == option,
-            enabled = pipelineReady && (!option.needsNativeHdrOutput || isNativeHdrOutputAvailable),
+            enabled = option in supportedModes,
             onClick = { viewModel.setHdrScreenMode(option) },
             shape = rememberConnectedShape(index, HdrScreenMode.selectableModes.size, ConnectedLayout.Vertical),
           )
@@ -177,7 +176,7 @@ private fun HdrModeOption(
         .fillMaxWidth()
         .clip(shape)
         .clickable(enabled = enabled, onClick = onClick),
-      shape = shape,
+    shape = shape,
     color = containerColor,
     contentColor = contentColor,
     border = BorderStroke(1.dp, borderColor),
